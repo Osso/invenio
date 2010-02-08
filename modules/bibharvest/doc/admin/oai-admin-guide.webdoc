@@ -225,14 +225,14 @@ The OAI Repository corresponds to a set of metadata exposed for periodical harve
 
 <a name="3.1"></a><h3>3.1. Definition of OAI sets</h3>
 
-<p>The definition of the OAI sets in the <a href="<CFG_SITE_URL>/admin/bibharvest/oairepositoryadmin.py">OAI Repository Admin Interface</a> lets you choose:
+<p>The definition of the OAI sets in the <a href="<CFG_SITE_URL>/admin2/oairepository\">OAI Repository Admin Interface</a> lets you choose:
 <ol>
   <li>which records are to be exposed via OAI, by using the standard <a href="<CFG_SITE_URL>/help/search-guide">Invenio search syntax</a>.</li>
   <li>which <a href="http://www.openarchives.org/OAI/openarchivesprotocol.html#Set">OAI sets</a> are available in your repository. Simply specify the <code>setSpec</code> and <code>setName</code> of the set.</li>
 </ol>
 </p>
 
-<p>Let's say you want to expose all the records in the collection "<code>Articles</code>" that have a report number starting with <a href="<CFG_SITE_URL>/search?f1=reportnumber&amp;c=Articles&amp;p1=hep-*&amp;as=1">'<code>hep-</code>'</a>: simply add a new set definition in the <a href="<CFG_SITE_URL>/admin/bibharvest/oairepositoryadmin.py">OAI Repository Admin Interface</a>, choose the <code>setName</code> (Eg: "HEP Articles") and <code>setSpec</code> (Eg: "articles:hep"), and fill in the <code>collection</code> field with "Articles", the first <code>Phrase</code> field with "hep-*" and choose search field "report number".<p>
+<p>Let's say you want to expose all the records in the collection "<code>Articles</code>" that have a report number starting with <a href="<CFG_SITE_URL>/search?f1=reportnumber&amp;c=Articles&amp;p1=hep-*&amp;as=1">'<code>hep-</code>'</a>: simply add a new set definition in the <a href="<CFG_SITE_URL>/admin2/oairepository\">OAI Repository Admin Interface</a>, choose the <code>setName</code> (Eg: "HEP Articles") and <code>setSpec</code> (Eg: "articles:hep"), and fill in the <code>collection</code> field with "Articles", the first <code>Phrase</code> field with "hep-*" and choose search field "report number".<p>
 
 <p>If you want to export all the records in your repository, just leave all the query parameters blank. You can also omit the OAI setSpec and setName if you do not want to organize your repository into a hierarchy.</p>
 

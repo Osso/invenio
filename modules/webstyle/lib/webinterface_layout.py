@@ -230,6 +230,25 @@ if CFG_DEVEL_SITE:
 else:
     test_exports = []
 
+try:
+    from invenio.oaiharvestadmin_webinterface import WebInterfaceOaiHarvestAdminPages
+except:
+    register_exception(alert_admin=True, subject='EMERGENCY')
+    WebInterfaceOaiHarvestAdminPages = WebInterfaceDumbPages
+
+try:
+    from invenio.oairepositoryadmin_webinterface import WebInterfaceOaiRepositoryAdminPages
+except:
+    register_exception(alert_admin=True, subject='EMERGENCY')
+    WebInterfaceOaiRepositoryAdminPages = WebInterfaceDumbPages
+
+class WebInterfaceAdminPages(WebInterfaceDirectory):
+    """This class implements /admin2 admin pages."""
+    _exports = ['index', 'oaiharvest', 'oairepository']
+    def index(self, req, form):
+        return "FIXME: return /help/admin content"
+    oaiharvest = WebInterfaceOaiHarvestAdminPages()
+    oairepository = WebInterfaceOaiRepositoryAdminPages()
 
 class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
     """ The global URL layout is composed of the search API plus all
@@ -258,7 +277,8 @@ class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
         'kb',
         'batchuploader',
         'person',
-        'bibsword'
+        'bibsword',
+        'admin2'
         ] + test_exports + openaire_exports
 
     def __init__(self):
@@ -290,6 +310,8 @@ class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
     batchuploader = WebInterfaceBatchUploaderPages()
     bibsword = WebInterfaceSword()
     person = WebInterfaceBibAuthorIDPages()
+    admin2 = WebInterfaceAdminPages()
+
 
 # This creates the 'handler' function, which will be invoked directly
 # by mod_python.

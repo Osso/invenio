@@ -40,7 +40,7 @@ bibharvest_templates = invenio.template.load('bibharvest')
 tmppath = CFG_TMPDIR + '/oairepositoryadmin.' + str(os.getpid())
 guideurl = "help/admin/oai-admin-guide"
 oai_rep_admin_url = CFG_SITE_URL + \
-                    "/admin/bibharvest/oairepositoryadmin.py"
+                    "/admin2/oairepository"
 
 def getnavtrail(previous = '', ln = CFG_SITE_LANG):
     """Get navtrail"""
@@ -59,7 +59,7 @@ def perform_request_index(ln=CFG_SITE_LANG):
                                                        title = "OAI repository",
                                                        guideurl = guideurl,
                                                        extraname = "add new OAI set",
-                                                       extraurl = "admin/bibharvest/oairepositoryadmin.py/addset")
+                                                       extraurl = "admin2/oairepository/addset")
 
     header = ['id', 'setSpec',
               'setName', 'collection',
@@ -75,11 +75,11 @@ def perform_request_index(ln=CFG_SITE_LANG):
          p3, f3, m3, op1, op2) in oai_set:
 
         del_request = '<a href="' + CFG_SITE_URL + "/" + \
-                      "admin/bibharvest/oairepositoryadmin.py/delset?ln=" + \
+                      "admin2/oairepository/delset?ln=" + \
                       ln + "&amp;oai_set_id=" + str(id) + '">delete</a>'
 
         edit_request = '<a href="' + CFG_SITE_URL + "/" + \
-                       "admin/bibharvest/oairepositoryadmin.py/editset?ln=" + \
+                       "admin2/oairepository/editset?ln=" + \
                        ln + "&amp;oai_set_id=" + str(id) + '">edit</a>'
 
         sets.append([id, cgi.escape(setSpec), cgi.escape(setName),
@@ -90,7 +90,7 @@ def perform_request_index(ln=CFG_SITE_LANG):
                      del_request, edit_request])
 
     add_request = '<a href="' + CFG_SITE_URL + "/" + \
-                  "admin/bibharvest/oairepositoryadmin.py/addset?ln=" + \
+                  "admin2/oairepository/addset?ln=" + \
                   ln + '">Add new OAI set definition</a>'
 
     sets.append(['', add_request, '', '', '', '', '',

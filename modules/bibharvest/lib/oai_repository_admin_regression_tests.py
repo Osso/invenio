@@ -33,7 +33,7 @@ class OAIRepositoryAdminWebPagesAvailabilityTest(unittest.TestCase):
     def test_oairepositoryadmin_interface_pages_availability(self):
         """oairepositoryadmin - availability of OAI Repository Admin interface pages"""
 
-        baseurl = CFG_SITE_URL + '/admin/bibharvest/oairepositoryadmin.py/'
+        baseurl = CFG_SITE_URL + '/admin2/oairepository/'
 
         _exports = ['', 'delset', 'editset', 'addset']
 
@@ -54,7 +54,7 @@ class OAIRepositoryAdminWebPagesAvailabilityTest(unittest.TestCase):
     def test_oairepositoryadmin_edit_set(self):
         """oairepositoryadmin - edit set page"""
         test_edit_url = CFG_SITE_URL + \
-               "/admin/bibharvest/oairepositoryadmin.py/editset?oai_set_id=2"
+               "/admin2/oairepository/editset?oai_set_id=2"
         error_messages = test_web_page_content(test_edit_url,
                                                username='admin')
         if error_messages:
@@ -64,7 +64,7 @@ class OAIRepositoryAdminWebPagesAvailabilityTest(unittest.TestCase):
     def test_oairepositoryadmin_delete_set(self):
         """oairepositoryadmin - delete set page"""
         test_edit_url = CFG_SITE_URL + \
-               "/admin/bibharvest/oairepositoryadmin.py/delset?oai_set_id=2"
+               "/admin2/oairepository/delset?oai_set_id=2"
         error_messages = test_web_page_content(test_edit_url,
                                                username='admin')
         if error_messages:
