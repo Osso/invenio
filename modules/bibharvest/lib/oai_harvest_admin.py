@@ -65,7 +65,7 @@ from invenio.messages import gettext_set_language
 tmppath = CFG_TMPDIR + '/oaiharvestadmin.' + str(os.getpid())
 guideurl = "help/admin/oai-admin-guide"
 oai_harvest_admin_url = CFG_SITE_URL + \
-                        "/admin/bibharvest/oaiharvestadmin.py"
+                        "/admin2/oaiharvest"
 
 freqs = [[0, "never"],
          [24, "daily"],
@@ -116,7 +116,7 @@ def perform_request_index(ln=CFG_SITE_LANG):
     """start area for administering harvesting from OAI repositories"""
     _ = gettext_set_language(ln)
 
-    titlebar = bibharvest_templates.tmpl_draw_titlebar(ln=ln, title=_("Overview of sources"), guideurl=guideurl, extraname="add new OAI source" , extraurl="admin/bibharvest/oaiharvestadmin.py/addsource?ln=" + ln)
+    titlebar = bibharvest_templates.tmpl_draw_titlebar(ln=ln, title=_("Overview of sources"), guideurl=guideurl, extraname="add new OAI source" , extraurl="admin2/oaiharvest/addsource?ln=" + ln)
     titlebar2 = bibharvest_templates.tmpl_draw_titlebar(ln=ln, title=_("Harvesting status"), guideurl=guideurl)
     header = ['name', 'baseURL', 'metadataprefix', 'frequency',
               'bibconvertfile', 'postprocess', 'actions']
@@ -577,13 +577,13 @@ def perform_request_testsource(oai_src_id=None, ln=CFG_SITE_LANG,
         result += bibharvest_templates.tmpl_draw_titlebar(ln=ln, title=\
             "OAI XML downloaded from the source" , guideurl=guideurl)
         result += bibharvest_templates.tmpl_embed_document(\
-            "/admin/bibharvest/oaiharvestadmin.py/preview_original_xml?oai_src_id=" \
+            "/admin2/oaiharvest/preview_original_xml?oai_src_id=" \
             + str(oai_src_id) + "&record_id=" \
             + str(record_id))
         result += bibharvest_templates.tmpl_draw_titlebar(ln=ln, title=\
             "MARC XML after all the transformations", guideurl=guideurl)
         result += bibharvest_templates.tmpl_embed_document(\
-            "/admin/bibharvest/oaiharvestadmin.py/preview_harvested_xml?oai_src_id=" \
+            "/admin2/oaiharvest/preview_harvested_xml?oai_src_id=" \
             + str(oai_src_id) + "&record_id=" \
             + str(record_id))
     return result
@@ -799,7 +799,7 @@ def perform_request_viewhistory(oai_src_id=None, ln=CFG_SITE_LANG, callback=\
     inner_text += bibharvest_templates.tmpl_print_brs(ln, 1)
     inner_text = bibharvest_templates.tmpl_output_scrollable_frame(inner_text)
     inner_text += bibharvest_templates.tmpl_output_selection_bar()
-    result += createhiddenform(action="/admin/bibharvest/oaiharvestadmin.py/reharvest", \
+    result +=  createhiddenform(action="/admin2/oaiharvest/reharvest", \
         text=inner_text, button="Reharvest selected records", oai_src_id=\
         oai_src_id, ln=ln)
     return result
@@ -872,8 +872,8 @@ def perform_request_viewhistoryday(oai_src_id=None, ln=CFG_SITE_LANG,
     inner_text = bibharvest_templates.tmpl_output_scrollable_frame(build_history_table(\
         current_day_records, ln=ln))
     inner_text += bibharvest_templates.tmpl_output_selection_bar()
-    result += createhiddenform(action="/admin/bibharvest/oaiharvestadmin.py/reharvest", \
-        text=inner_text, button="Reharvest selected records", oai_src_id=oai_src_id, ln=ln)
+    result +=  createhiddenform(action="/admin2/oaiharvest/reharvest", \
+        text=inner_text, button = "Reharvest selected records", oai_src_id=oai_src_id, ln=ln)
     result += return_to_month_link + bibharvest_templates.tmpl_print_brs(ln, 1)
     return result
 

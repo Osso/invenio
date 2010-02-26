@@ -28,7 +28,7 @@ from invenio.urlutils import create_html_link
 from invenio.messages import gettext_set_language
 
 oai_harvest_admin_url = CFG_SITE_URL + \
-                        "/admin/bibharvest/oaiharvestadmin.py"
+                        "/admin2/oaiharvest"
 
 class Template:
     """ BibHarvest templates"""

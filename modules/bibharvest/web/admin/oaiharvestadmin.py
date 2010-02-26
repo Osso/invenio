@@ -62,7 +62,7 @@ def index(req, ln=CFG_SITE_LANG):
         return page_not_authorized(req=req, text=auth[1], navtrail=navtrail_previous_links)
 
 def editsource(req, oai_src_id=None, oai_src_name='', oai_src_baseurl='', oai_src_prefix='', oai_src_frequency='', oai_src_config='', oai_src_post='', ln=CFG_SITE_LANG, mtype='', callback='yes', confirm=-1, oai_src_sets=[], oai_src_bibfilter=''):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
 
     try:
         uid = getUid(req)
@@ -100,7 +100,7 @@ def editsource(req, oai_src_id=None, oai_src_name='', oai_src_baseurl='', oai_sr
         return page_not_authorized(req=req, text=auth[1], navtrail=navtrail_previous_links)
 
 def addsource(req, ln=CFG_SITE_LANG, oai_src_name='', oai_src_baseurl ='', oai_src_prefix='', oai_src_frequency='', oai_src_lastrun='', oai_src_config='', oai_src_post='', confirm=-1, oai_src_sets=[], oai_src_bibfilter=''):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
 
     try:
         uid = getUid(req)
@@ -139,7 +139,7 @@ def addsource(req, ln=CFG_SITE_LANG, oai_src_name='', oai_src_baseurl ='', oai_s
 
 
 def delsource(req, oai_src_id=None, ln=CFG_SITE_LANG, confirm=0):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
 
     try:
         uid = getUid(req)
@@ -168,7 +168,7 @@ def delsource(req, oai_src_id=None, ln=CFG_SITE_LANG, confirm=0):
 
 
 def testsource(req, oai_src_id=None, ln=CFG_SITE_LANG, confirm=0, record_id = None):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
 
     try:
         uid = getUid(req)
@@ -197,7 +197,7 @@ def testsource(req, oai_src_id=None, ln=CFG_SITE_LANG, confirm=0, record_id = No
 
 
 def viewhistory(req, oai_src_id=0, ln=CFG_SITE_LANG, confirm=0, year = None, month = None):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
     d_date = datetime.datetime.now()
     if year == None:
         year = d_date.year
@@ -230,7 +230,7 @@ def viewhistory(req, oai_src_id=0, ln=CFG_SITE_LANG, confirm=0, year = None, mon
         return page_not_authorized(req=req, text=auth[1], navtrail=navtrail_previous_links)
 
 def viewhistoryday(req, oai_src_id=0, ln=CFG_SITE_LANG, confirm=0, year = None, month = None, day = None, start = 0):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
     d_date = datetime.datetime.now()
     if year == None:
         year = d_date.year
@@ -267,7 +267,7 @@ def viewhistoryday(req, oai_src_id=0, ln=CFG_SITE_LANG, confirm=0, year = None, 
         return page_not_authorized(req=req, text=auth[1], navtrail=navtrail_previous_links)
 
 def viewentryhistory(req, oai_id=0, ln=CFG_SITE_LANG, confirm=0, start = 0):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
     try:
         uid = getUid(req)
     except Error, e:
@@ -294,7 +294,7 @@ def viewentryhistory(req, oai_id=0, ln=CFG_SITE_LANG, confirm=0, start = 0):
         return page_not_authorized(req=req, text=auth[1], navtrail=navtrail_previous_links)
 
 def viewtasklogs(req, ln=CFG_SITE_LANG, confirm=0, task_id = 0):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
     try:
         uid = getUid(req)
     except Error, e:
@@ -320,7 +320,7 @@ def viewtasklogs(req, ln=CFG_SITE_LANG, confirm=0, task_id = 0):
         return page_not_authorized(req=req, text=auth[1], navtrail=navtrail_previous_links)
 
 def viewhprecord(req, ln=CFG_SITE_LANG, confirm=0, hpupdate_id = 0):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
     try:
         uid = getUid(req)
     except Error, e:
@@ -346,7 +346,7 @@ def viewhprecord(req, ln=CFG_SITE_LANG, confirm=0, hpupdate_id = 0):
         return page_not_authorized(req=req, text=auth[1], navtrail=navtrail_previous_links)
 
 def accepthprecord(req, ln=CFG_SITE_LANG, confirm=0, hpupdate_id = 0):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
     try:
         uid = getUid(req)
     except Error, e:
@@ -374,7 +374,7 @@ def accepthprecord(req, ln=CFG_SITE_LANG, confirm=0, hpupdate_id = 0):
 
 
 def delhprecord(req, ln=CFG_SITE_LANG, confirm=0, task_id = 0, hpupdate_id = 0):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
     try:
         uid = getUid(req)
     except Error, e:
@@ -401,7 +401,7 @@ def delhprecord(req, ln=CFG_SITE_LANG, confirm=0, task_id = 0, hpupdate_id = 0):
 
 
 def reharvest(req, oai_src_id=None, ln=CFG_SITE_LANG, confirm=0, **records):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
     try:
         uid = getUid(req)
     except Error, e:
@@ -427,7 +427,7 @@ def reharvest(req, oai_src_id=None, ln=CFG_SITE_LANG, confirm=0, **records):
         return page_not_authorized(req=req, text=auth[1], navtrail=navtrail_previous_links)
 
 def harvest(req, oai_src_id = None, ln=CFG_SITE_LANG, confirm=0, record_id=None):
-    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
+    navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
     try:
         uid = getUid(req)
     except Error, e:
@@ -454,7 +454,7 @@ def harvest(req, oai_src_id = None, ln=CFG_SITE_LANG, confirm=0, record_id=None)
 
 
 def preview_original_xml(req, oai_src_id = None, ln=CFG_SITE_LANG, record_id = None):
-    navtrail_previous_links =oha.getnavtrail() + """&gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py">OAI Harvest Admin Interface</a> """ % (CFG_SITE_URL)
+    navtrail_previous_links =oha.getnavtrail() + """&gt; <a class="navtrail" href="%s/admin2/oaiharvest">OAI Harvest Admin Interface</a> """ % (CFG_SITE_URL)
     try:
         uid = getUid(req)
     except Error, e:
@@ -478,7 +478,7 @@ def preview_original_xml(req, oai_src_id = None, ln=CFG_SITE_LANG, record_id = N
 
 
 def preview_harvested_xml(req, oai_src_id = None, ln=CFG_SITE_LANG, record_id = None):
-    navtrail_previous_links = oha.getnavtrail() + """&gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py">OAI Harvest Admin Interface</a> """ % (CFG_SITE_URL)
+    navtrail_previous_links = oha.getnavtrail() + """&gt; <a class="navtrail" href="%s/admin2/oaiharvest">OAI Harvest Admin Interface</a> """ % (CFG_SITE_URL)
     try:
         uid = getUid(req)
     except Error, e:
@@ -550,7 +550,7 @@ def getHoldingPenData(req, elementId):
         for i in range(0, numberOfPages):
             pages += [
             {
-            "url": "%s/admin/bibharvest/oaiharvestadmin.py/get_entries_fragment?year=%s&month=%s&day=%s&start=%i&limit=%i&filter=%s" % (CFG_SITE_URL, nodeYear, nodeMonth, nodeDay, i * resultsPerPage, resultsPerPage, urlFilter),
+            "url": "%s/admin2/oaiharvest/get_entries_fragment?year=%s&month=%s&day=%s&start=%i&limit=%i&filter=%s" % (CFG_SITE_URL, nodeYear, nodeMonth, nodeDay, i * resultsPerPage, resultsPerPage, urlFilter),
             "selector": False,
             "type": "ajax",
             }]
@@ -581,7 +581,7 @@ def get_entries_fragment(req, year, month, day, start, limit, filter):
 
 
 def viewholdingpen(req, filter = "", ln=CFG_SITE_LANG):
-    navtrail_previous_links = oha.getnavtrail() + """&gt; <a class="navtrail" href="%s/admin/bibharvest/oaiharvestadmin.py">BibHarvest Admin Interface</a> """ % (CFG_SITE_URL)
+    navtrail_previous_links = oha.getnavtrail() + """&gt; <a class="navtrail" href="%s/admin2/oaiharvest">BibHarvest Admin Interface</a> """ % (CFG_SITE_URL)
     try:
         uid = getUid(req)
     except Error, e:

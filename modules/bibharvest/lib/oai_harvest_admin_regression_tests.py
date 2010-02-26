@@ -33,7 +33,7 @@ class BibHarvestAdminWebPagesAvailabilityTest(unittest.TestCase):
     def test_oaiharvestadmin_interface_pages_availability(self):
         """oaiharvestadmin - availability of OAI Harvest Admin interface pages"""
 
-        baseurl = CFG_SITE_URL + '/admin/bibharvest/oaiharvestadmin.py/'
+        baseurl = CFG_SITE_URL + '/admin2/oaiharvest/'
 
         _exports = ['', 'editsource', 'addsource', 'delsource']
 

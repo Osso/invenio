@@ -55,7 +55,7 @@ $(document).ready(function(){
 				var p = $("<li><span>Loading...</span></li>").appendTo("#" + elementId + "_ul");
 				$("#holdingpencontainer").treeview({add : p});
 
-				$.getJSON(serverAddress + "/admin/bibharvest/oaiharvestadmin.py/getHoldingPenData",
+				$.getJSON(serverAddress + "/admin2/oaiharvest/getHoldingPenData",
 						{elementId : $(this).attr("id")},
 						function(json){
 							$("#" + json.elementId + "_ul").empty();

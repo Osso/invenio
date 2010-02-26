@@ -39,7 +39,7 @@ The OAI Harvest and OAI Repository Admin Interfaces can be used to set up a data
 
 <a name="2"></a><h2>2. OAI Data Harvesting</h2>
 
-<p>In order to periodically harvest metadata from one or several repositories, it is possible to organize OAI sources through the <a href="<CFG_SITE_URL>/admin/bibharvest/oaiharvestadmin.py<lang:link/>">OAI Harvest Admin Interface</a>.
+<p>In order to periodically harvest metadata from one or several repositories, it is possible to organize OAI sources through the <a href="<CFG_SITE_URL>/admin2/oaiharvest<lang:link/>">OAI Harvest Admin Interface</a>.
 The interface allows the administrator to add new repositories as well as edit and delete existing ones.
 Once defined, run the <code>oaiharvest</code> command-line tool to start periodical harvesting of these repositories based on your settings.</p>
 <p>(Note that you can <b>alternatively</b> use the <code>oaiharvest</code> command-line tool to perform a manual harvesting of a repository independently of the settings in OAI Harvest admin interface, and save the result into a file. This lets you specify the OAI arguments for the harvesting (verb, dates, sets, metadata format, etc.). You would then need to run <code>bibconvert</code> and <code>bibupload</code> to integrate the harvested records into your repository. This method can be useful to play with repositories, or for writing custom harvesting scripts, but it is not recommended for periodical harvesting. Run <code>oaiharvest -h</code> for additional information.)</p>
