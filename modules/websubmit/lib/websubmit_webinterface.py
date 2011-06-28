@@ -74,6 +74,13 @@ from invenio.jsonutils import json, CFG_JSON_AVAILABLE
 import invenio.template
 webstyle_templates = invenio.template.load('webstyle')
 websearch_templates = invenio.template.load('websearch')
+bibdocfile_templates = invenio.template.load('bibdocfile')
+
+try:
+    from invenio.fckeditor_invenio_connector import FCKeditorConnectorInvenio
+    fckeditor_available = True
+except ImportError, e:
+    fckeditor_available = False
 
 from invenio.websubmit_managedocfiles import \
      create_file_upload_interface, \
@@ -238,7 +245,7 @@ class WebInterfaceFilesPages(WebInterfaceDirectory):
             if docname and format and not warn:
                 req.status = apache.HTTP_NOT_FOUND
                 warn += print_warning(_("Requested file does not seem to exist."))
-            filelist = bibarchive.display("", version, ln=ln, verbose=verbose, display_hidden=display_hidden)
+            filelist = bibdocfile_templates.tmpl_display_bibrecdocs(bibarchive, "", version, ln=ln, verbose=verbose, display_hidden=display_hidden)
 
             t = warn + websubmit_templates.tmpl_filelist(
                 ln=ln,
