@@ -28,7 +28,7 @@ from invenio.webinterface_handler import create_handler
 from invenio.errorlib import register_exception
 from invenio.webinterface_handler import WebInterfaceDirectory
 from invenio import webinterface_handler_config as apache
-from invenio.config import CFG_DEVEL_SITE, CFG_OPENAIRE_SITE
+from invenio.config import CFG_DEVEL_SITE, CFG_INSPIRE_SITE, CFG_OPENAIRE_SITE
 
 class WebInterfaceDumbPages(WebInterfaceDirectory):
     """This class implements a dumb interface to use as a fallback in case of
@@ -225,6 +225,18 @@ if CFG_OPENAIRE_SITE:
 else:
     openaire_exports = []
 
+if CFG_INSPIRE_SITE:
+    try:
+        from invenio.inspireproject_webinterface import WebInterfaceInspirePages
+    except:
+        register_exception(stream='warning',
+                prefix="""
+CFG_INSPIRE_SITE set, but I couldn't load inspireproject_webinterface; have
+you installed the inspire repository master branch?  Until this is corrected,
+/inspire URLs won't work properly.""",
+                alert_admin=False)
+        WebInterfaceInspirePages = WebInterfaceDumbPages
+
 if CFG_DEVEL_SITE:
     try:
         from invenio.httptest_webinterface import WebInterfaceHTTPTestPages
@@ -262,6 +274,7 @@ class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
                    'exporter',
                    'kb',
                    'batchuploader',
+                   'inspire',
                    'person',
                    'bibsword',
                    'ping',
@@ -300,6 +313,8 @@ class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
     #redirects author to the new webauthor
     author = WebInterfaceWebAuthorPages()
     #author = WebInterfaceAuthorPages()
+    if CFG_INSPIRE_SITE:
+        inspire = WebInterfaceInspirePages()
 
 # This creates the 'handler' function, which will be invoked directly
 # by mod_python.
