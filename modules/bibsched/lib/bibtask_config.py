@@ -32,7 +32,7 @@ CFG_BIBTASK_VALID_TASKS = ("bibindex", "bibupload", "bibreformat",
                            "dbdump", "batchuploader", "bibauthorid", 'bibencode',
                            "bibtasklet", "refextract", "bibsort", "selfcites",
                            "webauthorprofile", "citationstats",
-                           "arxiv-pdf-checker")
+                           "arxiv-pdf-checker", "hepdataharvest")
 
 # Tasks that should be run as standalone task
 CFG_BIBTASK_MONOTASKS = ("dbdump", "inveniogc")
