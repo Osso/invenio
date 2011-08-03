@@ -32,6 +32,7 @@ from invenio.dbquery import Error
 from invenio.webuser import getUid, page_not_authorized
 from invenio.bibrankadminlib import check_user
 from invenio.oai_harvest_dblayer import get_holdingpen_day_size
+from invenio.oai_harvest_config import CFG_OAI_POSSIBLE_POSTMODES
 from invenio.urlutils import redirect_to_url
 
 from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
@@ -72,13 +73,35 @@ class WebInterfaceOaiHarvestAdminPages(WebInterfaceDirectory):
 
 
     def editsource(self, req, form):
-        argd = wash_urlargd(form, {'oai_src_id': (str, None), 'oai_src_name': (str, ""), 'oai_src_baseurl': (str, ""), 'oai_src_prefix': (str, ""), 'oai_src_frequency': (str, ""), 'oai_src_config': (str, ""), 'oai_src_post': (str, ""), 'ln': (str, "en"), 'mtype': (str, ""), 'callback': (str, "yes"), 'confirm': (int, -1), 'oai_src_sets': (list, None), 'oai_src_bibfilter': (str, "")})
+        content = {'oai_src_id': (str, None),
+                   'oai_src_name': (str, ""),
+                   'oai_src_baseurl': (str, ""),
+                   'oai_src_prefix': (str, ""),
+                   'oai_src_frequency': (str, ""),
+                   'oai_src_comment': (str, ""),
+                   'oai_src_post': (list, None),
+                   'ln': (str, "en"),
+                   'mtype': (str, ""),
+                   'callback': (str, "yes"),
+                   'confirm': (int, -1),
+                   'oai_src_sets': (list, None)}
+        # Grab list of defined post-process arguments to select from POST-data. e.g. ('c_cfg-file', str)
+        post_arguments = [("%s_%s" % (mode[0], arg['name']), type(arg['value'])) \
+                          for mode in CFG_OAI_POSSIBLE_POSTMODES \
+                          for arg in mode[2]]
+        for argument_name, argument_type in post_arguments:
+            if argument_type == str:
+                content[argument_name] = (str, "")
+            elif argument_type == list:
+                content[argument_name] = (list, [])
+        
+        argd = wash_urlargd(form, content)
         oai_src_id = argd['oai_src_id']
         oai_src_name = argd['oai_src_name']
         oai_src_baseurl = argd['oai_src_baseurl']
         oai_src_prefix = argd['oai_src_prefix']
         oai_src_frequency = argd['oai_src_frequency']
-        oai_src_config = argd['oai_src_config']
+        oai_src_comment = argd['oai_src_comment']
         oai_src_post = argd['oai_src_post']
         ln = argd['ln']
         mtype = argd['mtype']
@@ -87,7 +110,10 @@ class WebInterfaceOaiHarvestAdminPages(WebInterfaceDirectory):
         oai_src_sets = argd['oai_src_sets']
         if oai_src_sets == None:
             oai_src_sets = []
-        oai_src_bibfilter = argd['oai_src_bibfilter']
+
+        oai_src_args = {}
+        for argument_name, dummy in post_arguments:
+            oai_src_args[argument_name] = argd[argument_name]
 
         navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
 
@@ -107,15 +133,16 @@ class WebInterfaceOaiHarvestAdminPages(WebInterfaceDirectory):
             if isinstance(oai_src_sets, str):
                 oai_src_sets = [oai_src_sets]
             return page(title="Edit OAI Source",
+                        metaheaderadd=oha.getheader(),
                         body=oha.perform_request_editsource(oai_src_id=oai_src_id,
                                                             oai_src_name=oai_src_name,
                                                             oai_src_baseurl=oai_src_baseurl,
                                                             oai_src_prefix=oai_src_prefix,
                                                             oai_src_frequency=oai_src_frequency,
-                                                            oai_src_config=oai_src_config,
                                                             oai_src_post=oai_src_post,
+                                                            oai_src_comment=oai_src_comment,
                                                             oai_src_sets=oai_src_sets,
-                                                            oai_src_bibfilter=oai_src_bibfilter,
+                                                            oai_src_args=oai_src_args,
                                                             ln=ln,
                                                             confirm=confirm),
                         uid=uid,
@@ -128,20 +155,45 @@ class WebInterfaceOaiHarvestAdminPages(WebInterfaceDirectory):
 
 
     def addsource(self, req, form):
-        argd = wash_urlargd(form, {'ln': (str, "en"), 'oai_src_name': (str, ""), 'oai_src_baseurl': (str, ""), 'oai_src_prefix': (str, ""), 'oai_src_frequency': (str, ""), 'oai_src_lastrun': (str, ""), 'oai_src_config': (str, ""), 'oai_src_post': (str, ""), 'confirm': (int, -1), 'oai_src_sets': (list, None), 'oai_src_bibfilter': (str, "")})
+        content = {'ln': (str, "en"),
+                   'oai_src_name': (str, ""),
+                   'oai_src_baseurl': (str, ""),
+                   'oai_src_prefix': (str, ""),
+                   'oai_src_frequency': (str, ""),
+                   'oai_src_lastrun': (str, ""),
+                   'oai_src_comment': (str, ""),
+                   'oai_src_post': (list, None),
+                   'confirm': (int, -1),
+                   'oai_src_sets': (list, None)}
+        # Grab list of defined post-process arguments to select from POST-data. e.g. ('c_cfg-file', str)
+        post_arguments = [("%s_%s" % (mode[0], arg['name']), type(arg['value'])) \
+                          for mode in CFG_OAI_POSSIBLE_POSTMODES \
+                          for arg in mode[2]]
+        for argument_name, argument_type in post_arguments:
+            if argument_type == str:
+                content[argument_name] = (str, "")
+            elif argument_type == list:
+                content[argument_name] = (list, [])
+
+        argd = wash_urlargd(form, content)
         ln = argd['ln']
         oai_src_name = argd['oai_src_name']
         oai_src_baseurl = argd['oai_src_baseurl']
         oai_src_prefix = argd['oai_src_prefix']
         oai_src_frequency = argd['oai_src_frequency']
         oai_src_lastrun = argd['oai_src_lastrun']
-        oai_src_config = argd['oai_src_config']
+        oai_src_comment = argd['oai_src_comment']
         oai_src_post = argd['oai_src_post']
         confirm = argd['confirm']
         oai_src_sets = argd['oai_src_sets']
         if oai_src_sets == None:
             oai_src_sets = []
-        oai_src_bibfilter = argd['oai_src_bibfilter']
+        if oai_src_post == None:
+            oai_src_post = []
+
+        oai_src_args = {}
+        for argument_name, dummy in post_arguments:
+            oai_src_args[argument_name] = argd[argument_name]
 
         navtrail_previous_links = oha.getnavtrail(' &gt; <a class="navtrail" href="%s/admin2/oaiharvest/index?ln=%s">OAI Harvest Admin Interface</a> ' % (CFG_SITE_URL, ln), ln=ln)
 
@@ -161,15 +213,16 @@ class WebInterfaceOaiHarvestAdminPages(WebInterfaceDirectory):
             if isinstance(oai_src_sets, str):
                 oai_src_sets = [oai_src_sets]
             return page(title="Add new OAI Source",
+                        metaheaderadd=oha.getheader(),
                         body=oha.perform_request_addsource(oai_src_name=oai_src_name,
                                                            oai_src_baseurl=oai_src_baseurl,
                                                            oai_src_prefix=oai_src_prefix,
                                                            oai_src_frequency=oai_src_frequency,
                                                            oai_src_lastrun=oai_src_lastrun,
-                                                           oai_src_config=oai_src_config,
                                                            oai_src_post=oai_src_post,
+                                                           oai_src_comment=oai_src_comment,
+                                                           oai_src_args=oai_src_args,
                                                            oai_src_sets=oai_src_sets,
-                                                           oai_src_bibfilter=oai_src_bibfilter,
                                                            ln=ln,
                                                            confirm=confirm),
                         uid=uid,
@@ -649,7 +702,7 @@ class WebInterfaceOaiHarvestAdminPages(WebInterfaceDirectory):
 
         if len(elements) == 2:
             filter = elements[1]
-            resultHtml =  oha.perform_request_gethpyears(elements[0], filer);
+            resultHtml =  oha.perform_request_gethpyears(elements[0], filter);
         elif len(elements) == 3:
             # only the year is specified
             result = ""

@@ -80,6 +80,7 @@ def editsource(req, oai_src_id=None, oai_src_name='', oai_src_baseurl='', oai_sr
         if isinstance(oai_src_sets, str):
             oai_src_sets = [oai_src_sets]
         return page(title="Edit OAI Source",
+                    metaheaderadd=oha.getheader(),
                     body=oha.perform_request_editsource(oai_src_id=oai_src_id,
                                                         oai_src_name=oai_src_name,
                                                         oai_src_baseurl=oai_src_baseurl,
@@ -118,6 +119,7 @@ def addsource(req, ln=CFG_SITE_LANG, oai_src_name='', oai_src_baseurl ='', oai_s
         if isinstance(oai_src_sets, str):
             oai_src_sets = [oai_src_sets]
         return page(title="Add new OAI Source",
+                    metaheaderadd=oha.getheader(),
                     body=oha.perform_request_addsource(oai_src_name=oai_src_name,
                                                        oai_src_baseurl=oai_src_baseurl,
                                                        oai_src_prefix=oai_src_prefix,
@@ -544,7 +546,7 @@ def getHoldingPenData(req, elementId):
         daySize = get_holdingpen_day_size(nodeYear, nodeMonth, nodeDay, filter);
         resultHtml = """<li><div id="%s_pager"></div>&nbsp;</li>""" %(elementId,)
         resultsPerPage = 20
-        numberOfPages = math.ceil(float(daySize) / resultsPerPage)
+        numberOfPages = int(math.ceil(float(daySize) / resultsPerPage))
         pages = []
         urlFilter = urllib.quote(filter)
         for i in range(0, numberOfPages):
