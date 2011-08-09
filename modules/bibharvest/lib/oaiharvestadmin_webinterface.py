@@ -631,7 +631,7 @@ class WebInterfaceOaiHarvestAdminPages(WebInterfaceDirectory):
 
 
     def getHoldingPenData(self, req, form):
-        argd = wash_urlargd(form, {'elementId': (int, 0)})
+        argd = wash_urlargd(form, {'elementId': (str, 0)})
         elementId = argd['elementId']
 
         try:

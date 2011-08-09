@@ -72,11 +72,11 @@ data are uploaded in Invenio, you may want to modify them via
   periodical batch upload of data.  For example, you can define from
   where to harvest, with what periodicity, how to transform data
   before uploading them into Invenio, etc. See also
-   <a href="<CFG_SITE_URL>/admin/bibharvest/oairepositoryadmin.py">OAI Repository Admin</a>
+   <a href="<CFG_SITE_URL>/admin2/oairepository">OAI Repository Admin</a>
    to expose your data to other harvesters.
 </td>
 <td>
-  <a href="<CFG_SITE_URL>/admin/bibharvest/oaiharvestadmin.py">OAI Harvest Admin Interface</a>
+  <a href="<CFG_SITE_URL>/admin2/oaiharvest">OAI Harvest Admin Interface</a>
 </td>
 <td>
   <a href="oai-admin-guide">OAI Admin Guide</a>
@@ -353,11 +353,11 @@ engine.
     Enables you to define which records should be tagged to be exposed
     via the OAI Repository gateway, so that other other repositories
     can harvest your records. See also
-    <a href="<CFG_SITE_URL>/admin/bibharvest/oaiharvestadmin.py">OAI Harvest Admin</a>
+    <a href="<CFG_SITE_URL>/admin2/oaiharvest">OAI Harvest Admin</a>
     to import data into your repository.
 </td>
 <td>
-  <a href="<CFG_SITE_URL>/admin/bibharvest/oairepositoryadmin.py">OAI repository Admin Interface</a>
+  <a href="<CFG_SITE_URL>/admin2/oairepository">OAI repository Admin Interface</a>
 </td>
 <td>
   <a href="oai-admin-guide">OAI Admin Guide</a>
