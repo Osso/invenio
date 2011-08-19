@@ -292,6 +292,9 @@ def task_run_core():
                                get_nb_records_in_file(updated_file)))
             active_files_list = updated_files_list
             write_message("conversion step ended")
+        if 'd' in postmode:
+            pass
+
         # plotextract phase
         if 'p' in postmode:
             write_message("plotextraction step started")

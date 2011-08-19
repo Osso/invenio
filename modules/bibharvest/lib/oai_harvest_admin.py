@@ -559,12 +559,11 @@ def get_oai_source_form(ln, oai_src_baseurl, oai_src_name, oai_src_prefix,
         updated_mode_arguments = []
         for arg_dict in mode_arguments:
             name = "%s_%s" % (mode_value, arg_dict['name'])
-            if oai_src_args[name]:
-                if arg_dict['input'] == 'text':
-                    arg_dict['value'] = oai_src_args[name]
-                elif arg_dict['input'] == 'checkbox':
-                    for i in range(len(arg_dict['value'])):
-                        arg_dict['states'][i] = arg_dict['value'][i] in oai_src_args[name]
+            if arg_dict['input'] == 'text':
+                arg_dict['value'] = oai_src_args.get(name, "")
+            elif arg_dict['input'] == 'checkbox':
+                for i in range(len(arg_dict['value'])):
+                    arg_dict['states'][i] = arg_dict['value'][i] in oai_src_args.get(name,[])
             updated_mode_arguments.append(arg_dict)
         post_arguments.append(updated_mode_arguments)
 

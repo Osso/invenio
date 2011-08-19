@@ -31,6 +31,19 @@ CFG_OAI_POSSIBLE_POSTMODES = [\
             'value': "", \
             'input' : "text"}] \
          ], \
+         ["d", \
+          "download material (d)", \
+          [{'name' : 'pdf-url', \
+            'required': False, \
+            'validation' : None, \
+            'value': "", \
+            'input' : "text"},
+           {'name' : 'tarball-url', \
+            'required': False, \
+            'validation' : None, \
+            'value': "", \
+            'input' : "text"}]\
+         ], \
          ["p", \
           "extract plots (p)", \
           [{'name' : 'extraction-source', \
