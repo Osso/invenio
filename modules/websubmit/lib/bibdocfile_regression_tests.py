@@ -23,7 +23,9 @@ __revision__ = "$Id$"
 
 import unittest
 from invenio.testutils import make_test_suite, run_test_suite
-from invenio.bibdocfile import BibRecDocs, check_bibdoc_authorization, bibdocfile_url_p
+from invenio.bibdocfile import BibRecDocs, check_bibdoc_authorization, \
+        bibdocfile_url_p, BibRelation, MoreInfo
+
 from invenio.access_control_config import CFG_WEBACCESS_WARNING_MSGS
 from invenio.config import \
         CFG_SITE_URL, \
@@ -118,6 +120,7 @@ class BibDocsTest(unittest.TestCase):
         my_new_bibdoc.revert(1)
         self.assertEqual(my_new_bibdoc.list_versions(), [1, 2, 3])
         self.assertEqual(my_new_bibdoc.get_description('.jpg', version=3), 'test add new file')
+
         #get total size latest version
         self.assertEqual(my_new_bibdoc.get_total_size_latest_version(), 91750)
         #get latest version
@@ -190,6 +193,57 @@ class BibDocsTest(unittest.TestCase):
         #delete
         my_bibrecdoc.delete_bibdoc('img_test')
         my_bibrecdoc.delete_bibdoc('new_name')
+
+
+
+class BibRelationTest(unittest.TestCase):
+    """ regression tests for BibRelation"""
+    def test_RelationCreation_Version(self):
+        """
+        Testing relations between particular versions of a document
+        We create twi relations differing only on the BibDoc version
+        number and verify that they are indeed differen (store different data)
+        """
+
+        rel1 = BibRelation.create(bibdoc1_id = 10, bibdoc2_id=12,
+                                  bibdoc1_ver = 1, bibdoc2_ver = 1,
+                                  rel_type = "some_rel")
+
+        rel2 = BibRelation.create(bibdoc1_id = 10, bibdoc2_id=12,
+                                  bibdoc1_ver = 1, bibdoc2_ver = 2,
+                                  rel_type = "some_rel")
+
+        rel1["key1"] = "value1"
+        rel1["key2"] = "value2"
+        rel2["key1"] = "value3"
+
+        # now testing the retrieval of data
+        new_rel1 = BibRelation(bibdoc1_id = 10, bibdoc2_id = 12,
+                               rel_type = "some_rel", bibdoc1_ver = 1,
+                               bibdoc2_ver = 1)
+
+        new_rel2 = BibRelation(bibdoc1_id = 10, bibdoc2_id = 12,
+                               rel_type = "some_rel", bibdoc1_ver = 1,
+                               bibdoc2_ver = 2)
+
+        self.assertEqual(new_rel1["key1"], "value1")
+        self.assertEqual(new_rel1["key2"], "value2")
+        self.assertEqual(new_rel2["key1"], "value3")
+
+        # now testing the deletion of relations
+        new_rel1.delete()
+        new_rel2.delete()
+
+        newer_rel1 = BibRelation.create(bibdoc1_id = 10, bibdoc2_id=12,
+                                  bibdoc1_ver = 1, bibdoc2_ver = 1,
+                                  rel_type = "some_rel")
+
+        newer_rel2 = BibRelation.create(bibdoc1_id = 10, bibdoc2_id=12,
+                                  bibdoc1_ver = 1, bibdoc2_ver = 2,
+                                  rel_type = "some_rel")
+
+        self.assertEqual("key1" in newer_rel1, False)
+        self.assertEqual("key1" in newer_rel2, False)
 
 
 class BibDocFilesTest(unittest.TestCase):
@@ -373,14 +427,20 @@ class BibDocRelationTest(unittest.TestCase):
         rel2.delete()
 
 
+#TEST_SUITE = make_test_suite(BibDocsTest)
 
 TEST_SUITE = make_test_suite(BibRecDocsTest, \
                              BibDocsTest, \
                              BibDocFilesTest, \
                              MoreInfoTest, \
+<<<<<<< HEAD
                              BibDocRelationTest, \
                              CheckBibDocAuthorizationTest, \
                              BibDocFileURLTest)
+=======
+                             BibRelationTest, \
+                             CheckBibDocAuthorization)
+>>>>>>> BibDocFile: Possibility of uploadinf FFR tags, modifications to BibRelation, unit tests
 
 if __name__ == "__main__":
     run_test_suite(TEST_SUITE, warn_user=True)
