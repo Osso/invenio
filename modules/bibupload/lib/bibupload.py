@@ -329,7 +329,7 @@ def bibupload(record, opt_tag=None, opt_mode=None,
             try:
                 record = elaborate_fft_tags(record, rec_id, opt_mode,
                                             pretend=pretend, tmp_ids = tmp_ids,
-                                            tmp_versions = tmp_versions)
+                                            tmp_vers = tmp_vers)
             except Exception, e:
                 register_exception()
                 write_message("   Stage 2 failed: Error while elaborating FFT tags: %s" % e,
@@ -1553,7 +1553,8 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                     raise StandardError, "fft '%s' specifies a non available flag: %s" % (fft, flag)
 
             if docs.has_key(name): # new format considered
-                (doctype2, newname2, restriction2, version2, urls) = docs[name]
+                #TODO Piotr: Clen last 3 parameters ... verify if they should not be used ! (added only to make unpacking of tuples of docs[name] work
+                (doctype2, newname2, restriction2, version2, urls, bibdoc_moreinfos2 , bibdoc_tmpid2 ,bibdoc_tmpver2 ) = docs[name]
                 if doctype2 != doctype:
                     raise StandardError, "fft '%s' specifies a different doctype from previous fft with docname '%s'" % (str(fft), name)
                 if newname2 != newname:
@@ -2371,19 +2372,17 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
 
     # Second phase -> Now we can process all entries where temporary identifiers might appear (BRT, MIT, BDA)
 
-    write_message("Uploading BRT, MIT and BDA fields")
-    if opt_mode != "holdingpen":
-        for record in recs:
-            record_id = record_extract_oai_id(record)
-            bibupload_post_phase(record,
-                                 opt_tag = opt_tag,
-                                 opt_mode = opt_mode,
-
-
-                                 oai_rec_id = record_id,
-                                 pretend = pretend,
-                                 tmp_ids = tmp_ids,
-                                 tmp_vers = tmp_vers)
+#    write_message("Uploading BRT, MIT and BDA fields")
+#    if opt_mode != "holdingpen":
+#        for record in records:
+#            record_id = record_extract_oai_id(record)
+#            bibupload_post_phase(record,
+#                                 opt_tag = opt_tag,
+#                                 opt_mode = opt_mode,
+#                                 oai_rec_id = record_id,
+#                                 pretend = pretend,
+#                                 tmp_ids = tmp_ids,
+#                                 tmp_vers = tmp_vers)
 
 
 
