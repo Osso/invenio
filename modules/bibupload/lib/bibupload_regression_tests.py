@@ -2492,7 +2492,7 @@ class BibUploadFFTModeTest(GenericBibUploadTest):
     """
 
     def _test_bibdoc_status(self, recid, docname, status):
-        res = run_sql('SELECT bd.status FROM bibrec_bibdoc as bb JOIN bibdoc as bd ON bb.id_bibdoc = bd.id WHERE bb.id_bibrec = %s AND bd.docname = %s', (recid, docname))
+        res = run_sql('SELECT bd.status FROM bibrec_bibdoc as bb JOIN bibdoc as bd ON bb.id_bibdoc = bd.id WHERE bb.id_bibrec = %s AND bb.docname = %s', (recid, docname))
         self.failUnless(res)
         self.assertEqual(status, res[0][0])
 

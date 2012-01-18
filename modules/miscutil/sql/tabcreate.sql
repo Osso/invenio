@@ -2848,13 +2848,11 @@ CREATE TABLE IF NOT EXISTS tag (
 CREATE TABLE IF NOT EXISTS bibdoc (
   id mediumint(9) unsigned NOT NULL auto_increment,
   status text NOT NULL default '',
-  docname varchar(250) COLLATE utf8_bin NOT NULL default 'file',
   creation_date datetime NOT NULL default '0000-00-00',
   modification_date datetime NOT NULL default '0000-00-00',
   text_extraction_date datetime NOT NULL default '0000-00-00',
   more_info mediumblob NULL default NULL,
   PRIMARY KEY  (id),
-  KEY docname (docname),
   KEY creation_date (creation_date),
   KEY modification_date (modification_date)
 ) ENGINE=MyISAM;
@@ -2862,7 +2860,9 @@ CREATE TABLE IF NOT EXISTS bibdoc (
 CREATE TABLE IF NOT EXISTS bibrec_bibdoc (
   id_bibrec mediumint(9) unsigned NOT NULL default '0',
   id_bibdoc mediumint(9) unsigned NOT NULL default '0',
+  docname varchar(250) COLLATE utf8_bin NOT NULL default 'file',
   type varchar(255),
+  KEY docname (docname),
   KEY  (id_bibrec),
   KEY  (id_bibdoc)
 ) ENGINE=MyISAM;

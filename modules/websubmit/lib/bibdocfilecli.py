@@ -771,6 +771,7 @@ def cli_fix_format(options):
     if fixed:
         print "Now we need to synchronize MARC to reflect current changes."
         cli_fix_marc(options, explicit_recid_set=fixed)
+
     print wrap_text_in_a_box("%i out of %i record needed to be fixed." % (tot, len(fixed)), style="conclusion")
     return not fixed
 
