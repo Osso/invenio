@@ -105,7 +105,7 @@ def parse_identifier(identifier):
     if not id_str.startswith("TMP:"):
         return (False, identifier)
     else:
-        (True, id_str[4:])
+        return (True, id_str[4:])
 
 def resolve_identifier(tmps, identifier):
     """Resolves an identifier. If the identifier is not temporary, this
@@ -113,11 +113,12 @@ def resolve_identifier(tmps, identifier):
     value is returned or an exception raised"""
 
     is_tmp, tmp_id = parse_identifier(identifier)
-    if bibdoc_tmpid:
-        if identifier in tmps:
-            write_message("WARNING: the temporary identifier %s has been declared more than once. Ignoring the second occurance" % (bibdoc_tmpid, ))
-        else:
-            tmp_ids[bibdoc_tmpid] = brd.get_docid(docname)
+    if is_tmp:
+        if not tmp_id in tmps:
+            raise StandardError("Temporary identifier %s not present in the dictionary" % (tmp_id, ))
+        return int(tmps[tmp_id])
+    else:
+        return int(identifier)
 
 
 
@@ -349,8 +350,8 @@ def bibupload(record, opt_tag=None, opt_mode=None,
                 sys.exit(1)
             try:
                 record = elaborate_fft_tags(record, rec_id, opt_mode,
-                                            pretend=pretend, tmp_ids = tmp_ids,
-                                            tmp_vers = tmp_vers)
+                                        pretend=pretend, tmp_ids = tmp_ids,
+                                        tmp_vers = tmp_vers)
             except Exception, e:
                 register_exception()
                 msg = "   Stage 2 failed: Error while elaborating FFT tags: %s" % e
@@ -509,8 +510,7 @@ def find_record_ids_by_oai_id(oaiId):
 
 def bibupload_post_phase(record, mode = None, rec_id = "", pretend = False,
                          tmp_ids = {}, tmp_vers = {}):
-
-    def _elaborate_tag(tag, fun):
+    def _elaborate_tag(record, tag, fun):
         if extract_tag_from_record(record, tag) is not None:
             try:
                 record = fun()
@@ -518,7 +518,7 @@ def bibupload_post_phase(record, mode = None, rec_id = "", pretend = False,
                 register_exception()
                 write_message("   Stage failed: Error while elaborating %s tags: %s" % (tag, e),
                               verbose=1, stream=sys.stderr)
-                return (1, int(rec_id))
+                return (1, int(rec_id)) # TODO: ?
             if record is None:
                 write_message("   Stage failed: Error while elaborating %s tags" % (tag, ),
                               verbose=1, stream=sys.stderr)
@@ -527,18 +527,23 @@ def bibupload_post_phase(record, mode = None, rec_id = "", pretend = False,
         else:
             write_message("   -Stage NOT NEEDED", verbose=2)
 
-    _elaborate_tag("BRT", lambda: elaborate_brt_tags(record, rec_id = rec_id,
-                                                     mode = opt_mode,
-                                                     pretend = pretend,
-                                                     tmp_ids = tmp_ids,
-                                                     tmp_vers = tmp_vers))
-
-
-    _elaborate_tag("MIT", lambda: elaborate_mit_tags(record, rec_id = rec_id,
+    _elaborate_tag(record, "BRT", lambda: elaborate_brt_tags(record, rec_id = rec_id,
                                                      mode = mode,
                                                      pretend = pretend,
                                                      tmp_ids = tmp_ids,
                                                      tmp_vers = tmp_vers))
+
+
+    _elaborate_tag(record, "MIT", lambda: elaborate_mit_tags(record, rec_id = rec_id,
+                                                     mode = mode,
+                                                     pretend = pretend,
+                                                     tmp_ids = tmp_ids,
+                                                     tmp_vers = tmp_vers))
+
+    _elaborate_tag(record, "BDR", lambda: elaborate_bdr_tags(record, rec_id = rec_id,
+                                                     mode = mode,
+                                                     pretend = pretend,
+                                                     tmp_ids = tmp_ids))
 
 def insert_record_into_holding_pen(record, oai_id, pretend=False):
     query = "INSERT INTO bibHOLDINGPEN (oai_id, changeset_date, changeset_xml, id_bibrec) VALUES (%s, NOW(), %s, %s)"
@@ -1182,6 +1187,30 @@ def _get_subfield_value(field, subfield_code, default=None):
     else:
         return default
 
+def elaborate_bdr_tags(record, rec_id, mode, pretend = False, tmp_ids = {}):
+    """
+    Process BDR tags of an input record. Each such tag describes one request to
+    attach already existing document to a record
+    """
+    tuple_list = extract_tag_from_record(record, 'BDR')
+
+    # Now gathering information from BRT tags - to be processed later
+    attachments_to_create = []
+    write_message("Processing BDR entries of the record ")
+    recordDocs = BibRecDocs(rec_id)
+
+    if tuple_list:
+        for bdr in record_get_field_instances(record, 'BDR', ' ', ' '):
+            document_id = _get_subfield_value(bdr, "i")
+            if document_id is None:
+                raise StandardError("Error: Can not process BDR field for record %s. Document identifier not specified." % \
+                                        (str(rec_id), ))
+            else:
+                document_id = resolve_identifier()
+            attachemnt_type = _get_subfield_value(bdr, "t")
+
+
+
 def elaborate_mit_tags(record, rec_id, mode, pretend = False, tmp_ids = {},
                        tmp_vers = {}):
     """
@@ -1199,22 +1228,12 @@ def elaborate_mit_tags(record, rec_id, mode, pretend = False, tmp_ids = {},
             relation_id = _get_subfield_value(mit, "r")
             bibdoc_id = _get_subfield_value(mit, "i")
             # checking for a possibly temporary ID
-            is_temporary, bibdoc_tmpid = parse_identifier(bibdoc_id)
-            if is_temporary:
-                if not bibdoc_tmpid in tmp_ids:
-                    raise StandardError("Temporary identifier %s not present in the dictionary" % (bibdoc_tmpid, ))
-                else:
-                    bibdoc_id = tmp_ids[bibdoc_tmpid]
+            if not (bibdoc is None):
+                bibdoc_id = resolve_identifier(tmp_ids, bibdoc_id)
 
             bibdoc_ver = _get_subfield_value(mit, "v")
-
-            # resolving possibly temporary version
-            is_temporary, bibdoc_tmpver = parse_identifier(bibdoc_ver)
-            if is_temporary:
-                if not bibdoc_tmpver in tmp_vers:
-                    raise StandardError("Temporary version %s not present in the dictionary" % (bibdoc_tmpver, ))
-                else:
-                    bibdoc_ver = tmp_vers[bibdoc_tmpver]
+            if not (bibdoc_ver is None):
+                bibdoc_ver = resolve_identifier(tmp_vers, bibdoc_ver)
 
             bibdoc_name = _get_subfield_value(mit, "n")
             bibdoc_fmt = _get_subfield_value(mit, "f")
@@ -1238,7 +1257,6 @@ def elaborate_mit_tags(record, rec_id, mode, pretend = False, tmp_ids = {},
                 MoreInfo(docid=bibdoc_id , version = bibdoc_ver,
                          format = bibdoc_fmt, relation = relation_id).delete()
 
-#            import rpdb2; rpdb2.start_embedded_debugger('password', fAllowRemote=True)
             if (not moreinfo_str is None) and (not pretend):
                 mi = MoreInfo.create_from_serialised(moreinfo_str,
                                                      docid=bibdoc_id,
@@ -1276,6 +1294,7 @@ def elaborate_brt_tags(record, rec_id, mode, pretend=False, tmp_ids = {}, tmp_ve
                 bibdoc1_id = _get_subfield_value(brt, "i")
                 bibdoc1_name = _get_subfield_value(brt, "n")
 
+
                 if bibdoc1_id == None:
                     if bibdoc1_name == None:
                         raise StandardError("Incorrect relation. Neither name nor identifier of the first obejct has been specified")
@@ -1285,12 +1304,17 @@ def elaborate_brt_tags(record, rec_id, mode, pretend=False, tmp_ids = {}, tmp_ve
                         try:
                             bibdoc1_id = recordDocs.get_docid(bibdoc1_name)
                         except:
-                            raise StandardError("BibDoc of a name %s does not exist within a record" % (bibdoc1_name, ))
+                            raise StandardError("BibDoc of a name %s does not exist within a record" % \
+                                                    (bibdoc1_name, ))
                 else:
+                    # resolving temporary identifier
+                    bibdoc1_id = resolve_identifier(tmp_ids, bibdoc1_id)
                     if bibdoc1_name != None:
                         write_message("Warning: both name and id of the first document of a relation have been specified. Ignoring the name")
 
                 bibdoc1_ver = _get_subfield_value(brt, "v")
+                if not (bibdoc1_ver is None):
+                    bibdoc1_ver = resolve_identifier(tmp_vers, bibdoc1_ver)
                 bibdoc1_fmt = _get_subfield_value(brt, "f")
 
                 bibdoc2_id = _get_subfield_value(brt, "j")
@@ -1307,10 +1331,15 @@ def elaborate_brt_tags(record, rec_id, mode, pretend=False, tmp_ids = {}, tmp_ve
                         except:
                             raise StandardError("BibDoc of a name %s does not exist within a record" % (bibdoc2_name, ))
                 else:
+                    bibdoc2_id = resolve_identifier(tmp_ids, bibdoc2_id)
                     if bibdoc2_name != None:
                         write_message("Warning: both name and id of the first document of a relation have been specified. Ignoring the name")
 
+
+
                 bibdoc2_ver = _get_subfield_value(brt, "w")
+                if not (bibdoc2_ver is None):
+                    bibdoc2_ver = resolve_identifier(tmp_vers, bibdoc2_ver)
                 bibdoc2_fmt = _get_subfield_value(brt, "g")
 
             control_command = _get_subfield_value(brt, "d")
@@ -1322,12 +1351,8 @@ def elaborate_brt_tags(record, rec_id, mode, pretend=False, tmp_ids = {}, tmp_ve
 
             # the relation id might be specified in the case of updating
             # MoreInfo table instead of other fields
-
             rel_obj = None
             if not relation_id:
-                #try to read the relation_id from other parameters.
-                #Failing means that there is no such relation
-#                write_message("retrieving relations")
                 rels = BibRelation.get_relations(rel_type = relation_type,
                                                  bibdoc1_id = bibdoc1_id,
                                                  bibdoc2_id = bibdoc2_id,
@@ -1335,7 +1360,6 @@ def elaborate_brt_tags(record, rec_id, mode, pretend=False, tmp_ids = {}, tmp_ve
                                                  bibdoc2_ver = bibdoc2_ver,
                                                  bibdoc1_fmt = bibdoc1_fmt,
                                                  bibdoc2_fmt = bibdoc2_fmt)
- #               write_message("DONE")
                 if len(rels) > 0:
                     rel_obj = rels[0]
                     relation_id = rel_obj.id
@@ -1379,7 +1403,6 @@ def elaborate_brt_tags(record, rec_id, mode, pretend=False, tmp_ids = {}, tmp_ve
 
                 if control_command == "DELETE":
                     rel_obj.delete()
-
     else:
         write_message("BRT tag is not processed in the %s mode" % (mode, ))
     return record
@@ -2547,17 +2570,17 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
 
     # Second phase -> Now we can process all entries where temporary identifiers might appear (BRT, MIT, BDA)
 
-#    write_message("Uploading BRT, MIT and BDA fields")
-#    if opt_mode != "holdingpen":
-#        for record in records:
-#            record_id = record_extract_oai_id(record)
-#            bibupload_post_phase(record,
-#                                 opt_tag = opt_tag,
-#                                 opt_mode = opt_mode,
-#                                 oai_rec_id = record_id,
-#                                 pretend = pretend,
-#                                 tmp_ids = tmp_ids,
-#                                 tmp_vers = tmp_vers)
+    write_message("Identifiers table after processing: %s  versions: %s" % (str(tmp_ids), str(tmp_vers)))
+    write_message("Uploading BRT, MIT and BDA fields")
+    if opt_mode != "holdingpen":
+        for record in records:
+            record_id = record_extract_oai_id(record)
+            bibupload_post_phase(record,
+                                 rec_id = record_id,
+                                 mode = opt_mode,
+                                 pretend = pretend,
+                                 tmp_ids = tmp_ids,
+                                 tmp_vers = tmp_vers)
 
 
 

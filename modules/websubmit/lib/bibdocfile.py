@@ -1349,6 +1349,10 @@ class BibRecDocs(object):
         @return: in case merging two bibdocs is needed but it's not possible.
         @rtype: bool
         """
+        #TODO: Piotr: Completely rewrite this. Format fixing is obsolete in current form ! we no longer keep file names in file names !
+        return True
+
+
         if not skip_check:
             if self.check_format(docname):
                 return True
@@ -1464,11 +1468,12 @@ class BibDoc(object):
                 self.docname = docname
                 self.status = ''
                 if recid:
-                    res = run_sql("SELECT b.id FROM bibrec_bibdoc bb JOIN bibdoc b on bb.id_bibdoc=b.id WHERE bb.id_bibrec=%s AND b.docname=%s LIMIT 1", (recid, docname), 1)
+                    res = run_sql("SELECT b.id FROM bibrec_bibdoc bb JOIN bibdoc b on bb.id_bibdoc=b.id WHERE bb.id_bibrec=%s AND bb.docname=%s LIMIT 1", (recid, docname), 1)
                     if res:
-                        raise InvenioWebSubmitFileError("A bibdoc called %s already exists for recid %s" % (docname, recid))
-                self.id = run_sql("INSERT INTO bibdoc (status,docname,creation_date,modification_date) "
-                    "values(%s,%s,NOW(),NOW())", (self.status, docname))
+                        raise InvenioWebSubmitFileError, "A bibdoc called %s already exists for recid %s" % (docname, recid)
+                self.id = run_sql("INSERT INTO bibdoc (status, creation_date, modification_date) "
+                    "values(%s,NOW(),NOW())", (self.status, ))
+
                 if self.id:
                     # we link the document to the record if a recid was
                     # specified
@@ -1500,11 +1505,11 @@ class BibDoc(object):
                             raise InvenioWebSubmitFileError, e
                         os.umask(old_umask)
                     if self.recid:
-                        run_sql("INSERT INTO bibrec_bibdoc (id_bibrec, id_bibdoc, type) VALUES (%s,%s,%s)",
-                            (recid, self.id, self.doctype,))
+                        run_sql("INSERT INTO bibrec_bibdoc (id_bibrec, id_bibdoc, type, docname) VALUES (%s,%s,%s,%s)",
+                            (recid, self.id, self.doctype, docname))
                 except Exception, e:
                     run_sql('DELETE FROM bibdoc WHERE id=%s', (self.id, ))
-                    run_sql('DELETE FROM bibrec_bibdoc WHERE id_bibdoc=%s', (self.id, ))
+                    run_sql('DELETE FROM bibrec_bibdoc WHERE id_bibdoc=%s AND id_bibrec=%s', (self.id, self.recid))
                     register_exception(alert_admin=True)
                     raise InvenioWebSubmitFileError, e
         # build list of attached files
@@ -1518,38 +1523,31 @@ class BibDoc(object):
            Filling information about a document from the database entry
         """
         if not recid:
-            res = run_sql("SELECT id_bibrec, type FROM bibrec_bibdoc WHERE id_bibdoc=%s LIMIT 1", (docid,), 1)
+            res = run_sql("SELECT id_bibrec, type, docname FROM bibrec_bibdoc WHERE id_bibdoc=%s LIMIT 1", (docid,), 1)
             if res:
                 recid = res[0][0]
                 doctype = res[0][1]
+                docname = res[0][2]
             else:
-                res = run_sql("SELECT id_bibdoc1,type FROM bibdoc_bibdoc WHERE id_bibdoc2=%s LIMIT 1", (docid,), 1)
-                if res:
-                    main_docid = res[0][0]
-                    doctype = res[0][1]
-                    res = run_sql("SELECT id_bibrec,type FROM bibrec_bibdoc WHERE id_bibdoc=%s LIMIT 1", (main_docid,), 1)
-                    if res:
-                        recid = res[0][0]
-                    else:
-                        raise InvenioWebSubmitFileError, "The docid %s associated with docid %s is not associated with any record" % (main_docid, docid)
-                else:
-                    raise InvenioWebSubmitFileError, "The docid %s is not associated to any recid or other docid" % docid
+                raise InvenioWebSubmitFileError, "The docid %s is not associated to any recid" % docid
         else:
-            res = run_sql("SELECT type FROM bibrec_bibdoc WHERE id_bibrec=%s AND id_bibdoc=%s LIMIT 1", (recid, docid,), 1)
+            res = run_sql("SELECT type, docname FROM bibrec_bibdoc WHERE id_bibrec=%s AND id_bibdoc=%s LIMIT 1", (recid, docid,), 1)
             if res:
                 doctype = res[0][0]
+                docname = res[0][1]
             else:
                 #this bibdoc isn't associated with the corresponding bibrec.
                 raise InvenioWebSubmitFileError, "Docid %s is not associated with the recid %s" % (docid, recid)
+
         # gather the other information
-        res = run_sql("SELECT id, status, docname, creation_date, modification_date, text_extraction_date FROM bibdoc WHERE id=%s LIMIT 1", (docid,), 1)
+        res = run_sql("SELECT id, status, creation_date, modification_date, text_extraction_date FROM bibdoc WHERE id=%s LIMIT 1", (docid,), 1)
         container = {}
         if res:
-            container["cd"] = res[0][3]
-            container["md"] = res[0][4]
-            container["td"] = res[0][5]
+            container["cd"] = res[0][2]
+            container["md"] = res[0][3]
+            container["td"] = res[0][4]
             container["recid"] = recid
-            container["docname"] = res[0][2]
+            container["docname"] = docname
             container["id"] = docid
             container["status"] = res[0][1]
             container["basedir"] = _make_base_dir(container["id"])
@@ -1600,6 +1598,18 @@ class BibDoc(object):
         return BibDoc(docid=docid, recid=recid, docname=docname,
                       doctype=doctype, human_readable=human_readable,
                       initial_data=data)
+
+    def attach_to_record(self, recid, a_type, docname):
+        """ Attaches given document to a record given by its identifier.
+            @param recid The identifier of the record
+            @type recid Integer
+            @param a_type Function of a document in the record
+            @type a_type String
+            @param docname Name of a document inside of a record
+            @type docname String
+        """
+        run_sql("INSERT INTO bibrec_bibdoc (id_bibrec, id_bibdoc, type, docname) VALUES (%s,%s,%s,%s)",
+                (str(id_bibrec), str(self.id), a_type, docname))
 
     def __repr__(self):
         """
@@ -2001,7 +2011,7 @@ class BibDoc(object):
 
    def change_name(self, newname):
         """
-        Renames this document name.
+        Renames this document.
 
         @param newname: the new name.
         @type newname: string
@@ -2010,9 +2020,12 @@ class BibDoc(object):
         """
         try:
             newname = normalize_docname(newname)
-            res = run_sql("SELECT b.id FROM bibrec_bibdoc bb JOIN bibdoc b on bb.id_bibdoc=b.id WHERE bb.id_bibrec=%s AND b.docname=%s", (self.recid, newname))
+
+            res = run_sql("SELECT id_bibdoc FROM bibrec_bibdoc WHERE id_bibrec=%s AND docname=%s", (self.recid, newname))
             if res:
                 raise InvenioWebSubmitFileError, "A bibdoc called %s already exists for recid %s" % (newname, self.recid)
+
+            #TODO: Piotr: Filenames: This should completely disappear ! we no longer store files under their names
             try:
                 for f in os.listdir(self.basedir):
                     if not f.startswith('.'):
@@ -2025,13 +2038,16 @@ class BibDoc(object):
             except Exception, e:
                 register_exception()
                 raise InvenioWebSubmitFileError("Error in renaming the bibdoc %s to %s for recid %s: %s" % (self.docname, newname, self.recid, e))
-            run_sql("update bibdoc set docname=%s where id=%s", (newname, self.id,))
+
+            run_sql("update bibrec_bibdoc set docname=%s where id_bibdoc=%s and id_bibrec=%s", (newname, self.id, self.recid))
             self.docname = newname
         finally:
+            # TODO: Piotr: Filenames: This might not be necessary any more
             Md5Folder(self.basedir).update()
             self.touch()
             self._build_file_list('rename')
             self._build_related_file_list()
+
 
     def set_comment(self, comment, format, version=None):
         """
@@ -2409,15 +2425,23 @@ class BibDoc(object):
 
         if context != 'init':
             previous_file_list = list(self.docfiles)
-        res = run_sql("SELECT status,docname,creation_date,"
+        res = run_sql("SELECT status, creation_date,"
             "modification_date FROM bibdoc WHERE id=%s", (self.id,))
-        self.cd = res[0][2]
-        self.md = res[0][3]
-        self.docname = res[0][1]
+
+        self.cd = res[0][1]
+        self.md = res[0][2]
         self.status = res[0][0]
+
         self.more_info = BibDocMoreInfo(self.id)
 
+        # the docname has to be retreived from a relation with the record
+        res = run_sql("SELECT docname from bibrec_bibdoc WHERE id_bibdoc=%s", (self.id, ))
+        self.docname = res[0][0]
+
         self.docfiles = []
+
+
+
         if os.path.exists(self.basedir):
             self.md5s = Md5Folder(self.basedir)
             files = os.listdir(self.basedir)
