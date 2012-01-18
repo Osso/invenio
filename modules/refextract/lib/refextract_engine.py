@@ -811,12 +811,13 @@ def format_report_number(citation_elements):
 def format_hep(citation_elements):
     """Format hep-th report numbers with a dash
 
-    e.g. replaceing hep-th-9711200 with hep-th/9711200
+    e.g. replaces hep-th-9711200 with hep-th/9711200
     """
     for el in citation_elements:
         if el['type'] == 'REPORTNUMBER' and \
                     ( el['report_num'].startswith('hep-th-') or \
-                      el['report_num'].startswith('hep-ph-') ):
+                      el['report_num'].startswith('hep-ph-') or \
+                      el['report_num'].startswith('hep-ex-')):
             el['report_num'] = el['report_num'][:6] + '/' + \
                                 el['report_num'][7:]
     return citation_elements
