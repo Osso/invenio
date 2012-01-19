@@ -26,7 +26,7 @@ from invenio.config import CFG_VERSION, CFG_ETCDIR
 # pylint: disable=C0301
 
 # version number:
-CFG_REFEXTRACT_VERSION = "Invenio/%s refextract/%s" % (CFG_VERSION, CFG_VERSION)
+CFG_REFEXTRACT_VERSION = "Invenio/%s refextract/%s" % (CFG_VERSION, '1.1')
 
 # periodicals knowledge base:
 CFG_REFEXTRACT_KB_JOURNAL_TITLES = "%s/refextract/journal-titles.kb" % CFG_ETCDIR

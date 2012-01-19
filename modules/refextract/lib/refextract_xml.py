@@ -118,7 +118,7 @@ def create_xml_record(counts, recid, xml_lines, status_code=0):
 
     ## add the 999C6 status subfields:
     out += u"""   <datafield tag="%(df-tag-ref-stats)s" ind1="%(df-ind1-ref-stats)s" ind2="%(df-ind2-ref-stats)s">
-      <subfield code="%(sf-code-ref-stats)s">%(version)s-%(timestamp)s-%(status)s-%(reportnum)s-%(title)s-%(author)s-%(url)s-%(doi)s-%(misc)s</subfield>
+      <subfield code="%(sf-code-ref-stats)s">%(version)s %(timestamp)s-%(status)s-%(reportnum)s-%(title)s-%(author)s-%(url)s-%(doi)s-%(misc)s</subfield>
    </datafield>\n""" \
         % { 'df-tag-ref-stats'  : CFG_REFEXTRACT_TAG_ID_EXTRACTION_STATS,
             'df-ind1-ref-stats' : CFG_REFEXTRACT_IND1_EXTRACTION_STATS,

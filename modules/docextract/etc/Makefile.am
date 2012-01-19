@@ -16,7 +16,8 @@
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 etcdir = $(sysconfdir)/docextract/
-etc_DATA = 
+etc_DATA = example.pdf \
+           example.txt
 
 EXTRA_DIST = $(etc_DATA)
 

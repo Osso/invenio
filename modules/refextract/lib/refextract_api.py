@@ -32,8 +32,9 @@ from tempfile import mkstemp
 from refextract_engine import parse_references, \
     get_plaintext_document_body, extract_references_from_fulltext
 
+from invenio.config import CFG_INSPIRE_SITE
 from invenio.bibdocfile import BibRecDocs, InvenioWebSubmitFileError
-from invenio.bibedit_utils import get_record
+from invenio.search_engine import get_record
 from invenio.bibtask import task_low_level_submission
 from invenio.bibrecord import record_delete_fields, record_xml_output, \
     create_record, record_get_field_instances, record_add_fields, \
@@ -55,7 +56,7 @@ class RecordHasReferences(Exception):
    """
 
 
-def extract_references_from_url_xml(url):
+def extract_references_from_url_xml(url, inspire=CFG_INSPIRE_SITE):
     """Extract references from the pdf specified in the url
 
     The single parameter is the path to the pdf.
@@ -65,7 +66,8 @@ def extract_references_from_url_xml(url):
     filename, _ = urlretrieve(url)
     try:
         try:
-            marcxml = extract_references_from_file_xml(filename)
+            marcxml = extract_references_from_file_xml(filename,
+                                                       inspire=inspire)
         except IOError, err:
             if err.code == 404:
                 raise FullTextNotAvailable()
@@ -76,7 +78,7 @@ def extract_references_from_url_xml(url):
     return marcxml
 
 
-def extract_references_from_file_xml(path, recid=1, inspire=False):
+def extract_references_from_file_xml(path, recid=1, inspire=CFG_INSPIRE_SITE):
     """Extract references from a local pdf file
 
     The single parameter is the path to the file
@@ -95,7 +97,7 @@ def extract_references_from_file_xml(path, recid=1, inspire=False):
     return parse_references(reflines, recid=recid, inspire=inspire)
 
 
-def extract_references_from_string_xml(source, inspire=False):
+def extract_references_from_string_xml(source, inspire=CFG_INSPIRE_SITE):
     """Extract references from a string
 
     The single parameter is the document
@@ -106,7 +108,7 @@ def extract_references_from_string_xml(source, inspire=False):
     return parse_references(reflines, inspire=inspire)
 
 
-def extract_references_from_record_xml(recid, inspire=False):
+def extract_references_from_record_xml(recid, inspire=CFG_INSPIRE_SITE):
     """Extract references from a record id
 
     The single parameter is the document
@@ -131,7 +133,7 @@ def extract_references_from_record_xml(recid, inspire=False):
     return extract_references_from_file_xml(path, recid=recid, inspire=inspire)
 
 
-def replace_references(recid, inspire=False):
+def replace_references(recid, inspire=CFG_INSPIRE_SITE):
     """Replace references for a record
 
     The record itself is not updated, the marc xml of the document with updated
@@ -163,7 +165,7 @@ def replace_references(recid, inspire=False):
     return out_xml
 
 
-def update_references(recid, inspire=False, overwrite=True):
+def update_references(recid, inspire=CFG_INSPIRE_SITE, overwrite=True):
     """Update references for a record
 
     First, we extract references from a record.

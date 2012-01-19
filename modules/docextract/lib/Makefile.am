@@ -20,6 +20,7 @@ pylibdir = $(libdir)/python/invenio
 pylib_DATA = docextract_pdf.py \
              docextract_text.py \
              docextract_utils.py \
+             docextract_webinterface.py \
              docextract.py
 
 EXTRA_DIST = $(pylib_DATA)
