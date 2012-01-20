@@ -150,7 +150,7 @@ def get_surname_initial_author_pattern(incl_numeration=False):
 
 
 invalid_surnames = (
-    'Supergravity', 'Collaboration', 'Theoretical'
+    'Supergravity', 'Collaboration', 'Theoretical', 'Appendix'
 )
 invalid_prefixes = (
     'at',

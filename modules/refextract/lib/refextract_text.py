@@ -130,7 +130,7 @@ def get_reference_lines(docbody,
         ref_lines = docbody[start_idx:]
 
     ref_lines = strip_footer(ref_lines, ref_sect_title)
-    if not ref_line_marker.isdigit():
+    if not ref_line_marker or not ref_line_marker.isdigit():
         ref_lines = strip_pagination(ref_lines)
     # Now rebuild reference lines:
     # (Go through each raw reference line, and format them into a set

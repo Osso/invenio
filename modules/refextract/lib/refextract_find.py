@@ -67,11 +67,19 @@ def find_reference_section(docbody):
         if title_match:
             title = title_match.group('title')
             index = len(docbody) - 1 - reversed_index
-            temp_ref_details, found_title = find_numeration(docbody[index:], title)
+            temp_ref_details, found_title = find_numeration(docbody[index:index+3], title)
             if temp_ref_details:
+                if ref_details and ref_details['title'] \
+                               and not temp_ref_details['title']:
+                    continue
+                if ref_details and ref_details['marker'] \
+                               and not temp_ref_details['marker']:
+                    continue
+
                 ref_details = temp_ref_details
                 ref_details['start_line'] = index
                 ref_details['title_string'] = title
+
             if found_title:
                 break
 
@@ -108,8 +116,8 @@ def find_numeration_in_body(docbody):
             # No numeration
             ref_details = {
                 'title_marker_same_line': False,
-                'marker': '',
-                'marker_pattern': '',
+                'marker': None,
+                'marker_pattern': None,
             }
 
     return ref_details, found_title
@@ -476,7 +484,7 @@ def get_reference_section_beginning(fulltext):
 
     if sect_start:
         write_message('* title %r' % sect_start['title_string'], verbose=3)
-        write_message('* marker %s' % sect_start['marker'], verbose=3)
+        write_message('* marker %r' % sect_start['marker'], verbose=3)
         write_message('* title_marker_same_line %s' \
             % sect_start['title_marker_same_line'], verbose=3)
     else:

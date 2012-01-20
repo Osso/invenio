@@ -53,9 +53,10 @@ from invenio.refextract_config import \
 
 
 def format_marker(line_marker):
-    num_match = re_num.search(line_marker)
-    if num_match:
-        line_marker = num_match.group(0)
+    if line_marker:
+        num_match = re_num.search(line_marker)
+        if num_match:
+            line_marker = num_match.group(0)
     return line_marker
 
 

@@ -182,7 +182,7 @@ re_series_from_numeration = re.compile(ur'^\.?,?\s+([A-H]|(I{1,3}V?|VI{0,3}))\s+
 ## Obtain the series character from the standardised title text
 ## Only used when no series letter is obtained from numeration matching
 re_series_from_title = re.compile(ur"""
-    ([^\s].*?)
+    ([^\s].*)
     (?:[\s\.]+(?:(?P<open_bracket>\()\s*[Ss][Ee][Rr]\.)?
             ([A-H]|(I{1,3}V?|VI{0,3}))
     )?
@@ -211,7 +211,7 @@ re_volume_sub_number_opt = u'(?:' + re_sep + u'(?P<vol_sub>' + \
 
 ## Volume
 re_volume_prefix = ur"(?:[Vv]o?l?\.?|[Nn]o\.?)" ## Optional Vol./No.
-re_volume_suffix = ur"(?:\s*\(\d-\d\))?"
+re_volume_suffix = ur"(?:\s*\(\d{1,2}(?:-\d)?\))?"
 re_volume_num = ur"\d+|" + "(?P<roman>(?<!\w)" + re_roman_numbers + "(?!\w))"
 re_volume_id = ur"(?P<vol>(?:(?:[A-Za-z]\s?)?(?P<vol_num>%s))|(?:(?:\w\s?)?\d+\s*\-\s*(?:\w\s?)?\d+))" % re_volume_num
 re_volume_check = ur"(?<![\/\d])"
@@ -469,7 +469,7 @@ re_doi = (re.compile(ur"""
 
 
 def _create_regex_pattern_add_optional_spaces_to_word_characters(word):
-    """Add the regex special characters (\s*?) to allow optional spaces between
+    """Add the regex special characters (\s*) to allow optional spaces between
        the characters in a word.
        @param word: (string) the word to be inserted into a regex pattern.
        @return: string: the regex pattern for that word with optional spaces
@@ -505,10 +505,10 @@ def get_reference_section_title_patterns():
                u'bibliographie',
                u'citations',
                u'literaturverzeichnis' ]
-    sect_marker = u'^\s*?([\[\-\{\(])?\s*?((\w|\d){1,5}([\.\-\,](\w|\d){1,5})?\s*?[\.\-\}\)\]]\s*?)?(?P<title>'
+    sect_marker = u'^\s*([\[\-\{\(])?\s*((\w|\d){1,5}([\.\-\,](\w|\d){1,5})?\s*[\.\-\}\)\]]\s*)?(?P<title>'
     sect_marker1 = u'^(\d){1,3}\s*(?P<title>'
-    line_end  = ur'(\s+?s\s*?e\s*?c\s*?t\s*?i\s*?o\s*?n\s*?)?)' \
-        ur'($|\s*?[\[\{\(\<]\s*?[1a-z]\s*?[\}\)\>\]]|\:$)'
+    line_end  = ur'(\s+?s\s*e\s*c\s*t\s*i\s*o\s*n\s*)?)' \
+        ur'($|\s*[\[\{\(\<]\s*[1a-z]\s*[\}\)\>\]]|\:$)'
 
     for t in titles:
         t_ptn = re.compile(sect_marker + \
@@ -535,20 +535,20 @@ def get_reference_line_numeration_marker_patterns(prefix=u''):
         title = prefix
     g_name = u'(?P<mark>'
     g_close = u')'
-    space = ur'\s*'
+    space = ur'^\s*'
     patterns = [
-        space + title + g_name + ur'\[\s*(?P<marknum>\d+)\s*?\]' + g_close,
-        space + title + g_name + ur'\[\s*[a-zA-Z]+\+?\s?(\d{1,4}[A-Za-z]?)?\s*?\]' + g_close,
-        space + title + g_name + ur'\{\s*(?P<marknum>\d+)\s*?\}' + g_close,
-        space + title + g_name + ur'\<\s*(?P<marknum>\d+)\s*?\>' + g_close,
-        space + title + g_name + ur'\(\s*(?P<marknum>\d+)\s*?\)' + g_close,
-        space + title + g_name + ur'(?P<marknum>\d+)\s*?\.' + g_close,
-        space + title + g_name + ur'(?P<marknum>\d+)\s*?' + g_close,
-        space + title + g_name + ur'(?P<marknum>\d+)\s*?\]' + g_close,
-        space + title + g_name + ur'(?P<marknum>\d+)\s*?\}' + g_close,
-        space + title + g_name + ur'(?P<marknum>\d+)\s*?\)' + g_close,
-        space + title + g_name + ur'(?P<marknum>\d+)\s*?\>' + g_close,
-        space + title + g_name + ur'\[\s*?\]' + g_close,
+        space + title + g_name + ur'\[\s*(?P<marknum>\d+)\s*\]' + g_close,
+        space + title + g_name + ur'\[\s*[a-zA-Z]+\+?\s?(\d{1,4}[A-Za-z]?)?\s*\]' + g_close,
+        space + title + g_name + ur'\{\s*(?P<marknum>\d+)\s*\}' + g_close,
+        space + title + g_name + ur'\<\s*(?P<marknum>\d+)\s*\>' + g_close,
+        space + title + g_name + ur'\(\s*(?P<marknum>\d+)\s*\)' + g_close,
+        space + title + g_name + ur'(?P<marknum>\d+)\s*\.(?!\d)' + g_close,
+        space + title + g_name + ur'(?P<marknum>\d+)\s+' + g_close,
+        space + title + g_name + ur'(?P<marknum>\d+)\s*\]' + g_close,
+        space + title + g_name + ur'(?P<marknum>\d+)\s*\}' + g_close,
+        space + title + g_name + ur'(?P<marknum>\d+)\s*\)' + g_close,
+        space + title + g_name + ur'(?P<marknum>\d+)\s*\>' + g_close,
+        space + title + g_name + ur'\[\s*\]' + g_close,
         space + title + g_name + ur'\*' + g_close,
     ]
     return [re.compile(p, re.I|re.UNICODE) for p in patterns]
@@ -571,7 +571,7 @@ re_reference_line_curly_bracket_markers = get_reference_line_marker_pattern(
         ur'(?P<left>\{)\s*(?P<marknum>\d+)\s*(?P<right>\})'
 )
 re_reference_line_dot_markers = get_reference_line_marker_pattern(
-        ur'(?P<left>)\s*?(?P<marknum>\d+)\s*(?P<right>\.)'
+        ur'(?P<left>)\s*(?P<marknum>\d+)\s*(?P<right>\.)'
 )
 re_reference_line_number_markers = get_reference_line_marker_pattern(
         ur'(?P<left>)\s*(?P<marknum>\d+)\s*(?P<right>)'
@@ -586,7 +586,7 @@ def get_post_reference_section_title_patterns():
     compiled_patterns = []
     thead = ur'^\s*([\{\(\<\[]?\s*(\w|\d)\s*[\)\}\>\.\-\]]?\s*)?'
     ttail = ur'(\s*\:\s*)?'
-    numatn = ur'(\d+|\w\b|i{1,3}v?|vi{0,3})[\.\,]?\b'
+    numatn = ur'(\d+|\w\b|i{1,3}v?|vi{0,3})[\.\,]{0,2}\b'
     roman_numbers = ur'[LVIX]'
     patterns = [
         # Section titles
@@ -611,7 +611,7 @@ def get_post_reference_section_title_patterns():
         ur'^\s*' + _create_regex_pattern_add_optional_spaces_to_word_characters(u'tab') + ur'\.\s*' + numatn,
         ur'^\s*' + _create_regex_pattern_add_optional_spaces_to_word_characters(u'tab') + ur'\.?\s*\d\w?\b',
         # Other titles formats
-        ur'^\s*' + roman_numbers + ur'\.?\s*[Cc]onclusion[\w\s]*$'
+        ur'^\s*' + roman_numbers + ur'\.?\s*[Cc]onclusion[\w\s]*$',
     ]
 
     for p in patterns:
@@ -629,10 +629,10 @@ def get_post_reference_section_keyword_patterns():
     compiled_patterns = []
     patterns = [ u'(' + _create_regex_pattern_add_optional_spaces_to_word_characters(u'prepared') + \
                                  ur'|' + _create_regex_pattern_add_optional_spaces_to_word_characters(u'created') + \
-                                 ur').*?(AAS\s*?)?\sLATEX',
+                                 ur').*(AAS\s*)?\sLATEX',
                  ur'AAS\s+?LATEX\s+?' + _create_regex_pattern_add_optional_spaces_to_word_characters(u'macros') + u'v',
-                 ur'^\s*?' + _create_regex_pattern_add_optional_spaces_to_word_characters(u'This paper has been produced using'),
-                 ur'^\s*?' + \
+                 ur'^\s*' + _create_regex_pattern_add_optional_spaces_to_word_characters(u'This paper has been produced using'),
+                 ur'^\s*' + \
                                  _create_regex_pattern_add_optional_spaces_to_word_characters(u'This article was processed by the author using Springer-Verlag') + \
                                  u' LATEX' ]
     for p in patterns:

@@ -871,8 +871,7 @@ def parse_reference_line(ref_line, kbs, bad_titles_count):
                                                        bad_titles_count)
 
     # Debug print tagging (authors, titles, volumes, etc.)
-    # print 'TAGS'
-    # print tagged_line
+    write_message('  * tags %r' % tagged_line, verbose=9)
 
     # Using the recorded information, create a MARC XML representation
     # of the rebuilt line:

@@ -158,7 +158,9 @@ ATL COM PUB            ---ATL-COM-DAQ
 ATL COM DAQ            ---ATL-COM-DAQ
 ATL COM MUON           ---ATL-COM-MUON
 ATL COM PHYS           ---ATL-COM-PHYS
+TL COM PHYS            ---ATL-COM-PHYS
 ATL COM TILECAL        ---ATL-COM-TILECAL
+ATL COM LARG           ---ATL-COM-LARG
 ATL CONF               ---ATL-CONF
 ATLAS CONF             ---ATL-CONF
 ATL DAQ                ---ATL-DAQ
@@ -176,7 +178,11 @@ ATL TILECAL            ---ATL-TILECAL
 ATL SOFT PUB           ---ATL-SOFT-PUB
 ATL IS EN              ---ATL-IS-EN
 ATL IS QA              ---ATL-IS-QA
-CERN                   ---CERN
+ATL LARG PUB           ---ATL-LARG-PUB
+ATL COM LARG           ---ATL-COM-LARG
+TL COM LARG            ---ATL-COM-LARG
+ATLCOM LARG            ---ATL-COM-LARG
+ATL MAGNET PUB         ---ATL-MAGNET-PUB
 CERN AB                ---CERN-AB
 CERN ALEPH             ---CERN-ALEPH
 CERN ALEPH PHYSIC      ---CERN-ALEPH-PHYSIC
@@ -230,7 +236,10 @@ CMS NOTE               ---CMS-NOTE
 LHCB                   ---LHCB
 SN ATLAS               ---SN-ATLAS
 PAS SUSY               ---CMS-PAS-SUS
-
+ATLTILECAL PUB         ---ATLTILECAL-PUB
+ATLAS TECH PUB         ---ATLAS-TECH-PUB
+TLCOM MAGNET           ---TLCOM-MAGNET
+ATLLARG                ---ATL-LARG
 
 #####CERN MORE####
 < yyyy 999>
@@ -259,6 +268,8 @@ LHC PROJECT REPORT      ---CERN-LHC-Project-Report
 CLIC NOTE               ---CERN-CLIC-Note
 ATLAS TDR               ---ATL-TDR
 CMS TDR                 ---CMS-TDR
+ATC TT ID               ---ATC-TT-ID
+ATC TT IN               ---ATC-TT-IN
 
 
 #####KEK#####
@@ -282,6 +293,7 @@ DESY M		---DESY M
 
 
 #####SLAC#####
+< 999>
 < 9999>
 < yy 99>
 

@@ -112,7 +112,7 @@ class FindSectionTest(unittest.TestCase):
         ])
         self.assertEqual(sect, {
             'marker': '[1]',
-            'marker_pattern': u'\\s*(?P<mark>\\[\\s*(?P<marknum>\\d+)\\s*?\\])',
+            'marker_pattern': u'^\\s*(?P<mark>\\[\\s*(?P<marknum>\\d+)\\s*\\])',
             'start_line': 1,
             'title_string': 'References',
             'title_marker_same_line': False,
@@ -146,7 +146,7 @@ class FindSectionTest(unittest.TestCase):
         ])
         self.assertEqual(sect, {
             'marker': '1.',
-            'marker_pattern': u'(?P<mark>(?P<left>)\\s*?(?P<marknum>\\d+)\\s*(?P<right>\\.))',
+            'marker_pattern': u'(?P<mark>(?P<left>)\\s*(?P<marknum>\\d+)\\s*(?P<right>\\.))',
             'start_line': 1,
             'title_string': None,
             'title_marker_same_line': False,
