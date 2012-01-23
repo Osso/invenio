@@ -241,7 +241,7 @@ ATLAS TECH PUB         ---ATLAS-TECH-PUB
 TLCOM MAGNET           ---TLCOM-MAGNET
 ATLLARG                ---ATL-LARG
 
-#####CERN MORE####
+#####CERN MORE#####
 < yyyy 999>
 < yyyy 99>
 < yyyy 9>
@@ -250,6 +250,12 @@ ATLLARG                ---ATL-LARG
 CERN/LHCB       ---CERN-LHCB
 CERN/LHCC       ---CERN-LHCC
 CERN/PHESS      ---CERN-PHESS
+
+
+#####CERN EVEN MORE#####
+< 9>
+
+CMS UG TP       ---CMS-UG-TP
 
 
 #####CERN DIFFERENT FORMAT#####
@@ -270,7 +276,7 @@ ATLAS TDR               ---ATL-TDR
 CMS TDR                 ---CMS-TDR
 ATC TT ID               ---ATC-TT-ID
 ATC TT IN               ---ATC-TT-IN
-
+LHCCP                   ---LHCCP
 
 #####KEK#####
 < 9999>

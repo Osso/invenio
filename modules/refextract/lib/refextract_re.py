@@ -199,7 +199,7 @@ re_wash_volume_tag = (
 re_roman_numbers = ur"[XxVvIi]+"
 
 ## Sep
-re_sep = ur"\s*[,\s:]\s*"
+re_sep = ur"\s*[,\s:-]\s*"
 
 ## Title tag
 re_title_tag = ur"(?P<title_tag><cds\.TITLE>[^<]*<\/cds\.TITLE>)"
