@@ -26,7 +26,8 @@ from invenio.bibtask import task_init, task_set_option, \
                             task_get_option, write_message, \
                             task_sleep_now_if_required, \
                             task_update_progress
-from invenio.config import CFG_VERSION
+from invenio.config import CFG_VERSION, CFG_INSPIRE_SITE
+
 from invenio.dbquery import run_sql
 # Used to obtain the fulltexts for a given collection
 from invenio.search_engine import get_collection_reclist
@@ -101,6 +102,11 @@ def task_run_core():
             "WHERE `id` IN (%s) ORDER BY `creation_date`" % format_strings,
                 list(recids))
 
+    if task_get_option('inspire'):
+        inspire = True
+    else:
+        inspire = CFG_INSPIRE_SITE
+
     count = 1
     total = len(records)
     for recid, creation_date in records:
@@ -110,7 +116,7 @@ def task_run_core():
         write_message(msg)
         try:
             update_references(recid,
-                              inspire=task_get_option('inspire'),
+                              inspire=inspire,
                               overwrite=not task_get_option('no-overwrite'))
             write_message("Extracted references for %s" % recid)
         except FullTextNotAvailable:

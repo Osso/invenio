@@ -33,6 +33,7 @@ from invenio.refextract_api import extract_references_from_file_xml, \
                                    extract_references_from_string_xml
 from invenio.bibformat_engine import format_record
 from invenio.bibrecord import create_record
+from invenio.config import CFG_INSPIRE_SITE
 
 
 def check_login(req):
@@ -51,7 +52,7 @@ def check_url(url):
            not url.startswith('ftp://')
 
 
-def extract_from_pdf_string(pdf, inspire=False):
+def extract_from_pdf_string(pdf, inspire=CFG_INSPIRE_SITE):
     """Extract references from a pdf stored in a string
 
     Given a string representing a pdf, this function writes the string to
@@ -63,7 +64,7 @@ def extract_from_pdf_string(pdf, inspire=False):
     try:
         tf.write(pdf)
         tf.flush()
-        refs = extract_references_from_file_xml(tf.name, inspire=inspire)
+        refs = extract_references_from_file_xml(tf.name)
     finally:
         # Also deletes the file
         tf.close()
@@ -86,7 +87,7 @@ class WebInterfaceAPIDocExtract(WebInterfaceDirectory):
         if 'pdf' not in form:
             return 'No PDF file uploaded'
 
-        return extract_from_pdf_string(form['pdf'].file.read(), inspire=True)
+        return extract_from_pdf_string(form['pdf'].file.read())
 
     def extract_references_pdf_url(self, req, form):
         """Extract references from the pdf pointed by the passed url"""
@@ -100,7 +101,7 @@ class WebInterfaceAPIDocExtract(WebInterfaceDirectory):
         if not check_url(url):
             return 'Invalid URL specified'
 
-        return extract_references_from_url_xml(url, inspire=True)
+        return extract_references_from_url_xml(url)
 
     def extract_references_txt(self, req, form):
         """Extract references from plain text"""
@@ -111,7 +112,7 @@ class WebInterfaceAPIDocExtract(WebInterfaceDirectory):
 
         txt = form['txt'].value
 
-        return extract_references_from_string_xml(txt, inspire=True)
+        return extract_references_from_string_xml(txt)
 
 
 class WebInterfaceDocExtract(WebInterfaceDirectory):
@@ -154,13 +155,13 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
         # Handle the 3 POST parameters
         if form.has_key('pdf') and form['pdf'].value:
             pdf = form['pdf'].value
-            references_xml = extract_from_pdf_string(pdf, inspire=True)
+            references_xml = extract_from_pdf_string(pdf)
         elif form.has_key('url') and form['url'].value:
             url = form['url'].value
-            references_xml = extract_references_from_url_xml(url, inspire=True)
+            references_xml = extract_references_from_url_xml(url)
         elif form.has_key('txt') and form['txt'].value:
             txt = form['txt'].value
-            references_xml = extract_references_from_string_xml(txt, inspire=True)
+            references_xml = extract_references_from_string_xml(txt)
         else:
             references_xml = None
 

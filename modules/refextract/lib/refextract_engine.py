@@ -1546,6 +1546,9 @@ def begin_extraction(config):
     RUNNING_INDEPENDENTLY = True
 
     # What journal title format are we using?
+    if not config.inspire:
+        config.inspire = CFG_INSPIRE_SITE
+
     if config.inspire:
         write_message("Using inspire journal title form", verbose=2)
     else:
