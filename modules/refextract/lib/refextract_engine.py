@@ -856,6 +856,14 @@ def look_for_books(citation_elements, kbs):
 
     return citation_elements
 
+
+def split_volume_from_journal(citation_elements):
+    for el in citation_elements:
+        if el['type'] == 'TITLE' and ';' in el['title']:
+            el['title'], series = el['title'].rsplit(';', 1)
+            el['volume'] = series + el['volume']
+    return citation_elements
+
 ## End of elements transformations
 
 def parse_reference_line(ref_line, kbs, bad_titles_count):
@@ -884,6 +892,7 @@ def parse_reference_line(ref_line, kbs, bad_titles_count):
                                     identified_urls)
 
     # Transformations on elements
+    citation_elements = split_volume_from_journal(citation_elements)
     citation_elements = format_volume(citation_elements)
     citation_elements = handle_special_journals(citation_elements, kbs)
     citation_elements = format_report_number(citation_elements)

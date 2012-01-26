@@ -130,12 +130,12 @@ class RefextractTest(unittest.TestCase):
         ]
         self.kb_journals = [
             "PHYSICAL REVIEW SPECIAL TOPICS ACCELERATORS AND BEAMS---Phys.Rev.ST Accel.Beams",
-            "PHYS REV D---Phys.Rev.D",
+            "PHYS REV D---Phys.Rev.;D",
             "PHYS REV---Phys.Rev.",
             "PHYS REV LETT---Phys.Rev.Lett.",
             "J PHYS---J.Phys.",
             "JOURNAL OF PHYSICS---J.Phys.",
-            "J PHYS G---J.Phys.G",
+            "J PHYS G---J.Phys.;G",
             "PHYSICAL REVIEW---Phys.Rev.",
             "ADV THEO MATH PHYS---Adv.Theor.Math.Phys.",
             "MATH PHYS---Math.Phys.",
@@ -145,7 +145,7 @@ class RefextractTest(unittest.TestCase):
             "PHYS LETT---Phys.Lett.",
             "NUCL PHYS---Nucl.Phys.",
             "JINST---JINST",
-            "THE EUROPEAN PHYSICAL JOURNAL C PARTICLES AND FIELDS---Eur.Phys.J.C",
+            "THE EUROPEAN PHYSICAL JOURNAL C PARTICLES AND FIELDS---Eur.Phys.J.;C",
             "COMMUN MATH PHYS---Commun.Math.Phys.",
             "COMM MATH PHYS---Commun.Math.Phys.",
             "REV MOD PHYS---Rev.Mod.Phys.",
@@ -185,7 +185,7 @@ class RefextractTest(unittest.TestCase):
             "CLIC NOTE              ---CERN-CLIC-Note",
             "CERN LHCC              ---CERN-LHCC",
         ]
-        setup_loggers(verbosity=1)
+        setup_loggers(verbosity=9)
         self.maxDiff = 2000
 
     def test_year_title_volume_page(self):
@@ -1085,7 +1085,7 @@ class RefextractTest(unittest.TestCase):
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">60</subfield>
       <subfield code="h">(HERMES Collaboration) Airapetian A et al.</subfield>
-      <subfield code="s">Phys.Rev.D,71,012003</subfield>
+      <subfield code="s">Phys.Rev.,D71,012003</subfield>
    </datafield>
 </record>""")
 
@@ -1096,7 +1096,7 @@ class RefextractTest(unittest.TestCase):
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">61</subfield>
       <subfield code="h">de Florian D, Sassot R and Stratmann M</subfield>
-      <subfield code="s">Phys.Rev.D,75,114010</subfield>
+      <subfield code="s">Phys.Rev.,D75,114010</subfield>
    </datafield>
 </record>""")
 
@@ -1107,7 +1107,7 @@ class RefextractTest(unittest.TestCase):
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">64</subfield>
       <subfield code="h">Bourrely C, Soffer J and Buccella F</subfield>
-      <subfield code="s">Eur.Phys.J.C,23,487</subfield>
+      <subfield code="s">Eur.Phys.J.,C23,487</subfield>
    </datafield>
 </record>""")
 
@@ -1272,7 +1272,7 @@ Rev. D 80 034030 1-25"""
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">17</subfield>
-      <subfield code="s">Phys.Rev.D,80,034030</subfield>
+      <subfield code="s">Phys.Rev.,D80,034030</subfield>
    </datafield>
 </record>""")
 
@@ -1328,7 +1328,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">33</subfield>
       <subfield code="h">A. Moraes, C. Buttar, and I. Dawson</subfield>
-      <subfield code="s">Eur.Phys.J.C,50,435</subfield>
+      <subfield code="s">Eur.Phys.J.,C50,435</subfield>
    </datafield>
 </record>""")
 
@@ -1386,7 +1386,7 @@ Rev. D 80 034030 1-25"""
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">3</subfield>
-      <subfield code="s">J.Phys.G,30,1</subfield>
+      <subfield code="s">J.Phys.,G30,1</subfield>
    </datafield>
 </record>""")
 
@@ -1871,7 +1871,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">6</subfield>
       <subfield code="h">Sivers D. W.</subfield>
-      <subfield code="s">Phys.Rev.D,41,83</subfield>
+      <subfield code="s">Phys.Rev.,D41,83</subfield>
    </datafield>
 </record>""")
 

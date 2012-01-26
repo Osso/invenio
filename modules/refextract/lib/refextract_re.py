@@ -213,7 +213,7 @@ re_volume_sub_number_opt = u'(?:' + re_sep + u'(?P<vol_sub>' + \
 re_volume_prefix = ur"(?:[Vv]o?l?\.?|[Nn]o\.?)" ## Optional Vol./No.
 re_volume_suffix = ur"(?:\s*\(\d{1,2}(?:-\d)?\))?"
 re_volume_num = ur"\d+|" + "(?P<roman>(?<!\w)" + re_roman_numbers + "(?!\w))"
-re_volume_id = ur"(?P<vol>(?:(?:[A-Za-z]\s?)?(?P<vol_num>%s))|(?:(?:\w\s?)?\d+\s*\-\s*(?:\w\s?)?\d+))" % re_volume_num
+re_volume_id = ur"(?P<vol>(?:(?:[A-Za-z]\s?)?(?P<vol_num>%s))|(?:(?:[A-Za-z]\s?)?\d+\s*\-\s*(?:[A-Za-z]\s?)?\d+))" % re_volume_num
 re_volume_check = ur"(?<![\/\d])"
 re_volume = ur"\b" + u"(?:" + re_volume_prefix + u")?\s*" + re_volume_check + \
     re_volume_id + re_volume_suffix
@@ -231,12 +231,14 @@ re_month = ur"""(?:(?:
 
 ## Year
 re_year_num = ur"(?:19|20)\d{2}"
-re_year_text = u"(?P<year>\w?" + re_year_num + u")(?:\w?)"
+re_year_text = u"(?P<year>[A-Za-z]?" + re_year_num + u")(?:[A-Za-z]?)"
 re_year = ur"""
     \(?
     (?:%(short_month)s[,\s]\s*)?  # Jul, 1980
     (?:%(month)s[,\s]\s*)?        # July, 1980
+    (?<!\d)
     %(year)s
+    (?!\d)
     \)?
 """ % {
     'year': re_year_text,
