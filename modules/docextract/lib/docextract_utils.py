@@ -20,6 +20,7 @@
 VERBOSITY = None
 
 import sys
+from datetime import datetime
 
 from invenio.bibtask import write_message as bibtask_write_message
 
@@ -39,4 +40,6 @@ def write_message(msg, stream=sys.stdout, verbose=1):
     if VERBOSITY is None:
         return bibtask_write_message(msg, stream, verbose)
     elif msg and VERBOSITY >= verbose:
+        if VERBOSITY > 8:
+            print >>stream, datetime.now().strftime('[%H:%M:%S] '),
         print >>stream, msg

@@ -17,7 +17,16 @@
 
 etcdir = $(sysconfdir)/docextract/
 etc_DATA = example.pdf \
-           example.txt
+           example.txt \
+           authors.kb \
+           collaborations.kb \
+           journal-titles-re.kb \
+           report-numbers.kb \
+           authorextract.test \
+           books.kb \
+           job-preprints.cfg \
+           journal-titles.kb \
+           refextract.test
 
 EXTRA_DIST = $(etc_DATA)
 
