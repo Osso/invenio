@@ -26,26 +26,27 @@ from invenio.config import CFG_VERSION, CFG_ETCDIR
 # pylint: disable=C0301
 
 # version number:
-CFG_REFEXTRACT_VERSION = "Invenio/%s refextract/%s" % (CFG_VERSION, '1.1')
-
+CFG_REFEXTRACT_VERSION = "Invenio/%s refextract/%s" % (CFG_VERSION, '1.2')
+# Module config directory
+CFG_CONF_DIR = '%s/docextract' % CFG_ETCDIR
 # periodicals knowledge base:
-CFG_REFEXTRACT_KB_JOURNAL_TITLES = "%s/refextract/journal-titles.kb" % CFG_ETCDIR
-CFG_REFEXTRACT_KB_JOURNAL_TITLES_RE = "%s/refextract/journal-titles-re.kb" % CFG_ETCDIR
-CFG_REFEXTRACT_KB_JOURNAL_TITLES_INSPIRE = "%s/refextract/journal-titles-inspire.kb" % CFG_ETCDIR
+CFG_REFEXTRACT_KB_JOURNAL_TITLES = "%s/journal-titles.kb" % CFG_CONF_DIR
+CFG_REFEXTRACT_KB_JOURNAL_TITLES_RE = "%s/journal-titles-re.kb" % CFG_CONF_DIR
+CFG_REFEXTRACT_KB_JOURNAL_TITLES_INSPIRE = "%s/journal-titles-inspire.kb" % CFG_CONF_DIR
 # report numbers knowledge base:
-CFG_REFEXTRACT_KB_REPORT_NUMBERS = "%s/refextract/report-numbers.kb" % CFG_ETCDIR
+CFG_REFEXTRACT_KB_REPORT_NUMBERS = "%s/report-numbers.kb" % CFG_CONF_DIR
 # authors which should be recognised as such
-CFG_REFEXTRACT_KB_AUTHORS = "%s/refextract/authors.kb" % CFG_ETCDIR
+CFG_REFEXTRACT_KB_AUTHORS = "%s/authors.kb" % CFG_CONF_DIR
 # collaborations which should be recognised as such
-CFG_REFEXTRACT_KB_COLLABORATIONS = "%s/refextract/collaborations.kb" % CFG_ETCDIR
+CFG_REFEXTRACT_KB_COLLABORATIONS = "%s/collaborations.kb" % CFG_CONF_DIR
 # books which should be recognised as such
-CFG_REFEXTRACT_KB_BOOKS = "%s/refextract/books.kb" % CFG_ETCDIR
+CFG_REFEXTRACT_KB_BOOKS = "%s/books.kb" % CFG_CONF_DIR
 # conferences which should be recognised as such
-CFG_REFEXTRACT_KB_CONFERENCES = "%s/refextract/conferences.kb" % CFG_ETCDIR
+CFG_REFEXTRACT_KB_CONFERENCES = "%s/conferences.kb" % CFG_CONF_DIR
 # prefix for temp files
 CFG_REFEXTRACT_FILENAME = "refextract"
 # Test references load with --test-set
-CFG_REFEXTRACT_TEST_REFERENCES = "%s/refextract/test-references" % CFG_ETCDIR
+CFG_REFEXTRACT_TEST_REFERENCES = "%s/test-references" % CFG_CONF_DIR
 
 ## MARC Fields and subfields used by refextract:
 
@@ -86,9 +87,9 @@ CFG_REFEXTRACT_MARKER_CLOSING_QUOTED     = r"</cds.QUOTED>"
 CFG_REFEXTRACT_MARKER_CLOSING_ISBN       = r"</cds.ISBN>"
 
 ## Of the form '</cds.AUTHxxxx>' only
-CFG_REFEXTRACT_MARKER_CLOSING_AUTHOR_STND= r"</cds.AUTHstnd>"
-CFG_REFEXTRACT_MARKER_CLOSING_AUTHOR_ETAL= r"</cds.AUTHetal>"
-CFG_REFEXTRACT_MARKER_CLOSING_AUTHOR_INCL= r"</cds.AUTHincl>"
+CFG_REFEXTRACT_MARKER_CLOSING_AUTHOR_STND = r"</cds.AUTHstnd>"
+CFG_REFEXTRACT_MARKER_CLOSING_AUTHOR_ETAL = r"</cds.AUTHetal>"
+CFG_REFEXTRACT_MARKER_CLOSING_AUTHOR_INCL = r"</cds.AUTHincl>"
 
 ## XML Record and collection opening/closing tags:
 CFG_REFEXTRACT_XML_VERSION          = u"""<?xml version="1.0" encoding="UTF-8"?>"""
@@ -96,11 +97,6 @@ CFG_REFEXTRACT_XML_COLLECTION_OPEN  = u"""<collection xmlns="http://www.loc.gov/
 CFG_REFEXTRACT_XML_COLLECTION_CLOSE = u"""</collection>"""
 CFG_REFEXTRACT_XML_RECORD_OPEN      = u"<record>"
 CFG_REFEXTRACT_XML_RECORD_CLOSE     = u"</record>"
-
-## Job task file valid parameters
-CFG_REFEXTRACT_JOB_FILE_PARAMS = ('collection', 'recid', 'raw-references',
-                                  'output-raw-refs', 'xmlfile', 'dictfile',
-                                  'inspire', 'kb-journal', 'kb-report-number', 'verbose')
 
 ## The minimum length of a reference's misc text to be deemed insignificant.
 ## when comparing misc text with semi-colon defined sub-references.
