@@ -29,9 +29,10 @@ import os
 from urllib import urlretrieve
 from tempfile import mkstemp
 
-from refextract_engine import parse_references, \
-    get_plaintext_document_body, extract_references_from_fulltext
-
+from invenio.refextract_engine import parse_references, \
+                                      get_plaintext_document_body, \
+                                      parse_reference_line, \
+                                      extract_references_from_fulltext
 from invenio.config import CFG_INSPIRE_SITE
 from invenio.bibdocfile import BibRecDocs, InvenioWebSubmitFileError
 from invenio.search_engine import get_record
@@ -63,7 +64,7 @@ def extract_references_from_url_xml(url, inspire=CFG_INSPIRE_SITE):
     It raises FullTextNotAvailable if the url gives a 404
     The result is given in marcxml.
     """
-    filename, _ = urlretrieve(url)
+    filename, dummy = urlretrieve(url)
     try:
         try:
             marcxml = extract_references_from_file_xml(filename,
@@ -88,11 +89,11 @@ def extract_references_from_file_xml(path, recid=1, inspire=CFG_INSPIRE_SITE):
     if not os.path.isfile(path):
         raise FullTextNotAvailable()
 
-    docbody, _ = get_plaintext_document_body(path)
-    reflines, _, _ = extract_references_from_fulltext(docbody)
+    docbody, dummy = get_plaintext_document_body(path)
+    reflines, dummy, dummy = extract_references_from_fulltext(docbody)
     if not len(reflines):
-        docbody, _ = get_plaintext_document_body(path, keep_layout=True)
-        reflines, _, _ = extract_references_from_fulltext(docbody)
+        docbody, dummy = get_plaintext_document_body(path, keep_layout=True)
+        reflines, dummy, dummy = extract_references_from_fulltext(docbody)
 
     return parse_references(reflines, recid=recid, inspire=inspire)
 
@@ -104,7 +105,7 @@ def extract_references_from_string_xml(source, inspire=CFG_INSPIRE_SITE):
     The result is given in marcxml.
     """
     docbody = source.split('\n')
-    reflines, _, _ = extract_references_from_fulltext(docbody)
+    reflines, dummy, dummy = extract_references_from_fulltext(docbody)
     return parse_references(reflines, inspire=inspire)
 
 
@@ -214,3 +215,5 @@ def record_has_fulltext(recid):
                 continue
 
     return path is not None
+
+

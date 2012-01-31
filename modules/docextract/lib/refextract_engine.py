@@ -871,7 +871,7 @@ def split_volume_from_journal(citation_elements):
 
 ## End of elements transformations
 
-def parse_reference_line(ref_line, kbs, bad_titles_count):
+def parse_reference_line(ref_line, kbs, bad_titles_count={}):
     # Strip the 'marker' (e.g. [1]) from this reference line:
     (line_marker, ref_line) = remove_reference_line_marker(ref_line)
     # Find DOI sections in citation
@@ -1702,8 +1702,8 @@ def write_titles_statistics(all_found_titles_count, destination_file):
         dfilehdl.close()
 
 
-def load_kbs(kb_journals=None, kb_reports=None, kb_authors=None,
-    kb_books=None, kb_conferences=None, kb_journals_re=None, inspire=False):
+def load_kbs(kb_journals=None, kb_reports=None, kb_authors=None, kb_books=None,
+         kb_conferences=None, kb_journals_re=None, inspire=CFG_INSPIRE_SITE):
     if kb_journals is None:
         if inspire:
             kb_journals = CFG_REFEXTRACT_KB_JOURNAL_TITLES_INSPIRE
@@ -1735,7 +1735,7 @@ def load_kbs(kb_journals=None, kb_reports=None, kb_authors=None,
     }
 
 
-def build_xml_references(citations, inspire):
+def build_xml_references(citations, inspire=CFG_INSPIRE_SITE):
     """Build marc xml from a references list
 
     Transform the reference elements into marc xml
@@ -1759,7 +1759,7 @@ def build_xml_references(citations, inspire):
     return xml_references
 
 
-def parse_references(reference_lines, recid=1, inspire=False,
+def parse_references(reference_lines, recid=1, inspire=CFG_INSPIRE_SITE,
         kb_journals=None, kb_reports=None, kb_authors=None,
         kb_books=None, kb_conferences=None, kb_journals_re=None):
     """Parse a list of references
