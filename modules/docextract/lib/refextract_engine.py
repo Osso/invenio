@@ -50,6 +50,11 @@ from invenio.refextract_config import \
             CFG_REFEXTRACT_MARKER_CLOSING_AUTHOR_ETAL, \
             CFG_REFEXTRACT_MARKER_CLOSING_TITLE, \
             CFG_REFEXTRACT_MARKER_CLOSING_SERIES
+try:
+    from invenio.config import CFG_INSPIRE_SITE
+except ImportError:
+    CFG_INSPIRE_SITE = False
+
 
 # make refextract runnable without requiring the full Invenio installation:
 from invenio.config import CFG_PATH_GFILE

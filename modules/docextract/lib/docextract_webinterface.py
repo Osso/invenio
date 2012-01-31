@@ -33,7 +33,10 @@ from invenio.refextract_api import extract_references_from_file_xml, \
                                    extract_references_from_string_xml
 from invenio.bibformat_engine import format_record
 from invenio.bibrecord import create_record
-from invenio.config import CFG_INSPIRE_SITE
+try:
+    from invenio.config import CFG_INSPIRE_SITE
+except ImportError:
+    CFG_INSPIRE_SITE = False
 
 
 def check_login(req):
