@@ -857,6 +857,8 @@ AC_CONFIG_FILES([config.nice  \
      modules/websubmit/web/admin/Makefile \
      modules/docextract/Makefile \
      modules/docextract/bin/Makefile \
+     modules/docextract/bin/authorextract \
+     modules/docextract/bin/refextract \
      modules/docextract/doc/Makefile \
      modules/docextract/lib/Makefile \
      modules/docextract/etc/Makefile \
