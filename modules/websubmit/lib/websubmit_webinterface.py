@@ -183,11 +183,13 @@ class WebInterfaceFilesPages(WebInterfaceDirectory):
                     version = ''
 
             display_hidden = isUserSuperAdmin(user_info)
+            from invenio import bibdocfile
+            bibrecdocs = bibdocfile.BibRecDocs(self.recid)
 
             if version != 'all':
                 # search this filename in the complete list of files
                 for doc in bibarchive.list_bibdocs():
-                    if docname == doc.get_docname():
+                    if docname == bibrecdocs.get_docname(doc.id):
                         try:
                             docfile = doc.get_file(format, version)
                             (auth_code, auth_message) = docfile.is_restricted(user_info)
@@ -208,7 +210,7 @@ class WebInterfaceFilesPages(WebInterfaceDirectory):
                             if not docfile.hidden_p():
                                 if not readonly:
                                     ip = str(req.remote_ip)
-                                    res = doc.register_download(ip, version, format, uid)
+                                    res = doc.register_download(ip, version, format, uid, self.recid)
                                 try:
                                     return docfile.stream(req)
                                 except InvenioWebSubmitFileError, msg:
@@ -305,7 +307,8 @@ def websubmit_legacy_getfile(req, form):
             if docid:
                 try:
                     bibdoc = BibDoc.create_instance(docid=docid)
-                    recid = bibdoc.get_recid()
+                    # in this case we take the first attached ... with the possibility of an exception
+                    recid = bibdoc.bibrec_links[0]["recid"]
                 except InvenioWebSubmitFileError, e:
                     return warningMsg(_("An error has happened in trying to retrieve the requested file."), req, CFG_SITE_NAME, ln)
             else:
@@ -315,7 +318,8 @@ def websubmit_legacy_getfile(req, form):
                 ## Let's obtain the name from the docid
                 try:
                     bibdoc = BibDoc.create_instance(docid)
-                    name = bibdoc.get_docname()
+                    brd = BibRecDocs(recid)
+                    name = brd.get_docname(bibdoc.id)
                 except InvenioWebSubmitFileError, e:
                     return warningMsg(_("An error has happened in trying to retrieving the requested file."), req, CFG_SITE_NAME, ln)
 
