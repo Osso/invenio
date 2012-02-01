@@ -96,11 +96,11 @@ class BibDocsTest(unittest.TestCase):
         #get total file (bibdoc)
         self.assertEqual(my_new_bibdoc.get_total_size(), 91750)
         #get recid
-        self.assertEqual(my_new_bibdoc.get_recid(), 2)
+        self.assertEqual(my_new_bibdoc.bibrec_links[0]["recid"], 2)
         #change name
-        my_new_bibdoc.change_name('new_name')
+        my_new_bibdoc.change_name(2, 'new_name')
         #get docname
-        self.assertEqual(my_new_bibdoc.get_docname(), 'new_name')
+        self.assertEqual(my_new_bibdoc.bibrec_links[0]["docname"], 'new_name')
         #get type
         self.assertEqual(my_new_bibdoc.get_type(), 'Main')
         #get id
@@ -132,7 +132,7 @@ class BibDocsTest(unittest.TestCase):
         self.assertEqual(len(my_new_bibdoc.list_version_files(1, list_hidden=True)), 1)
         #display
         tmpl = invenio.template.load("bibdocfile")
-        value = tmpl.tmpl_display_bibdoc(my_new_bibdoc, version='', ln='en', display_hidden=True)
+        value = tmpl.tmpl_display_bibdoc(my_new_bibdoc, version='', ln='en', display_hidden=True, recid= 2,  docname='img_test')
         self.assert_('>test add new file<' in value)
         #format already exist
         self.assertEqual(my_new_bibdoc.format_already_exists_p('.jpg'), True)
@@ -283,7 +283,7 @@ class BibDocFilesTest(unittest.TestCase):
         #get comment
         self.assertEqual(my_new_bibdocfile.get_comment(), my_new_bibdoc.get_comment('.jpg', version=1))
         #get recid
-        self.assertEqual(my_new_bibdocfile.get_recid(), 2)
+        self.assertEqual(my_new_bibdocfile.bibrec_links[0]["recid"], 2)
         #get status
         self.assertEqual(my_new_bibdocfile.get_status(), '')
         #get size

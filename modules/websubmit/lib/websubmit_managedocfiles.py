@@ -1113,10 +1113,10 @@ def build_updated_files_list(bibdocs, actions, recid, display_hidden_files=False
         status = bibdoc.get_status()
         if status == "DELETED":
             status = ''
-
-        abstract_bibdocs[bibdoc.get_docname()] = \
+        brd = BibRecDocs(recid)
+        abstract_bibdocs[brd.get_docname(bibdoc.id)] = \
             {'list_latest_files': bibdoc.list_latest_files(),
-             'get_docname': bibdoc.get_docname(),
+             'get_docname': brd.get_docname(bibdoc.id),
              'updated': False,
              'get_type': bibdoc.get_type(),
              'get_status': status,
@@ -1890,13 +1890,15 @@ def add(file_path, bibdoc_name, rename, doctype, description, comment,
     Return the bibdoc that has been newly added.
     """
     try:
+        brd = BibRecDocs(recid)
         if os.path.exists(file_path):
             # Add file
             bibdoc = bibrecdocs.add_new_file(file_path,
                                              doctype,
                                              rename or bibdoc_name,
                                              never_fail=True)
-            _do_log(working_dir, 'Added ' + bibdoc.get_docname() + ': ' + \
+
+            _do_log(working_dir, 'Added ' + brd.get_docname(bibdoc.id) + ': ' + \
                     file_path)
 
             # Add icon
@@ -1915,7 +1917,7 @@ def add(file_path, bibdoc_name, rename, doctype, description, comment,
                                 icon_suffix = icon_size.replace('>', '').replace('<', '').replace('^', '').replace('!', '')
                                 bibdoc.add_icon(iconpath, subformat=CFG_WEBSUBMIT_DEFAULT_ICON_SUBFORMAT + "-" + icon_suffix)
                             _do_log(working_dir, 'Added icon to ' + \
-                                    bibdoc.get_docname() + ': ' + iconpath)
+                                    brd.get_docname(bibdoc.id) + ': ' + iconpath)
                         except InvenioWebSubmitFileError, e:
                             # Most probably icon already existed.
                             pass
@@ -1927,7 +1929,7 @@ def add(file_path, bibdoc_name, rename, doctype, description, comment,
                     bibdoc.set_description(description,
                                            bibdocfile.get_format())
                     _do_log(working_dir, 'Described ' + \
-                            bibdoc.get_docname() + ': ' + description)
+                            brd.get_docname(bibdoc.id) + ': ' + description)
 
             # Add comment
             if comment:
@@ -1936,12 +1938,12 @@ def add(file_path, bibdoc_name, rename, doctype, description, comment,
                     bibdoc.set_comment(comment,
                                        bibdocfile.get_format())
                     _do_log(working_dir, 'Commented ' + \
-                            bibdoc.get_docname() + ': ' + comment)
+                            brd.get_docname(bibdoc.id) + ': ' + comment)
 
             # Set restriction
             bibdoc.set_status(file_restriction)
             _do_log(working_dir, 'Set restriction of ' + \
-                    bibdoc.get_docname() + ': ' + \
+                    brd.get_docname(bibdoc.id) + ': ' + \
                     file_restriction or '(no restriction)')
 
             return bibdoc
@@ -1967,6 +1969,7 @@ def add_format(file_path, bibdoc_name, recid, doctype, working_dir,
     Adds a new format to a bibdoc using bibdocfile CLI
     """
     try:
+        brd = BibRecDocs(recid)
         if os.path.exists(file_path):
 
             # We must retrieve previous description and comment as
@@ -1982,7 +1985,7 @@ def add_format(file_path, bibdoc_name, recid, doctype, working_dir,
                                                prev_desc,
                                                prev_comment)
             _do_log(working_dir, 'Added new format to ' + \
-                    bibdoc.get_docname() + ': ' + file_path)
+                    brd.get_docname(bibdoc.id) + ': ' + file_path)
 
             # Add icons
             has_added_default_icon_subformat_p = False
@@ -2002,7 +2005,7 @@ def add_format(file_path, bibdoc_name, recid, doctype, working_dir,
 
                                 bibdoc.add_icon(iconpath, subformat=CFG_WEBSUBMIT_DEFAULT_ICON_SUBFORMAT + "-" + icon_suffix)
                             _do_log(working_dir, 'Added icon to ' + \
-                                    bibdoc.get_docname() + ': ' + iconpath)
+                                    brd.get_docname(bibdoc.id) + ': ' + iconpath)
                         except InvenioWebSubmitFileError, e:
                             # Most probably icon already existed.
                             pass
@@ -2036,7 +2039,7 @@ def revise(file_path, bibdoc_name, rename, doctype, description,
     added_bibdoc = None
     try:
         if os.path.exists(file_path) or not file_path:
-
+            brd = BibRecDocs(recid)
             # Perform pending actions
             if pending_bibdocs.has_key(bibdoc_name):
                 # We have some pending actions to apply before
@@ -2057,14 +2060,14 @@ def revise(file_path, bibdoc_name, rename, doctype, description,
                                                      pending_bibdocs[bibdoc_name][0],
                                                      bibdoc_name,
                                                      never_fail=True)
-                    _do_log(working_dir, 'Added ' + bibdoc.get_docname() + ': ' + \
+                    _do_log(working_dir, 'Added ' + brd.get_docname(bibdoc.id) + ': ' + \
                             file_path)
                     added_bibdoc = bibdoc
 
                     # Set restriction
                     bibdoc.set_status(file_restriction)
                     _do_log(working_dir, 'Set restriction of ' + \
-                            bibdoc.get_docname() + ': ' + \
+                            bibrec.get_docname(bibdoc.id) + ': ' + \
                             file_restriction or '(no restriction)')
 
                 # We must retrieve previous description and comment as
@@ -2081,7 +2084,7 @@ def revise(file_path, bibdoc_name, rename, doctype, description,
                                                    description=bibdoc.get_description(),
                                                    comment=bibdoc.get_comment())
                         _do_log(working_dir, 'Added new format to' + \
-                                bibdoc.get_docname() + ': ' + file_path)
+                                brd.get_docname(bibdoc.id) + ': ' + file_path)
 
                 # All pending modification have been applied,
                 # so delete
@@ -2100,7 +2103,7 @@ def revise(file_path, bibdoc_name, rename, doctype, description,
                                                     bibdoc_name,
                                                     prev_desc,
                                                     prev_comment)
-                _do_log(working_dir, 'Revised ' + bibdoc.get_docname() + \
+                _do_log(working_dir, 'Revised ' + brd.get_docname(bibdoc.id) + \
                         ' with : ' + file_path)
 
             elif file_path:
@@ -2118,7 +2121,7 @@ def revise(file_path, bibdoc_name, rename, doctype, description,
                                                      never_fail=True,
                                                      description=prev_desc,
                                                      comment=prev_comment)
-                    _do_log(working_dir, 'Added ' + bibdoc.get_docname() + ': ' + \
+                    _do_log(working_dir, 'Added ' + brd.get_docname(bibdoc.id) + ': ' + \
                             file_path)
 
                 except InvenioWebSubmitFileError, e:
@@ -2152,7 +2155,7 @@ def revise(file_path, bibdoc_name, rename, doctype, description,
 
             # Rename
             if rename and rename != bibdoc_name:
-                bibdoc.change_name(rename)
+                bibdoc.change_name(bibrecdocs.id, rename)
                 _do_log(working_dir, 'renamed ' + bibdoc_name +' to '+ rename)
 
             # Add icons
@@ -2173,7 +2176,7 @@ def revise(file_path, bibdoc_name, rename, doctype, description,
                                     icon_suffix = icon_size.replace('>', '').replace('<', '').replace('^', '').replace('!', '')
                                     bibdoc.add_icon(iconpath, subformat=CFG_WEBSUBMIT_DEFAULT_ICON_SUBFORMAT + "-" + icon_suffix)
                                 _do_log(working_dir, 'Added icon to ' + \
-                                        bibdoc.get_docname() + ': ' + iconpath)
+                                        brd.get_docname(bibdoc.id) + ': ' + iconpath)
                             except InvenioWebSubmitFileError, e:
                                 # Most probably icon already existed.
                                 pass
@@ -2185,7 +2188,7 @@ def revise(file_path, bibdoc_name, rename, doctype, description,
                     bibdoc.set_description(description,
                                            bibdocfile.get_format())
                     _do_log(working_dir, 'Described ' + \
-                            bibdoc.get_docname() + ': ' + description)
+                            brd.get_docname(bibdoc.id) + ': ' + description)
             # Comment
             if comment:
                 bibdocfiles = bibdoc.list_latest_files()
@@ -2193,12 +2196,12 @@ def revise(file_path, bibdoc_name, rename, doctype, description,
                     bibdoc.set_comment(comment,
                                        bibdocfile.get_format())
                     _do_log(working_dir, 'Commented ' + \
-                            bibdoc.get_docname() + ': ' + comment)
+                            brd.get_docname(bibdoc.id) + ': ' + comment)
 
             # Set restriction
             bibdoc.set_status(file_restriction)
             _do_log(working_dir, 'Set restriction of ' + \
-                    bibdoc.get_docname() + ': ' + \
+                    brd.get_docname(bibdoc.id) + ': ' + \
                     file_restriction or '(no restriction)')
         else:
             # File has been later renamed or deleted.

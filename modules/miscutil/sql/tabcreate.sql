@@ -2897,6 +2897,7 @@ CREATE TABLE IF NOT EXISTS bibdoc (
   modification_date datetime NOT NULL default '0000-00-00',
   text_extraction_date datetime NOT NULL default '0000-00-00',
   more_info mediumblob NULL default NULL,
+  doctype varchar(255),
   PRIMARY KEY  (id),
   KEY creation_date (creation_date),
   KEY modification_date (modification_date)

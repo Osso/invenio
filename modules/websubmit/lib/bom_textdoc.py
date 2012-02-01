@@ -130,14 +130,14 @@ class BibTextDoc(BibDoc):
                 return True
         return False
     def __repr__(self):
-        return 'BibTextDoc(%s, %s, %s, %s, %s)' % (repr(self.id), repr(self.recid), repr(self.docname), repr(self.doctype), repr(self.human_readable))
+        return 'BibTextDoc(%s, %s, %s)' % (repr(self.id),  repr(self.doctype), repr(self.human_readable))
 
 def supports(name):
-    return name == "Main"
+    return name == "Main" or name == "Fulltext" #TODO: Piotr: This should react only to Fulltext in some future... but by then all flltexts should be uploaded as Fulltext in their doctype.... some extension to upload document type should be necessary
 
-def create_instance(docid=None, recid=None, docname=None,
-                    doctype='Main', human_readable=False,
+def create_instance(docid=None, doctype='Main', human_readable=False,
                     initial_data = None):
-    return BibTextDoc(docid=docid, recid = recid, docname=docname,
-                      doctype=doctype, human_readable=human_readable,
+#    return BibTextDoc(docid=docid, doctype=doctype, human_readable=human_readable,
+#                      initial_data = initial_data)
+    return BibTextDoc(docid=docid, human_readable=human_readable,
                       initial_data = initial_data)

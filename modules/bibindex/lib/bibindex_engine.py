@@ -51,7 +51,8 @@ from invenio.bibindex_engine_tokenizer import BibIndexFuzzyNameTokenizer, \
      BibIndexExactNameTokenizer
 from invenio.bibdocfile import bibdocfile_url_p, \
      bibdocfile_url_to_bibdoc, normalize_format, \
-     download_url, guess_format_from_url, BibRecDocs
+     download_url, guess_format_from_url, BibRecDocs, \
+     decompose_bibdocfile_url
 from invenio.websubmit_file_converter import convert_file, get_file_converter_logger
 from invenio.search_engine import perform_request_search, \
      wash_index_term, lower_index_term, get_index_stemming_language, \
@@ -302,8 +303,9 @@ def get_words_from_fulltext(url_direct_or_indirect, stemming_language=None):
         if bibdocfile_url_p(url_direct_or_indirect):
             write_message("... %s is an internal document" % url_direct_or_indirect, verbose=2)
             bibdoc = bibdocfile_url_to_bibdoc(url_direct_or_indirect)
-            perform_ocr = bool(re_perform_ocr.match(bibdoc.get_docname()))
-            write_message("... will extract words from %s (docid: %s) %s" % (bibdoc.get_docname(), bibdoc.get_id(), perform_ocr and 'with OCR' or ''), verbose=2)
+            recid, docname, format = decompose_bibdocfile_url(url_direct_or_indirect)
+            perform_ocr = bool(re_perform_ocr.match(docname))
+            write_message("... will extract words from %s (docid: %s) %s" % (docname, bibdoc.get_id(), perform_ocr and 'with OCR' or ''), verbose=2)
             if hasattr(bibdoc, "has_text") and not bibdoc.has_text(require_up_to_date=True):
                 bibdoc.extract_text(perform_ocr=perform_ocr)
             if CFG_SOLR_URL:

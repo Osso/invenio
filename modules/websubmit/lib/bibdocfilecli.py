@@ -138,7 +138,13 @@ def cli_quick_match_all_recids(options):
         return intbitset([decompose_bibdocfile_url(url)[0]])
     path = getattr(options, 'path', None)
     if path:
-        return intbitset([decompose_bibdocfile_fullpath(path)[0]])
+        docid = decompose_bibdocfile_fullpath(path)["doc_id"]
+        bd = BibDoc(docid)
+        ids = []
+        for rec_link in bd.bibrec_links:
+            ids.append(rec_link["rec_id"])
+        return intbitset(ids)
+
     collection = getattr(options, 'collection', None)
     pattern = getattr(options, 'pattern', None)
     recids = getattr(options, 'recids', None)
@@ -185,7 +191,12 @@ def cli_quick_match_all_docids(options, recids=None):
         return intbitset([bibdocfile_url_to_bibdoc(url).get_id()])
     path = getattr(options, 'path', None)
     if path:
-        return intbitset([decompose_bibdocfile_fullpath(path)[0]])
+        docid = decompose_bibdocfile_fullpath(path)["doc_id"]
+        bd = BibDoc(docid)
+        ids = []
+        for rec_link in bd.bibrec_links:
+            ids.append(rec_link["rec_id"])
+        return intbitset(ids)
 
     deleted_docs = getattr(options, 'deleted_docs', None)
     action_undelete = getattr(options, 'action', None) == 'undelete'
@@ -265,18 +276,24 @@ def cli_slow_match_single_recid(options, recid, recids=None, docids=None):
 def cli_slow_match_single_docid(options, docid, recids=None, docids=None):
     """Apply all the given queries in order to assert wethever a recid
     match or not."""
+
     debug('cli_slow_match_single_docid checking: %s' % docid)
     empty_docs = getattr(options, 'empty_docs', None)
     docname = cli2docname(options)
     if recids is None:
         recids = cli_quick_match_all_recids(options)
     bibdoc = BibDoc.create_instance(docid)
-    if docname and not fnmatch.fnmatchcase(bibdoc.get_docname(), docname):
-        debug('docname %s does not match the pattern %s' % (repr(bibdoc.get_docname()), repr(docname)))
+    dn = None
+    if bibdoc.bibrec_links:
+        dn = bibdoc.bibrec_links[0]["docname"]
+    if docname and not fnmatch.fnmatchcase(dn, docname):
+        debug('docname %s does not match the pattern %s' % (repr(dn), repr(docname)))
         return False
-    elif bibdoc.get_recid() and bibdoc.get_recid() not in recids:
-        debug('recid %s is not in pattern %s' % (repr(bibdoc.get_recid()), repr(recids)))
-        return False
+
+#    elif bibdoc.get_recid() and bibdoc.get_recid() not in recids:
+#        debug('recid %s is not in pattern %s' % (repr(bibdoc.get_recid()), repr(recids)))
+#        return False
+
     elif empty_docs == 'no' and bibdoc.empty_p():
         debug('bibdoc is empty')
         return False
@@ -350,9 +367,10 @@ def cli2doctype(options):
 def cli2docname(options, docid=None, url=None):
     """Given the command line options and optional precalculated docid
     returns the corresponding docname."""
-    if docid:
-        bibdoc = BibDoc.create_instance(docid=docid)
-        return bibdoc.get_docname()
+# We can not retrieve from docid only any more
+#    if docid:
+#        bibdoc = BibDoc.create_instance(docid=docid)
+#        return bibdoc.get_docname()
     docname = getattr(options, 'docname', None)
     if docname is not None:
         return docname
@@ -531,9 +549,9 @@ Examples:
     parser.add_option('--yes-i-know', action='store_true', dest='yes-i-know', help='use with care!')
     return parser
 
-def print_info(recid, docid, info):
-    """Nicely print info about a recid, docid pair."""
-    print '%i:%i:%s' % (recid, docid, info)
+def print_info(docid, info):
+    """Nicely print info about a docid."""
+    print '%i:%s' % (docid, info)
 
 def bibupload_ffts(ffts, append=False, debug=False, interactive=True):
     """Given an ffts dictionary it creates the xml and submit it."""
@@ -655,8 +673,13 @@ def cli_set_batch(options):
     with_format = getattr(options, 'format', None)
     for docid in cli_docids_iterator(options):
         bibdoc = BibDoc.create_instance(docid)
-        recid = bibdoc.get_recid()
-        docname = bibdoc.get_docname()
+        recid = None
+        docname = None
+        if bibdoc.bibrec_links:
+            # pick a sample recid from those to which a BibDoc is attached
+            recid = bibdoc.bibrec_links[0]["recid"]
+            docname = bibdoc.bibrec_links[0]["docname"]
+
         fft = []
         if description is not None or comment is not None:
             for bibdocfile in bibdoc.list_latest_files():
@@ -709,8 +732,11 @@ def cli_rename(options):
     new_docname = getattr(options, 'new_docname', None)
     docid = cli2docid(options)
     bibdoc = BibDoc.create_instance(docid)
-    docname = bibdoc.get_docname()
-    recid = bibdoc.get_recid()
+    docname = None
+    if bibdoc.bibrec_links:
+        docname = bibdoc.bibrec_links[0]["docname"]
+
+    recid = cli2recid(options) # now we read the recid from options
     ffts = {recid : [{'docname' : docname, 'new_docname' : new_docname}]}
     return bibupload_ffts(ffts, append=False)
 
@@ -823,8 +849,13 @@ def cli_delete(options):
     ffts = {}
     for docid in cli_docids_iterator(options):
         bibdoc = BibDoc.create_instance(docid)
-        docname = bibdoc.get_docname()
-        recid = bibdoc.get_recid()
+        docname = None
+        recid = None
+        # retrieve the 1st recid
+        if recid.bibrec_links:
+            recid = bibdoc.bibrec_links[0]["recid"]
+            docname = bibdoc.bibrec_links[0]["docname"]
+
         if recid not in ffts:
             ffts[recid] = [{'docname' : docname, 'doctype' : 'DELETE'}]
         else:
@@ -836,7 +867,8 @@ def cli_delete_file(options):
     docid = cli2docid(options)
     recid = cli2recid(options, docids=intbitset([docid]))
     format = cli2format(options)
-    docname = BibDoc.create_instance(docid).get_docname()
+    bdr = BibRecDocs(bibrec)
+    docname = bdr.get_docname(docid)
     version = getattr(options, 'version', None)
     try:
         version_int = int(version)
@@ -851,7 +883,8 @@ def cli_revert(options):
     """Revert a bibdoc to a given version."""
     docid = cli2docid(options)
     recid = cli2recid(options, docids=intbitset([docid]))
-    docname = BibDoc.create_instance(docid).get_docname()
+    bdr = BibRecDocs(bibrec)
+    docname = bdr.get_docname(docid)
     version = getattr(options, 'version', None)
     try:
         version_int = int(version)
@@ -876,11 +909,18 @@ def cli_undelete(options):
     setattr(options, 'deleted_docs', 'only')
     for docid in cli_docids_iterator(options):
         bibdoc = BibDoc.create_instance(docid)
-        if bibdoc.get_status() == 'DELETED' and fnmatch.fnmatch(bibdoc.get_docname(), docname):
+        dnold = None
+        if bibdoc.bibrec_links:
+            dnold = bibdoc.bibrec_links[0]["docname"]
+        if bibdoc.get_status() == 'DELETED' and fnmatch.fnmatch(dnold, docname):
             to_be_undeleted.add(docid)
-            fix_marc.add(bibdoc.get_recid())
+            # get the 1st recid to which the document is attached
+            recid = None
+            if bibdoc.bibrec_links:
+                recid = bibdoc.bibrec_links[0]["recid"]
+            fix_marc.add(recid)
             count += 1
-            print '%s (docid %s from recid %s) will be undeleted to restriction: %s' % (bibdoc.get_docname(), docid, bibdoc.get_recid(), restriction)
+            print '%s (docid %s from recid %s) will be undeleted to restriction: %s' % (dnold, docid, recid, restriction)
     wait_for_user("I'll proceed with the undeletion")
     for docid in to_be_undeleted:
         bibdoc = BibDoc.create_instance(docid)
@@ -907,8 +947,12 @@ def cli_purge(options):
     ffts = {}
     for docid in cli_docids_iterator(options):
         bibdoc = BibDoc.create_instance(docid)
-        recid = bibdoc.get_recid()
-        docname = bibdoc.get_docname()
+        recid = None
+        docname = None
+        if bibdoc.bibrec_links:
+            recid = bibdoc.bibrec_links[0]["recid"]
+            docname = bibdoc.bibrec_links[0]["docname"]
+
         if recid:
             if recid not in ffts:
                 ffts[recid] = []
@@ -923,8 +967,14 @@ def cli_expunge(options):
     ffts = {}
     for docid in cli_docids_iterator(options):
         bibdoc = BibDoc.create_instance(docid)
-        recid = bibdoc.get_recid()
-        docname = bibdoc.get_docname()
+        recid = None
+        docname = None
+        if bibdoc.bibrec_links:
+            #TODO: If we have a syntax for manipulating completely standalone objects,
+            # this has to be modified
+            recid = bibdoc.bibrec_links[0]["recid"]
+            docname = bibdoc.bibrec_links[0]["docname"]
+
         if recid:
             if recid not in ffts:
                 ffts[recid] = []
@@ -940,7 +990,8 @@ def cli_get_history(options):
         bibdoc = BibDoc.create_instance(docid)
         history = bibdoc.get_history()
         for row in history:
-            print_info(bibdoc.get_recid(), docid, row)
+
+            print_info(docid, row)
 
 def cli_get_disk_usage(options):
     """Print the space usage of a docid_set."""
@@ -954,11 +1005,11 @@ def cli_get_disk_usage(options):
         latest_size = bibdoc.get_total_size_latest_version()
         total_latest_size += latest_size
         if human_readable:
-            print_info(bibdoc.get_recid(), docid, 'size=%s' % nice_size(size))
-            print_info(bibdoc.get_recid(), docid, 'latest version size=%s' % nice_size(latest_size))
+            print_info(docid, 'size=%s' % nice_size(size))
+            print_info(docid, 'latest version size=%s' % nice_size(latest_size))
         else:
-            print_info(bibdoc.get_recid(), docid, 'size=%s' % size)
-            print_info(bibdoc.get_recid(), docid, 'latest version size=%s' % latest_size)
+            print_info(docid, 'size=%s' % size)
+            print_info( docid, 'latest version size=%s' % latest_size)
     if human_readable:
         print wrap_text_in_a_box('total size: %s\n\nlatest version total size: %s'
             % (nice_size(total_size), nice_size(total_latest_size)),
@@ -974,12 +1025,12 @@ def cli_check_md5(options):
     for docid in cli_docids_iterator(options):
         bibdoc = BibDoc.create_instance(docid)
         if bibdoc.md5s.check():
-            print_info(bibdoc.get_recid(), docid, 'checksum OK')
+            print_info(docid, 'checksum OK')
         else:
             for afile in bibdoc.list_all_files():
                 if not afile.check():
                     failures += 1
-                    print_info(bibdoc.get_recid(), docid, '%s failing checksum!' % afile.get_full_path())
+                    print_info(docid, '%s failing checksum!' % afile.get_full_path())
     if failures:
         print wrap_text_in_a_box('%i files failing' % failures , style='conclusion')
     else:
@@ -990,11 +1041,11 @@ def cli_update_md5(options):
     for docid in cli_docids_iterator(options):
         bibdoc = BibDoc.create_instance(docid)
         if bibdoc.md5s.check():
-            print_info(bibdoc.get_recid(), docid, 'checksum OK')
+            print_info(docid, 'checksum OK')
         else:
             for afile in bibdoc.list_all_files():
                 if not afile.check():
-                    print_info(bibdoc.get_recid(), docid, '%s failing checksum!' % afile.get_full_path())
+                    print_info(docid, '%s failing checksum!' % afile.get_full_path())
             wait_for_user('Updating the md5s of this document can hide real problems.')
             bibdoc.md5s.update(only_new=False)
 
@@ -1012,7 +1063,9 @@ def cli_hide(options):
         versions = intbitset(trailing_bits=True)
     for docid in cli_docids_iterator(options):
         bibdoc = BibDoc.create_instance(docid)
-        recid = bibdoc.get_recid()
+        recid = None
+        if bibdoc.bibrec_links:
+            recid = bibdoc.bibrec_links[0]["recid"]
         if recid:
             for bibdocfile in bibdoc.list_all_files():
                 this_version = bibdocfile.get_version()
@@ -1044,7 +1097,9 @@ def cli_unhide(options):
         versions = intbitset(trailing_bits=True)
     for docid in cli_docids_iterator(options):
         bibdoc = BibDoc.create_instance(docid)
-        recid = bibdoc.get_recid()
+        recid = None
+        if bibdoc.bibrec_links:
+            recid = bibdoc.bibrec_links[0]["recid"]
         if recid:
             for bibdocfile in bibdoc.list_all_files():
                 this_version = bibdocfile.get_version()

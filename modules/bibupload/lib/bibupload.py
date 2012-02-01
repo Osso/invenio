@@ -1054,7 +1054,7 @@ def synchronize_8564(rec_id, record, record_had_FFT, pretend=False):
     """
     def merge_marc_into_bibdocfile(field, pretend=False):
         """
-        Internal function that reads a single field and store its content
+        Internal function that reads a single field and stores its content
         in BibDocFile tables.
         @param field: the 8564_ field containing a BibDocFile URL.
         """
@@ -1121,8 +1121,10 @@ def synchronize_8564(rec_id, record, record_had_FFT, pretend=False):
 
     def get_bibdocfile_managed_info():
         """
-        Internal function to eturns a dictionary of
+        Internal function, returns a dictionary of
         BibDocFile URL -> wanna-be subfields.
+        This information is retrieved from internal BibDoc
+        structures rather than from input MARC XML files
 
         @rtype: mapping
         @return: BibDocFile URL -> wanna-be subfields dictionary
@@ -1157,6 +1159,7 @@ def synchronize_8564(rec_id, record, record_had_FFT, pretend=False):
             write_message('Analysing %s' % (field, ), verbose=9)
             for url in field_get_subfield_values(field, 'u') + field_get_subfield_values(field, 'q'):
                 if url in tags8564s_to_add:
+                    # there exists a link in the MARC of the record and the connection exists in BibDoc tables
                     if record_had_FFT:
                         merge_bibdocfile_into_marc(field, tags8564s_to_add[url])
                     else:
@@ -1164,6 +1167,10 @@ def synchronize_8564(rec_id, record, record_had_FFT, pretend=False):
                     del tags8564s_to_add[url]
                     break
                 elif bibdocfile_url_p(url) and decompose_bibdocfile_url(url)[0] == rec_id:
+                    # The link exists and is potentially correct-looking link to a document
+                    # moreover, it refers to current record id ... but it does not exist in
+                    # internal BibDoc structures. This could have happen in the case of renaming a document
+                    # or its removal. In both cases we have to remove link... a new one will be created
                     positions_tags8564s_to_remove.append(local_position)
                     write_message("%s to be deleted and re-synchronized" % (field, ),  verbose=9)
                     break
@@ -1206,7 +1213,7 @@ def elaborate_bdr_tags(record, rec_id, mode, pretend = False, tmp_ids = {}):
                 raise StandardError("Error: Can not process BDR field for record %s. Document identifier not specified." % \
                                         (str(rec_id), ))
             else:
-                document_id = resolve_identifier()
+                document_id = resolve_identifier(tmp_ids, document_id)
             attachemnt_type = _get_subfield_value(bdr, "t")
 
 
@@ -1228,7 +1235,7 @@ def elaborate_mit_tags(record, rec_id, mode, pretend = False, tmp_ids = {},
             relation_id = _get_subfield_value(mit, "r")
             bibdoc_id = _get_subfield_value(mit, "i")
             # checking for a possibly temporary ID
-            if not (bibdoc is None):
+            if not (bibdoc_id is None):
                 bibdoc_id = resolve_identifier(tmp_ids, bibdoc_id)
 
             bibdoc_ver = _get_subfield_value(mit, "v")
@@ -1246,9 +1253,9 @@ def elaborate_mit_tags(record, rec_id, mode, pretend = False, tmp_ids = {},
                     # retrieving the ID based on the document name (inside current record)
                     # The document is attached to current record.
                     try:
-                        bibdoc_id = recordDocs.get_docid(bibdoc1_name)
+                        bibdoc_id = recordDocs.get_docid(bibdoc_name)
                     except:
-                        raise StandardError("BibDoc of a name %s does not exist within a record" % (bibdoc1_name, ))
+                        raise StandardError("BibDoc of a name %s does not exist within a record" % (bibdoc_name, ))
             else:
                 if bibdoc_name != None:
                     write_message("Warning: both name and id of the first document of a relation have been specified. Ignoring the name")
@@ -1756,7 +1763,7 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
             if mode in ('insert', 'replace'): # new bibdocs, new docnames, new marc
                 if newname in bibrecdocs.get_bibdoc_names():
                     write_message("('%s', '%s') not inserted because docname already exists." % (newname, urls), stream=sys.stderr)
-                    raise StandardError
+                    raise StandardError("('%s', '%s') not inserted because docname already exists." % (newname, urls), stream=sys.stderr)
                 try:
                     if not pretend:
                         bibdoc = bibrecdocs.add_bibdoc(doctype, newname)
@@ -1765,17 +1772,20 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                         bibdoc = None
                 except Exception, e:
                     write_message("('%s', '%s', '%s') not inserted because: '%s'." % (doctype, newname, urls, e), stream=sys.stderr)
-                    raise StandardError
+                    raise e
                 for (url, format, description, comment, flags) in urls:
                     assert(_add_new_format(bibdoc, url, format, docname, doctype, newname, description, comment, flags, pretend=pretend))
             elif mode == 'replace_or_insert': # to be thought as correct_or_insert
                 for bibdoc in bibrecdocs.list_bibdocs():
-                    if bibdoc.get_docname() == docname:
+                    brd = BibRecDocs(rec_id)
+                    dn = brd.get_docname(bibdoc.id)
+
+                    if dn == docname:
                         if doctype not in ('PURGE', 'DELETE', 'EXPUNGE', 'REVERT', 'FIX-ALL', 'FIX-MARC', 'DELETE-FILE'):
                             if newname != docname:
                                 try:
                                     if not pretend:
-                                        bibdoc.change_name(newname)
+                                        bibdoc.change_name(rec_id, newname)
                                         ## Let's refresh the list of bibdocs.
                                         bibrecdocs.build_bibdoc_list()
                                 except StandardError, e:
@@ -1783,7 +1793,9 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                                     raise
                 found_bibdoc = False
                 for bibdoc in bibrecdocs.list_bibdocs():
-                    if bibdoc.get_docname() == newname:
+                    brd = BibRecDocs(rec_id)
+                    dn = brd.get_docname(bibdoc.id)
+                    if dn == newname:
                         found_bibdoc = True
                         if doctype == 'PURGE':
                             if not pretend:
@@ -1833,12 +1845,14 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                             assert(_add_new_format(bibdoc, url, format, docname, doctype, newname, description, comment, flags))
             elif mode == 'correct':
                 for bibdoc in bibrecdocs.list_bibdocs():
-                    if bibdoc.get_docname() == docname:
+                    brd = BibRecDocs(rec_id)
+                    dn = brd.get_docname(bibdoc.id)
+                    if dn == docname:
                         if doctype not in ('PURGE', 'DELETE', 'EXPUNGE', 'REVERT', 'FIX-ALL', 'FIX-MARC', 'DELETE-FILE'):
                             if newname != docname:
                                 try:
                                     if not pretend:
-                                        bibdoc.change_name(newname)
+                                        bibdoc.change_name(rec_id, newname)
                                         ## Let's refresh the list of bibdocs.
                                         bibrecdocs.build_bibdoc_list()
                                 except StandardError, e:
@@ -1846,7 +1860,9 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                                     raise
                 found_bibdoc = False
                 for bibdoc in bibrecdocs.list_bibdocs():
-                    if bibdoc.get_docname() == newname:
+                    brd = BibRecDocs(rec_id)
+                    dn = brd.get_docname(bibdoc.id)
+                    if dn == newname:
                         found_bibdoc = True
                         if doctype == 'PURGE':
                             if not pretend:
@@ -1899,7 +1915,9 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                 try:
                     found_bibdoc = False
                     for bibdoc in bibrecdocs.list_bibdocs():
-                        if bibdoc.get_docname() == docname:
+                        brd = BibRecDocs(rec_id)
+                        dn = brd.get_docname(bibdoc.id)
+                        if dn == docname:
                             found_bibdoc = True
                             for (url, format, description, comment, flags) in urls:
                                 assert(_add_new_format(bibdoc, url, format, docname, doctype, newname, description, comment, flags, pretend=pretend))
@@ -1930,7 +1948,7 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
 
             if bibdoc_tmpver:
                 if bibdoc_tmpver in tmp_vers:
-                    write_message("WARNING: the temporary version identifier %s has been declared more than once. Ignoring the second occurance" % (bibdoc_verid, ))
+                    write_message("WARNING: the temporary version identifier %s has been declared more than once. Ignoring the second occurance" % (bibdoc_tmpver, ))
                 else:
                     if version == None:
                         tmp_vers[bibdoc_tmpver] = version if version else \
