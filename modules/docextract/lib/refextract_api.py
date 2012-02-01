@@ -32,8 +32,10 @@ from tempfile import mkstemp
 from invenio.refextract_engine import parse_references, \
                                       get_plaintext_document_body, \
                                       parse_reference_line, \
-                                      extract_references_from_fulltext
+                                      extract_references_from_fulltext, \
+                                      load_kbs
 from invenio.config import CFG_INSPIRE_SITE
+from invenio.bibindex_engine import CFG_JOURNAL_PUBINFO_STANDARD_FORM
 from invenio.bibdocfile import BibRecDocs, InvenioWebSubmitFileError
 from invenio.search_engine import get_record
 from invenio.bibtask import task_low_level_submission
@@ -217,3 +219,17 @@ def record_has_fulltext(recid):
     return path is not None
 
 
+def search_from_reference(text):
+    kbs = load_kbs()
+    elements, dummy_m, dummy_c, dummy_co = parse_reference_line(text, kbs)
+    for el in elements:
+        if el['type'] == 'TITLE':
+            template = 'journal:"%s"' % CFG_JOURNAL_PUBINFO_STANDARD_FORM
+            return template \
+                .replace('773__p', el['title']) \
+                .replace('773__v', el['volume']) \
+                .replace('773__c', el['page']) \
+                .replace('773__y', el['year'])
+        elif el['type'] == 'REPORTNUMBER':
+            return 'report:"%s"' % el['report_num']
+    return None

@@ -32,7 +32,7 @@ from invenio.docextract_utils import setup_loggers
 from invenio.refextract_tag import identify_ibids, tag_numeration
 from invenio import refextract_re
 from invenio.refextract_find import get_reference_section_beginning
-
+from invenio.refextract_api import search_from_reference
 
 class ReTest(unittest.TestCase):
     def setUp(self):
@@ -77,6 +77,8 @@ class ReTest(unittest.TestCase):
 
 class IbidTest(unittest.TestCase):
     """Testing output of refextract"""
+    def setUp(self):
+        setup_loggers(verbosity=1)
 
     def test_identify_ibids_empty(self):
         r = identify_ibids("")
@@ -89,6 +91,8 @@ class IbidTest(unittest.TestCase):
 
 
 class TagNumerationTest(unittest.TestCase):
+    def setUp(self):
+        setup_loggers(verbosity=1)
 
     def test_vol_page_year(self):
         "<vol>, <page> (<year>)"
@@ -104,6 +108,9 @@ class TagNumerationTest(unittest.TestCase):
 
 
 class FindSectionTest(unittest.TestCase):
+    def setUp(self):
+        setup_loggers(verbosity=1)
+
     def test_simple(self):
         sect = get_reference_section_beginning([
             "Hello",
@@ -185,6 +192,23 @@ class FindSectionTest(unittest.TestCase):
             'title_marker_same_line': False,
             'how_found_start': 4,
         })
+
+
+class SearchTest(unittest.TestCase):
+    def setUp(self):
+        setup_loggers(verbosity=1)
+
+    def test_not_recognized(self):
+        search_string = search_from_reference('[1] J. Mars, oh hello')
+        self.assertEqual(search_string, None)
+
+    def test_report(self):
+        search_string = search_from_reference('[1] J. Mars, oh hello, [hep-ph/0104088]')
+        self.assertEqual(search_string, 'report:"hep-ph/0104088"')
+
+    def test_journal(self):
+        search_string = search_from_reference('[1] J. Mars, oh hello, Nucl.Phys. B76 (1974) 477-482')
+        self.assertEqual(search_string, 'journal:"Nucl.Phys.,B76,477"')
 
 
 if __name__ == '__main__':
