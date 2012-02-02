@@ -43,10 +43,10 @@ CFG_REFEXTRACT_KB_COLLABORATIONS = "%s/collaborations.kb" % CFG_CONF_DIR
 CFG_REFEXTRACT_KB_BOOKS = "%s/books.kb" % CFG_CONF_DIR
 # conferences which should be recognised as such
 CFG_REFEXTRACT_KB_CONFERENCES = "%s/conferences.kb" % CFG_CONF_DIR
+# publishers which should be recognised as such
+CFG_REFEXTRACT_KB_PUBLISHERS = "%s/publishers.kb" % CFG_CONF_DIR
 # prefix for temp files
 CFG_REFEXTRACT_FILENAME = "refextract"
-# Test references load with --test-set
-CFG_REFEXTRACT_TEST_REFERENCES = "%s/test-references" % CFG_CONF_DIR
 
 ## MARC Fields and subfields used by refextract:
 
@@ -65,6 +65,7 @@ CFG_REFEXTRACT_SUBFIELD_URL_DESCR        = "z"   ## ref url-text subfield
 CFG_REFEXTRACT_SUBFIELD_AUTH             = "h"   ## ref author subfield
 CFG_REFEXTRACT_SUBFIELD_QUOTED           = "t"   ## ref title subfield
 CFG_REFEXTRACT_SUBFIELD_ISBN             = "i"   ## ref isbn subfield
+CFG_REFEXTRACT_SUBFIELD_PUBLISHER        = "p"   ## ref publisher subfield
 CFG_REFEXTRACT_SUBFIELD_BOOK             = "xbook"   ## ref book subfield
 
 ## refextract statistics fields:
@@ -77,14 +78,15 @@ CFG_REFEXTRACT_SUBFIELD_EXTRACTION_STATS = "a"   ## ref-stats subfield
 ## Internal tags are used by refextract to mark-up recognised citation
 ## information. These are the "closing tags:
 CFG_REFEXTRACT_MARKER_CLOSING_REPORT_NUM = r"</cds.REPORTNUMBER>"
-CFG_REFEXTRACT_MARKER_CLOSING_TITLE      = r"</cds.TITLE>"
-CFG_REFEXTRACT_MARKER_CLOSING_TITLE_IBID = r"</cds.TITLEibid>"
+CFG_REFEXTRACT_MARKER_CLOSING_TITLE      = r"</cds.JOURNAL>"
+CFG_REFEXTRACT_MARKER_CLOSING_TITLE_IBID = r"</cds.JOURNALibid>"
 CFG_REFEXTRACT_MARKER_CLOSING_SERIES     = r"</cds.SER>"
 CFG_REFEXTRACT_MARKER_CLOSING_VOLUME     = r"</cds.VOL>"
 CFG_REFEXTRACT_MARKER_CLOSING_YEAR       = r"</cds.YR>"
 CFG_REFEXTRACT_MARKER_CLOSING_PAGE       = r"</cds.PG>"
 CFG_REFEXTRACT_MARKER_CLOSING_QUOTED     = r"</cds.QUOTED>"
 CFG_REFEXTRACT_MARKER_CLOSING_ISBN       = r"</cds.ISBN>"
+CFG_REFEXTRACT_MARKER_CLOSING_ISBN       = r"</cds.PUBLISHER>"
 
 ## Of the form '</cds.AUTHxxxx>' only
 CFG_REFEXTRACT_MARKER_CLOSING_AUTHOR_STND = r"</cds.AUTHstnd>"

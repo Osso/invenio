@@ -124,7 +124,7 @@ re_recognised_numeration_for_title_plus_series = re.compile(
 
 ## Another numeration pattern. This one is designed to match marked-up
 ## numeration that is essentially an IBID, but without the word "IBID". E.g.:
-## <cds.TITLE>J. Phys. A</cds.TITLE> : <cds.VOL>31</cds.VOL>
+## <cds.JOURNAL>J. Phys. A</cds.JOURNAL> : <cds.VOL>31</cds.VOL>
 ## <cds.YR>(1998)</cds.YR> <cds.PG>2391</cds.PG>; : <cds.VOL>32</cds.VOL>
 ## <cds.YR>(1999)</cds.YR> <cds.PG>6119</cds.PG>.
 re_numeration_no_ibid_txt = \
@@ -136,10 +136,10 @@ re_numeration_no_ibid_txt = \
           """, re.UNICODE|re.VERBOSE)
 
 re_title_followed_by_series_markup_tags = \
-     re.compile(ur'(\<cds.TITLE(?P<ibid>ibid)?\>([^\<]+)\<\/cds.TITLE(?:ibid)?\>\s*.?\s*\<cds\.SER\>([A-H]|(I{1,3}V?|VI{0,3}))\<\/cds\.SER\>)', re.UNICODE)
+     re.compile(ur'(\<cds.JOURNAL(?P<ibid>ibid)?\>([^\<]+)\<\/cds.JOURNAL(?:ibid)?\>\s*.?\s*\<cds\.SER\>([A-H]|(I{1,3}V?|VI{0,3}))\<\/cds\.SER\>)', re.UNICODE)
 
 re_title_followed_by_implied_series = \
-     re.compile(ur'(\<cds.TITLE(?P<ibid>ibid)?\>([^\<]+)\<\/cds.TITLE(?:ibid)?\>\s*.?\s*([A-H]|(I{1,3}V?|VI{0,3}))\s+:)', re.UNICODE)
+     re.compile(ur'(\<cds.JOURNAL(?P<ibid>ibid)?\>([^\<]+)\<\/cds.JOURNAL(?:ibid)?\>\s*.?\s*([A-H]|(I{1,3}V?|VI{0,3}))\s+:)', re.UNICODE)
 
 
 re_punctuation = re.compile(ur'[\.\,\;\'\(\)\-]', re.UNICODE)
@@ -148,7 +148,7 @@ re_punctuation = re.compile(ur'[\.\,\;\'\(\)\-]', re.UNICODE)
 ## identified in the line, when building a MARC XML representation of the line:
 re_tagged_citation = re.compile(ur"""
           \<cds\.                ## open tag: <cds.
-          ((?:TITLE(?P<ibid>ibid)?)  ## a TITLE tag
+          ((?:JOURNAL(?P<ibid>ibid)?)  ## a JOURNAL tag
           |VOL                   ## or a VOL tag
           |YR                    ## or a YR tag
           |PG                    ## or a PG tag
@@ -158,6 +158,7 @@ re_tagged_citation = re.compile(ur"""
           |DOI                   ## or a DOI tag
           |QUOTED                ## or a QUOTED tag
           |ISBN                  ## or a ISBN tag
+          |PUBLISHER             ## or a PUBLISHER tag
           |AUTH(stnd|etal|incl)) ## or an AUTH tag
           (\s\/)?                ## optional /
           \>                     ## closing of tag (>)
@@ -202,7 +203,7 @@ re_roman_numbers = ur"[XxVvIi]+"
 re_sep = ur"\s*[,\s:-]\s*"
 
 ## Title tag
-re_title_tag = ur"(?P<title_tag><cds\.TITLE>[^<]*<\/cds\.TITLE>)"
+re_title_tag = ur"(?P<title_tag><cds\.JOURNAL>[^<]*<\/cds\.JOURNAL>)"
 
 ## Number (within a volume)
 re_volume_sub_number = ur'[Nn][oO\xb0]\.?\s*\d{1,6}'

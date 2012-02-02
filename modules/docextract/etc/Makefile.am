@@ -20,13 +20,14 @@ etc_DATA = example.pdf \
            example.txt \
            authors.kb \
            collaborations.kb \
+           publishers.kb \
            journal-titles-re.kb \
            report-numbers.kb \
-           authorextract.test \
+           test1.txt \
            books.kb \
            job-preprints.cfg \
            journal-titles.kb \
-           refextract.test
+           test2.txt
 
 EXTRA_DIST = $(etc_DATA)
 

@@ -947,11 +947,8 @@ class RefextractTest(unittest.TestCase):
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">50</subfield>
-      <subfield code="h">P. van Niewenhuizen and D. Freedman</subfield>
-   </datafield>
-   <datafield tag="999" ind1="C" ind2="5">
-      <subfield code="o">50</subfield>
-      <subfield code="h">T. Yanagida (O. Sawaga and A. Sugamoto (eds.))</subfield>
+      <subfield code="h">P. van Niewenhuizen and D. Freedman (O. Sawaga and A. Sugamoto (eds.))</subfield>
+      <subfield code="p">North-Holland</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">50</subfield>
@@ -1872,6 +1869,17 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">6</subfield>
       <subfield code="h">Sivers D. W.</subfield>
       <subfield code="s">Phys.Rev.,D41,83</subfield>
+   </datafield>
+</record>""")
+
+    def test_publisher(self):
+        ref_line = u"""[6] Sivers D. W., BrAnS Hello"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">Sivers D. W.</subfield>
+      <subfield code="p">Brans</subfield>
    </datafield>
 </record>""")
 

@@ -145,11 +145,11 @@ def tag_reference_line(line, kbs, record_titles_count):
 
     # Identify and record coordinates of institute preprint report numbers:
     found_pprint_repnum_matchlens, found_pprint_repnum_replstr, working_line2 =\
-       identify_preprint_report_numbers(working_line2, kbs['reports'])
+       identify_report_numbers(working_line2, kbs['reports'])
 
     # Identify and record coordinates of non-standard journal titles:
     found_title_len, found_title_matchtext, working_line2, line_titles_count = \
-        identify_periodical_titles(working_line2, kbs['journals'])
+        identify_journals(working_line2, kbs['journals'])
 
     # Add the count of 'bad titles' found in this line to the total
     # for the reference section:
@@ -168,15 +168,19 @@ def tag_reference_line(line, kbs, record_titles_count):
         found_title_len.update(found_ibids_len)
         found_title_matchtext.update(found_ibids_matchtext)
 
+    publishers_matches = identify_publishers(working_line2, kbs['publishers'])
+
     tagged_line = process_reference_line(
         working_line=working_line1,
         found_title_len=found_title_len,
         found_title_matchtext=found_title_matchtext,
         pprint_repnum_len=found_pprint_repnum_matchlens,
         pprint_repnum_matchtext=found_pprint_repnum_replstr,
+        publishers_matches=publishers_matches,
         removed_spaces=removed_spaces,
         standardised_titles=kbs['journals'][1],
         authors_kb=kbs['authors'],
+        publishers_kb=kbs['publishers'],
     )
 
     return tagged_line, record_titles_count
@@ -187,9 +191,11 @@ def process_reference_line(working_line,
                            found_title_matchtext,
                            pprint_repnum_len,
                            pprint_repnum_matchtext,
+                           publishers_matches,
                            removed_spaces,
                            standardised_titles,
-                           authors_kb):
+                           authors_kb,
+                           publishers_kb):
     """After the phase of identifying and tagging citation instances
        in a reference line, this function is called to go through the
        line and the collected information about the recognised citations,
@@ -241,7 +247,7 @@ def process_reference_line(working_line,
                   )
 
     """
-    if len(found_title_len) + len(pprint_repnum_len) == 0:
+    if len(found_title_len) + len(pprint_repnum_len) + len(publishers_matches) == 0:
         # no TITLE or REPORT-NUMBER citations were found within this line,
         # use the raw line: (This 'raw' line could still be tagged with
         # recognised URLs or numeration.)
@@ -254,13 +260,17 @@ def process_reference_line(working_line,
         previous_match = {}   # previously matched TITLE within line (used
                               # for replacement of IBIDs.
         replacement_types = {}
-        title_keys = found_title_matchtext.keys()
-        title_keys.sort()
-        pprint_keys = pprint_repnum_matchtext.keys()
-        pprint_keys.sort()
+        journals_keys = found_title_matchtext.keys()
+        journals_keys.sort()
+        reports_keys = pprint_repnum_matchtext.keys()
+        reports_keys.sort()
+        publishers_keys = publishers_matches.keys()
+        publishers_keys.sort()
         spaces_keys = removed_spaces.keys()
         spaces_keys.sort()
-        replacement_types = get_replacement_types(title_keys, pprint_keys)
+        replacement_types = get_replacement_types(journals_keys,
+                                                  reports_keys,
+                                                  publishers_keys)
         replacement_locations = replacement_types.keys()
         replacement_locations.sort()
 
@@ -279,10 +289,10 @@ def process_reference_line(working_line,
                                                   found_title_len,
                                                   replacement_index)
 
-            if replacement_types[replacement_index] == u"title":
+            if replacement_types[replacement_index] == u"journal":
                 # Add a tagged periodical TITLE into the line:
                 (rebuilt_chunk, startpos, previous_match) = \
-                    add_tagged_title(reading_line=working_line,
+                    add_tagged_journal(reading_line=working_line,
                                      len_title=\
                                        found_title_len[replacement_index],
                                      matched_title=\
@@ -310,6 +320,18 @@ def process_reference_line(working_line,
                 )
                 tagged_line += rebuilt_chunk
 
+            elif replacement_types[replacement_index] == u"publisher":
+                rebuilt_chunk, startpos = \
+                  add_tagged_publisher(
+                    reading_line=working_line,
+                    matched_publisher=publishers_matches[replacement_index],
+                    startpos=startpos,
+                    true_replacement_index=true_replacement_index,
+                    extras=extras,
+                    kb_publishers=publishers_kb
+                )
+                tagged_line += rebuilt_chunk
+
 
 
         # add the remainder of the original working-line into the rebuilt line:
@@ -323,14 +345,6 @@ def process_reference_line(working_line,
         # letter and the volume number
         # e.g. B 20 -> B20
         tagged_line = wash_volume_tag(tagged_line)
-        # remove any series tags that are next to title tags, putting
-        # series information into the title tags:
-        # Only do this if the user doesn't want the Inspire journal
-        # title output format otherwise, the series letters are handled
-        # elsewhere in the xml conversion process
-        # if not CLI_OPTS['inspire']:
-        #    tagged_line = move_tagged_series_into_tagged_title(tagged_line)
-        #tagged_line = wash_line(tagged_line)
 
     # Before moving onto creating the XML string...
     # try to find any authors in the line
@@ -398,7 +412,7 @@ def tag_pos_volume(line):
         else:
             groups['year'] = ''
 
-        return '<cds.TITLE>PoS</cds.TITLE>' \
+        return '<cds.JOURNAL>PoS</cds.JOURNAL>' \
             ' <cds.VOL>%(volume)s</cds.VOL>' \
             '%(year)s' \
             ' <cds.PG>%(page)s</cds.PG>' % groups
@@ -413,6 +427,7 @@ def tag_journals_re(line, kb_journals):
     for pattern, journal in kb_journals:
         line = pattern.sub(journal, line)
     return line
+
 
 def re_identify_numeration(line):
     """Look for other numeration in line."""
@@ -490,8 +505,8 @@ def add_tagged_report_number(reading_line,
     return (rebuilt_line, startpos)
 
 
-def add_tagged_title_in_place_of_IBID(previous_match,
-                                      ibid_series):
+def add_tagged_journal_in_place_of_IBID(previous_match,
+                                        ibid_series):
     """In rebuilding the line, if the matched TITLE was actually an IBID, this
        function will replace it with the previously matched TITLE, and add it
        into the line, tagged. It will even handle the series letter, if it
@@ -505,7 +520,7 @@ def add_tagged_title_in_place_of_IBID(previous_match,
         other string (the newly updated previous-match).
     """
 
-    IBID_start_tag = " <cds.TITLEibid>"
+    IBID_start_tag = " <cds.JOURNALibid>"
 
     rebuilt_line = u""
     if ibid_series != "":
@@ -550,14 +565,14 @@ def add_tagged_title_in_place_of_IBID(previous_match,
     return (rebuilt_line, previous_match)
 
 
-def add_tagged_title(reading_line,
-                     len_title,
-                     matched_title,
-                     previous_match,
-                     startpos,
-                     true_replacement_index,
-                     extras,
-                     standardised_titles):
+def add_tagged_journal(reading_line,
+                       len_title,
+                       matched_title,
+                       previous_match,
+                       startpos,
+                       true_replacement_index,
+                       extras,
+                       standardised_titles):
     """In rebuilding the line, add an identified periodical TITLE (standardised
        and tagged) into the line.
        @param reading_line: (string) The reference line before capitalization
@@ -600,7 +615,7 @@ def add_tagged_title(reading_line,
                 series = u""
             # Replace this IBID with the previous title match, if possible:
             (replaced_ibid_segment, previous_match) = \
-                 add_tagged_title_in_place_of_IBID(previous_match, series)
+                 add_tagged_journal_in_place_of_IBID(previous_match, series)
             rebuilt_line += replaced_ibid_segment
             # Update start position for next segment of original line:
             startpos = true_replacement_index + len_title + extras
@@ -622,7 +637,7 @@ def add_tagged_title(reading_line,
             startpos = true_replacement_index + len_title + extras
     else:
         # This is a normal title, not an IBID
-        rebuilt_line += "<cds.TITLE>%(title)s</cds.TITLE>" \
+        rebuilt_line += "<cds.JOURNAL>%(title)s</cds.JOURNAL>" \
                         % { 'title' : standardised_titles[matched_title] }
         previous_title = standardised_titles[matched_title]
         startpos = true_replacement_index + len_title + extras
@@ -671,7 +686,51 @@ def add_tagged_title(reading_line,
     return (rebuilt_line, startpos, previous_match)
 
 
-def get_replacement_types(titles, reportnumbers):
+def add_tagged_publisher(reading_line,
+                         matched_publisher,
+                         startpos,
+                         true_replacement_index,
+                         extras,
+                         kb_publishers):
+    """In rebuilding the line, add an identified periodical TITLE (standardised
+       and tagged) into the line.
+       @param reading_line: (string) The reference line before capitalization
+        was performed, and before REPORT-NUMBERs and TITLEs were stripped out.
+       @param len_title: (integer) the length of the matched TITLE.
+       @param matched_title: (string) the matched TITLE text.
+       @param previous_match: (string) the previous periodical TITLE citation to
+        have been matched in the current reference line. It is used when
+        replacing an IBID instance in the line.
+       @param startpos: (integer) the pointer to the next position in the
+        reading-line from which to start rebuilding.
+       @param true_replacement_index: (integer) the replacement index of the
+        matched TITLE in the reading-line, with stripped punctuation and
+        whitespace accounted for.
+       @param extras: (integer) extras to be added into the replacement index.
+       @param standardised_titles: (dictionary) the standardised versions of
+        periodical titles, keyed by their various non-standard versions.
+       @return: (tuple) containing a string (the rebuilt line segment), an
+        integer (the next 'startpos' in the reading-line), and an other string
+        (the newly updated previous-match).
+    """
+    # Fill 'rebuilt_line' (the segment of the line that is being rebuilt to
+    # include the tagged and standardised periodical TITLE) with the contents
+    # of the reading-line, up to the point of the matched TITLE:
+    rebuilt_line = reading_line[startpos:true_replacement_index]
+    # This is a normal title, not an IBID
+    rebuilt_line += "<cds.PUBLISHER>%(title)s</cds.PUBLISHER>" \
+                    % { 'title' : kb_publishers[matched_publisher] }
+    # Compute new start pos
+    startpos = true_replacement_index + len(matched_publisher) + extras
+
+    # return the rebuilt line-segment, the position (of the reading line) from
+    # which the next part of the rebuilt line should be started, and the newly
+    # updated previous match.
+
+    return rebuilt_line, startpos
+
+
+def get_replacement_types(titles, reportnumbers, publishers):
     """Given the indices of the titles and reportnumbers that have been
        recognised within a reference line, create a dictionary keyed by
        the replacement position in the line, where the value for each
@@ -691,9 +750,11 @@ def get_replacement_types(titles, reportnumbers):
     """
     rep_types = {}
     for item_idx in titles:
-        rep_types[item_idx] = "title"
+        rep_types[item_idx] = "journal"
     for item_idx in reportnumbers:
         rep_types[item_idx] = "reportnumber"
+    for item_idx in publishers:
+        rep_types[item_idx] = "publisher"
     return rep_types
 
 
@@ -757,7 +818,7 @@ def account_for_stripped_whitespace(spaces_keys,
             true_replacement_index  += removed_spaces[space]
             spare_replacement_index += removed_spaces[space]
         elif (space >= spare_replacement_index) and \
-                 (replacement_types[replacement_index] == u"title") and \
+                 (replacement_types[replacement_index] == u"journal") and \
                  (space < (spare_replacement_index + \
                            len_titles[replacement_index])):
             # A periodical title is being replaced. Account for multi-spaces
@@ -1061,7 +1122,17 @@ def identify_ibids(line):
     return (ibid_match_len, ibid_match_txt, line)
 
 
-def identify_periodical_titles(line, kb_journals):
+def find_all(string, sub):
+    listindex = []
+    offset = 0
+    i = string.find(sub, offset)
+    while i >= 0:
+        listindex.append(i)
+        i = string.find(sub, i + 1)
+    return listindex
+
+
+def identify_journals(line, kb_journals):
     """Attempt to identify all periodical titles in a reference line.
        Titles will be identified, their information (location in line,
        length in line, and non-standardised version) will be recorded,
@@ -1101,10 +1172,8 @@ def identify_periodical_titles(line, kb_journals):
     for title in periodical_title_search_keys:
         # search for all instances of the current periodical title
         # in the line:
-        title_matches_iter = periodical_title_search_kb[title].finditer(line)
-
         # for each matched periodical title:
-        for title_match in title_matches_iter:
+        for title_match in find_all(line, title):
             if not titles_count.has_key(title):
                 # Add this title into the titles_count dictionary:
                 titles_count[title] = 1
@@ -1114,24 +1183,23 @@ def identify_periodical_titles(line, kb_journals):
 
             # record the details of this title match:
             # record the match length:
-            title_matches_matchlen[title_match.start()] = \
-                                           len(title_match.group(0)) - 1
+            title_matches_matchlen[title_match] = len(title)
 
             # record the matched non-standard version of the title:
-            title_matches_matchtext[title_match.start()] = title
+            title_matches_matchtext[title_match] = title
 
             # replace the matched title text in the line it n * '_',
             # where n is the length of the matched title:
-            line = u"".join((line[:title_match.start(1)],
-                            u"_"*len(title_match.group(1)),
-                            line[title_match.end(1):]))
+            line = u"".join((line[:title_match],
+                            u"_"*len(title),
+                            line[title_match+len(title):]))
 
     # return recorded information about matched periodical titles,
     # along with the newly changed working line:
     return (title_matches_matchlen, title_matches_matchtext, line, titles_count)
 
 
-def identify_preprint_report_numbers(line, kb_reports):
+def identify_report_numbers(line, kb_reports):
     """Attempt to identify all preprint report numbers in a reference
        line.
        Report numbers will be identified, their information (location
@@ -1216,6 +1284,18 @@ def identify_preprint_report_numbers(line, kb_reports):
     # return recorded information about matched report numbers, along with
     # the newly changed working line:
     return (repnum_matches_matchlen, repnum_matches_repl_str, line)
+
+
+def identify_publishers(line, kb_publishers):
+    matches_repl = {}  # standardised report numbers matched
+                       # at given locations in line
+
+    for abbrev in kb_publishers.keys():
+        for match in find_all(line, abbrev):
+            # record the matched non-standard version of the publisher:
+            matches_repl[match] = abbrev
+
+    return matches_repl
 
 
 def identify_and_tag_URLs(line):

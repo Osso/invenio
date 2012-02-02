@@ -49,6 +49,7 @@ from invenio.refextract_config import \
     CGF_REFEXTRACT_ADJACENT_AUTH_MISC_SEPARATION, \
     CFG_REFEXTRACT_SUBFIELD_QUOTED, \
     CFG_REFEXTRACT_SUBFIELD_ISBN, \
+    CFG_REFEXTRACT_SUBFIELD_PUBLISHER, \
     CFG_REFEXTRACT_SUBFIELD_BOOK
 
 
@@ -246,7 +247,7 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
 
         # Now handle the type dependent actions
         # TITLE
-        if element['type'] == "TITLE":
+        if element['type'] == "JOURNAL":
 
             # If a report number has been marked up, and there's misc text before this title and the last tag
             s = element['misc_txt'].lower().strip(".,:;- []")
@@ -257,7 +258,7 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
                 xml_line, auth_for_ibid = append_datafield_element(line_marker,
                     citation_structure, line_elements,
                     auth_for_ibid, xml_line)
-            elif is_in_line_elements("TITLE", line_elements):
+            elif is_in_line_elements("JOURNAL", line_elements):
                 # %%%%% Set as NEW citation line %%%%%
                 xml_line, auth_for_ibid = append_datafield_element(line_marker,
                     citation_structure, line_elements, auth_for_ibid, xml_line)
@@ -320,7 +321,7 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
             ## If a report number has been marked up, and there's misc text before this title and the last tag
             s = element['misc_txt'].lower().strip(".,:;- []")
             s = re.sub(re_arxiv_notation, "", s)
-            if is_in_line_elements("TITLE", line_elements) and len(s) > 0:
+            if is_in_line_elements("JOURNAL", line_elements) and len(s) > 0:
                 # %%%%% Set as NEW citation line %%%%%
                 xml_line, auth_for_ibid = append_datafield_element(line_marker,
                     citation_structure, line_elements, auth_for_ibid, xml_line)
@@ -440,6 +441,13 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
             xml_line += '\n      <subfield code="%s" />' % \
                 CFG_REFEXTRACT_SUBFIELD_BOOK
 
+        elif element['type'] == "PUBLISHER":
+            xml_line += '\n      <subfield code="' \
+                '%(subfield-code)s">%(title)s</subfield>' % {
+                'title'         : encode_for_xml(element['publisher']),
+                'subfield-code' : CFG_REFEXTRACT_SUBFIELD_PUBLISHER,
+            }
+
         # The number of elements processed
         elements_processed += 1
 
@@ -510,7 +518,7 @@ def dump_or_split_author(misc_txt, line_elements):
 
     ## In cases where an author is directly after an alone title (ibid or normal, with no misc),
     ## Trigger a new reference line
-    if is_in_line_elements("TITLE", line_elements) and len(line_elements) == 1 \
+    if is_in_line_elements("JOURNAL", line_elements) and len(line_elements) == 1 \
      and len(misc_txt) == 0:
         return "split"
 
@@ -542,7 +550,7 @@ def split_on_semi_colon(misc_txt, line_elements, elements_processed, total_eleme
     ## If there has already been meaningful information found in the reference
     ## and there are still elements to be processed beyond the element relating to
     ## this misc_txt
-    if (is_in_line_elements("TITLE", line_elements) \
+    if (is_in_line_elements("JOURNAL", line_elements) \
             or is_in_line_elements("REPORTNUMBER", line_elements) \
             or len(misc_txt) >= CGF_REFEXTRACT_SEMI_COLON_MISC_TEXT_SENSITIVITY) \
         and elements_processed < total_elements:
@@ -580,9 +588,9 @@ def check_author_for_ibid(line_elements, author):
     ## If an appropriate author was found, pair it with this ibid.
     ## (i.e., an author has not been explicitly paired with this ibid already
     ## and an author exists with the parent title to which this ibid refers)
-    if is_in_line_elements("TITLE", line_elements):
+    if is_in_line_elements("JOURNAL", line_elements):
         ## Get the title element for this line
-        title_element = is_in_line_elements("TITLE", line_elements)[1]
+        title_element = is_in_line_elements("JOURNAL", line_elements)[1]
 
         if author != None and not is_in_line_elements("AUTH", line_elements) \
         and title_element['is_ibid']:

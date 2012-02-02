@@ -171,10 +171,10 @@ def main(config, args, run):
     global RUNNING_INDEPENDENTLY
     RUNNING_INDEPENDENTLY = True
 
-    setup_loggers(config.verbosity)
-
     if config.verbosity not in range(0, 10):
         usage("Error: Verbosity must be an integer between 0 and 10")
+
+    setup_loggers(config.verbosity)
 
     if config.version:
         # version message and exit
@@ -183,14 +183,6 @@ def main(config, args, run):
 
     if config.help:
         usage()
-
-    if config.collections or config.recids:
-        # These are arguments designed to be used for the daemon mode only
-        # They should not be present here.
-        err = '--collections or --recids specified'
-        usage("Error: '%s' is a daemon-specific flag and should not be used "
-             "with specific fulltext input. \n Use '--help' for "
-             "flag options." % err)
 
     if not args:
         # no files provided for reference extraction - error message

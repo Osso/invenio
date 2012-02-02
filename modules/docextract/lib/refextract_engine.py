@@ -26,17 +26,9 @@ __revision__ = "$Id$"
 import sys
 import re
 import os
-import csv
 import subprocess
 
 from invenio.refextract_config import \
-            CFG_REFEXTRACT_KB_AUTHORS, \
-            CFG_REFEXTRACT_KB_JOURNAL_TITLES, \
-            CFG_REFEXTRACT_KB_JOURNAL_TITLES_RE, \
-            CFG_REFEXTRACT_KB_JOURNAL_TITLES_INSPIRE, \
-            CFG_REFEXTRACT_KB_REPORT_NUMBERS, \
-            CFG_REFEXTRACT_KB_BOOKS, \
-            CFG_REFEXTRACT_KB_CONFERENCES, \
             CFG_REFEXTRACT_XML_VERSION, \
             CFG_REFEXTRACT_XML_COLLECTION_OPEN, \
             CFG_REFEXTRACT_XML_COLLECTION_CLOSE, \
@@ -55,11 +47,8 @@ try:
 except ImportError:
     CFG_INSPIRE_SITE = False
 
-
 # make refextract runnable without requiring the full Invenio installation:
 from invenio.config import CFG_PATH_GFILE
-
-from invenio.docextract_text import re_group_captured_multiple_space
 
 from invenio.refextract_tag import tag_reference_line, \
     sum_2_dictionaries, identify_and_tag_DOI, identify_and_tag_URLs
@@ -69,13 +58,8 @@ from invenio.refextract_xml import create_xml_record, \
 from invenio.docextract_pdf import convert_PDF_to_plaintext
 from invenio.docextract_utils import write_message
 from invenio.refextract_cli import halt
-from invenio.refextract_re import re_punctuation, \
-                                  re_kb_line, \
-                                  re_regexp_character_class, \
-                                  re_report_num_chars_to_escape, \
-                                  re_extract_quoted_text, \
-                                  re_extract_char_class, \
-                                  get_reference_line_numeration_marker_patterns, \
+from invenio.refextract_kbs import load_kbs
+from invenio.refextract_re import get_reference_line_numeration_marker_patterns, \
                                   regex_match_list, \
                                   re_tagged_citation, \
                                   re_numeration_no_ibid_txt, \
@@ -96,582 +80,6 @@ are output to the standard output stream as default, or instead to an xml file.
 
 # components relating to the standardisation and
 # recognition of citations in reference lines:
-def order_reportnum_patterns_bylen(numeration_patterns):
-    """Given a list of user-defined patterns for recognising the numeration
-       styles of an institute's preprint references, for each pattern,
-       strip out character classes and record the length of the pattern.
-       Then add the length and the original pattern (in a tuple) into a new
-       list for these patterns and return this list.
-       @param numeration_patterns: (list) of strings, whereby each string is
-        a numeration pattern.
-       @return: (list) of tuples, where each tuple contains a pattern and
-        its length.
-    """
-    def _compfunc_bylen(a, b):
-        """Compares regexp patterns by the length of the pattern-text.
-        """
-        if a[0] < b[0]:
-            return 1
-        elif a[0] == b[0]:
-            return 0
-        else:
-            return -1
-    pattern_list = []
-    for pattern in numeration_patterns:
-        base_pattern = re_regexp_character_class.sub('1', pattern)
-        pattern_list.append((len(base_pattern), pattern))
-    pattern_list.sort(_compfunc_bylen)
-    return pattern_list
-
-
-def create_institute_numeration_group_regexp_pattern(patterns):
-    """Using a list of regexp patterns for recognising numeration patterns
-       for institute preprint references, ordered by length - longest to
-       shortest - create a grouped 'OR' or of these patterns, ready to be
-       used in a bigger regexp.
-       @param patterns: (list) of strings. All of the numeration regexp
-        patterns for recognising an institute's preprint reference styles.
-       @return: (string) a grouped 'OR' regexp pattern of the numeration
-        patterns. E.g.:
-           (?P<num>[12]\d{3} \d\d\d|\d\d \d\d\d|[A-Za-z] \d\d\d)
-    """
-    grouped_numeration_pattern = u""
-    if len(patterns) > 0:
-        grouped_numeration_pattern = u"(?P<numn>"
-        for pattern in patterns:
-            grouped_numeration_pattern += \
-                  institute_num_pattern_to_regex(pattern[1]) + u"|"
-        grouped_numeration_pattern = \
-              grouped_numeration_pattern[0:len(grouped_numeration_pattern) - 1]
-        grouped_numeration_pattern += u")"
-    return grouped_numeration_pattern
-
-
-def institute_num_pattern_to_regex(pattern):
-    """Given a numeration pattern from the institutes preprint report
-       numbers KB, convert it to turn it into a regexp string for
-       recognising such patterns in a reference line.
-       Change:
-           \     -> \\
-           9     -> \d
-           a     -> [A-Za-z]
-           v     -> [Vv]  # Tony for arXiv vN
-           mm    -> (0[1-9]|1[0-2])
-           yy    -> \d{2}
-           yyyy  -> [12]\d{3}
-           /     -> \/
-           s     -> \s*
-       @param pattern: (string) a user-defined preprint reference numeration
-        pattern.
-       @return: (string) the regexp for recognising the pattern.
-    """
-    simple_replacements = [ ('9',    r'\d'),
-                            ('9+',   r'\d+'),
-                            ('w+',   r'\w+'),
-                            ('a',    r'[A-Za-z]'),
-                            ('v',    r'[Vv]'),
-                            ('mm',   r'(0[1-9]|1[0-2])'),
-                            ('yyyy', r'[12]\d{3}'),
-                            ('yy',   r'\d\d'),
-                            ('s',    r'\s*'),
-                            (r'/',   r'\/')
-                          ]
-    # first, escape certain characters that could be sensitive to a regexp:
-    pattern = re_report_num_chars_to_escape.sub(r'\\\g<1>', pattern)
-
-    # now loop through and carry out the simple replacements:
-    for repl in simple_replacements:
-        pattern = pattern.replace(repl[0], repl[1])
-
-    # now replace a couple of regexp-like paterns:
-    # quoted string with non-quoted version ("hello" with hello);
-    # Replace / [abcd ]/ with /( [abcd])?/ :
-    pattern = re_extract_quoted_text[0].sub(re_extract_quoted_text[1],
-                                             pattern)
-    pattern = re_extract_char_class[0].sub(re_extract_char_class[1],
-                                            pattern)
-
-    # the pattern has been transformed
-    return pattern
-
-
-def build_reportnum_knowledge_base(fpath):
-    """Given the path to a knowledge base file containing the details
-       of institutes and the patterns that their preprint report
-       numbering schemes take, create a dictionary of regexp search
-       patterns to recognise these preprint references in reference
-       lines, and a dictionary of replacements for non-standard preprint
-       categories in these references.
-
-       The knowledge base file should consist only of lines that take one
-       of the following 3 formats:
-
-         #####Institute Name####
-
-       (the name of the institute to which the preprint reference patterns
-        belong, e.g. '#####LANL#####', surrounded by 5 # on either side.)
-
-         <pattern>
-
-       (numeration patterns for an institute's preprints, surrounded by
-        < and >.)
-
-         seek-term       ---   replace-term
-       (i.e. a seek phrase on the left hand side, a replace phrase on the
-       right hand side, with the two phrases being separated by 3 hyphens.)
-       E.g.:
-         ASTRO PH        ---astro-ph
-
-       The left-hand side term is a non-standard version of the preprint
-       reference category; the right-hand side term is the standard version.
-
-       If the KB file cannot be read from, or an unexpected line is
-       encountered in the KB, an error message is output to standard error
-       and execution is halted with an error-code 0.
-
-       @param fpath: (string) the path to the knowledge base file.
-       @return: (tuple) containing 2 dictionaries. The first contains regexp
-        search patterns used to identify preprint references in a line. This
-        dictionary is keyed by a tuple containing the line number of the
-        pattern in the KB and the non-standard category string.
-        E.g.: (3, 'ASTRO PH').
-        The second dictionary contains the standardised category string,
-        and is keyed by the non-standard category string. E.g.: 'astro-ph'.
-    """
-    def _add_institute_preprint_patterns(preprint_classifications,
-                                         preprint_numeration_ptns,
-                                         preprint_reference_search_regexp_patterns,
-                                         standardised_preprint_reference_categories,
-                                         kb_line_num):
-        """For a list of preprint category strings and preprint numeration
-           patterns for a given institute, create the regexp patterns for
-           each of the preprint types.  Add the regexp patterns to the
-           dictionary of search patterns
-           (preprint_reference_search_regexp_patterns), keyed by the line
-           number of the institute in the KB, and the preprint category
-           search string.  Also add the standardised preprint category string
-           to another dictionary, keyed by the line number of its position
-           in the KB and its non-standardised version.
-           @param preprint_classifications: (list) of tuples whereby each tuple
-            contains a preprint category search string and the line number of
-            the name of institute to which it belongs in the KB.
-            E.g.: (45, 'ASTRO PH').
-           @param preprint_numeration_ptns: (list) of preprint reference
-            numeration search patterns (strings)
-           @param preprint_reference_search_regexp_patterns: (dictionary) of
-            regexp patterns used to search in document lines.
-           @param standardised_preprint_reference_categories: (dictionary)
-            containing the standardised strings for preprint reference
-            categories. (E.g. 'astro-ph'.)
-           @param kb_line_num: (integer) - the line number int the KB at
-            which a given institute name was found.
-           @return: None
-        """
-        if preprint_classifications and preprint_numeration_ptns:
-            # the previous institute had both numeration styles and categories
-            # for preprint references.
-            # build regexps and add them for this institute:
-            # First, order the numeration styles by line-length, and build a
-            # grouped regexp for recognising numeration:
-            ordered_patterns = \
-              order_reportnum_patterns_bylen(preprint_numeration_ptns)
-            # create a grouped regexp for numeration part of
-            # preprint reference:
-            numeration_regexp = \
-              create_institute_numeration_group_regexp_pattern(ordered_patterns)
-
-            # for each "classification" part of preprint references, create a
-            # complete regex:
-            # will be in the style "(categ)-(numatn1|numatn2|numatn3|...)"
-            for classification in preprint_classifications:
-                search_pattern_str = ur'[^a-zA-Z0-9\/\.\-]((?P<categ>' \
-                                     + classification[0].strip() + u')' \
-                                     + numeration_regexp + u')'
-
-                re_search_pattern = re.compile(search_pattern_str,
-                                                 re.UNICODE)
-                preprint_reference_search_regexp_patterns[(kb_line_num,
-                                                          classification[0])] =\
-                                                          re_search_pattern
-                standardised_preprint_reference_categories[(kb_line_num,
-                                                          classification[0])] =\
-                                                          classification[1]
-
-    preprint_reference_search_regexp_patterns  = {}  # a dictionary of patterns
-                                                     # used to recognise
-                                                     # categories of preprints
-                                                     # as used by various
-                                                     # institutes
-    standardised_preprint_reference_categories = {}  # dictionary of
-                                                     # standardised category
-                                                     # strings for preprint cats
-    current_institute_preprint_classifications = []  # list of tuples containing
-                                                     # preprint categories in
-                                                     # their raw & standardised
-                                                     # forms, as read from KB
-    current_institute_numerations = []               # list of preprint
-                                                     # numeration patterns, as
-                                                     # read from the KB
-
-    # pattern to recognise an institute name line in the KB
-    re_institute_name = re.compile(r'^\#{5}\s*(.+)\s*\#{5}$', re.UNICODE)
-
-    # pattern to recognise an institute preprint categ line in the KB
-    re_preprint_classification = \
-                re.compile(r'^\s*(\w.*)\s*---\s*(\w.*)\s*$', re.UNICODE)
-
-    # pattern to recognise a preprint numeration-style line in KB
-    re_numeration_pattern      = re.compile(r'^\<(.+)\>$', re.UNICODE)
-
-    kb_line_num = 0    # when making the dictionary of patterns, which is
-                       # keyed by the category search string, this counter
-                       # will ensure that patterns in the dictionary are not
-                       # overwritten if 2 institutes have the same category
-                       # styles.
-
-    try:
-        if isinstance(fpath, basestring):
-            fpath_needs_closing = True
-            fh = open(fpath, "r")
-        else:
-            fpath_needs_closing = False
-            fh = fpath
-
-        for rawline in fh:
-            if rawline.startswith('#'):
-                continue
-
-            kb_line_num += 1
-            try:
-                rawline = rawline.decode("utf-8")
-            except UnicodeError:
-                write_message("*** Unicode problems in %s for line %e" \
-                                 % (fpath, kb_line_num), sys.stderr, verbose=0)
-                halt(err=UnicodeError,
-                     msg="Error: Unable to parse report number kb (line: %s)" % str(kb_line_num),
-                     exit_code=1)
-
-            m_institute_name = re_institute_name.search(rawline)
-            if m_institute_name:
-                # This KB line is the name of an institute
-                # append the last institute's pattern list to the list of
-                # institutes:
-                _add_institute_preprint_patterns(current_institute_preprint_classifications,
-                                                 current_institute_numerations,
-                                                 preprint_reference_search_regexp_patterns,
-                                                 standardised_preprint_reference_categories,
-                                                 kb_line_num)
-
-                # Now start a new dictionary to contain the search patterns
-                # for this institute:
-                current_institute_preprint_classifications = []
-                current_institute_numerations = []
-                # move on to the next line
-                continue
-
-            m_preprint_classification = \
-                                     re_preprint_classification.search(rawline)
-            if m_preprint_classification:
-                # This KB line contains a preprint classification for
-                # the current institute
-                try:
-                    current_institute_preprint_classifications.append((m_preprint_classification.group(1),
-                                                                      m_preprint_classification.group(2)))
-                except (AttributeError, NameError):
-                    # didn't match this line correctly - skip it
-                    pass
-                # move on to the next line
-                continue
-
-            m_numeration_pattern = re_numeration_pattern.search(rawline)
-            if m_numeration_pattern:
-                # This KB line contains a preprint item numeration pattern
-                # for the current institute
-                try:
-                    current_institute_numerations.append(m_numeration_pattern.group(1))
-                except (AttributeError, NameError):
-                    # didn't match the numeration pattern correctly - skip it
-                    pass
-                continue
-
-        _add_institute_preprint_patterns(current_institute_preprint_classifications,
-                                         current_institute_numerations,
-                                         preprint_reference_search_regexp_patterns,
-                                         standardised_preprint_reference_categories,
-                                         kb_line_num)
-        if fpath_needs_closing:
-            fh.close()
-    except IOError:
-        # problem opening KB for reading, or problem while reading from it:
-        emsg = """Error: Could not build knowledge base containing """ \
-               """institute preprint referencing patterns - failed """ \
-               """to read from KB %(kb)s.""" \
-               % { 'kb' : fpath }
-        write_message(emsg, sys.stderr, verbose=0)
-        halt(err=IOError,
-             msg="Error: Unable to open report number kb '%s'" % fpath,
-             exit_code=1)
-
-    # return the preprint reference patterns and the replacement strings
-    # for non-standard categ-strings:
-    return (preprint_reference_search_regexp_patterns, \
-            standardised_preprint_reference_categories)
-
-
-def _cmp_bystrlen_reverse(a, b):
-    """A private "cmp" function to be used by the "sort" function of a
-       list when ordering the titles found in a knowledge base by string-
-       length - LONGEST -> SHORTEST.
-       @param a: (string)
-       @param b: (string)
-       @return: (integer) - 0 if len(a) == len(b); 1 if len(a) < len(b);
-        -1 if len(a) > len(b);
-    """
-    if len(a) > len(b):
-        return -1
-    elif len(a) < len(b):
-        return 1
-    else:
-        return 0
-
-
-def build_books_knowledge_base(fpath):
-    if isinstance(fpath, basestring):
-        fpath_needs_closing = True
-        try:
-            fh = open(fpath, "r")
-            source = csv.reader(fh, delimiter='|', lineterminator=';')
-        except IOError:
-            # problem opening KB for reading, or problem while reading from it:
-            emsg = "Error: Could not build list of books - failed " \
-                   "to read from KB %(kb)s." % { 'kb' : fpath }
-            write_message(emsg, sys.stderr, verbose=0)
-            halt(err=IOError,
-                 msg="Error: Unable to open books kb '%s'" % fpath,
-                 exit_code=1)
-    else:
-        fpath_needs_closing = False
-        source = fpath
-
-    try:
-        books = {}
-        for line in source:
-            try:
-                books[line[1].upper()] = line
-            except IndexError:
-                write_message('Invalid line in books kb %s' % line, verbose=1)
-    finally:
-        if fpath_needs_closing:
-            fh.close()
-
-    return books
-
-def build_authors_knowledge_base(fpath):
-    replacements = []
-
-    if isinstance(fpath, basestring):
-        fpath_needs_closing = True
-        try:
-            fh = open(fpath, "r")
-        except IOError:
-            # problem opening KB for reading, or problem while reading from it:
-            emsg = "Error: Could not build list of authors - failed " \
-                   "to read from KB %(kb)s." % { 'kb' : fpath }
-            write_message(emsg, sys.stderr, verbose=0)
-            halt(err=IOError,
-                 msg="Error: Unable to open authors kb '%s'" % fpath,
-                 exit_code=1)
-    else:
-        fpath_needs_closing = False
-        fh = fpath
-
-    try:
-        count = 0
-        for rawline in fh:
-            if rawline.startswith('#'):
-                continue
-            count += 1
-
-            # Extract the seek->replace terms from this KB line:
-            m_kb_line = re_kb_line.search(rawline.decode('utf-8'))
-            if m_kb_line:
-                seek = m_kb_line.group('seek')
-                repl = m_kb_line.group('repl')
-                replacements.append((seek, repl))
-    finally:
-        if fpath_needs_closing:
-            fh.close()
-
-    return replacements
-
-def build_journals_re_knowledge_base(fpath):
-    """Load journals regexps knowledge base
-
-    @see build_journals_knowledge_base
-    """
-    def make_tuple(match):
-        regexp = re.compile(match.group('seek'), re.UNICODE)
-        repl = '<cds.TITLE>%s</cds.TITLE>' % match.group('repl')
-        return (regexp, repl)
-
-    kb = []
-
-    if isinstance(fpath, basestring):
-        fpath_needs_closing = True
-        try:
-            fh = open(fpath, "r")
-        except IOError:
-            halt(err=IOError,
-                 msg="Error: Unable to open journal kb '%s'" % fpath,
-                 exit_code=1)
-    else:
-        fpath_needs_closing = False
-        fh = fpath
-
-    try:
-        for rawline in fh:
-            if rawline.startswith('#'):
-                continue
-            # Extract the seek->replace terms from this KB line:
-            m_kb_line = re_kb_line.search(rawline.decode('utf-8'))
-            kb.append(make_tuple(m_kb_line))
-    finally:
-        if fpath_needs_closing:
-            fh.close()
-
-    return kb
-
-
-def build_journals_knowledge_base(fpath):
-    """Given the path to a knowledge base file, read in the contents
-       of that file into a dictionary of search->replace word phrases.
-       The search phrases are compiled into a regex pattern object.
-       The knowledge base file should consist only of lines that take
-       the following format:
-         seek-term       ---   replace-term
-       (i.e. a seek phrase on the left hand side, a replace phrase on
-       the right hand side, with the two phrases being separated by 3
-       hyphens.) E.g.:
-         ASTRONOMY AND ASTROPHYSICS              ---Astron. Astrophys.
-
-       The left-hand side term is a non-standard version of the title,
-       whereas the right-hand side term is the standard version.
-       If the KB file cannot be read from, or an unexpected line is
-       encountered in the KB, an error
-       message is output to standard error and execution is halted with
-       an error-code 0.
-
-       @param fpath: (string) the path to the knowledge base file.
-       @return: (tuple) containing a list and a dictionary. The list
-        contains compiled regex patterns used as search terms and will
-        be used to force searching order to match that of the knowledge
-        base.
-        The dictionary contains the search->replace terms.  The keys of
-        the dictionary are the compiled regex word phrases used for
-        searching in the reference lines; The values in the dictionary are
-        the replace terms for matches.
-    """
-    # Initialise vars:
-    # dictionary of search and replace phrases from KB:
-    kb = {}
-    standardised_titles = {}
-    seek_phrases = []
-    # A dictionary of "replacement terms" (RHS) to be inserted into KB as
-    # "seek terms" later, if they were not already explicitly added
-    # by the KB:
-    repl_terms = {}
-
-    try:
-        if isinstance(fpath, basestring):
-            fpath_needs_closing = True
-            fh = open(fpath, "r")
-        else:
-            fpath_needs_closing = False
-            fh = fpath
-
-        count = 0
-        for rawline in fh:
-            if rawline.startswith('#'):
-                continue
-            count += 1
-            # Test line to ensure that it is a correctly formatted
-            # knowledge base line:
-            try:
-                rawline = rawline.decode("utf-8").rstrip("\n")
-            except UnicodeError:
-                write_message("*** Unicode problems in %s for line %s" \
-                                 % (fpath, str(count)), sys.stderr, verbose=0)
-                halt(err=UnicodeError, msg="Error: Unable to parse journal kb (line: %s)" % str(count),
-                     exit_code=1)
-
-            # Extract the seek->replace terms from this KB line:
-            m_kb_line = re_kb_line.search(rawline)
-            if m_kb_line:
-
-                # good KB line
-                # Add the 'replacement term' into the dictionary of
-                # replacement terms:
-                repl_terms[m_kb_line.group('repl')] = None
-
-                # Get the "seek term":
-                seek_phrase = m_kb_line.group('seek')
-                if len(seek_phrase) > 1:
-                    # add the phrase from the KB if the 'seek' phrase is longer
-                    # than 1 character:
-                    # compile the seek phrase into a pattern:
-                    seek_ptn = re.compile(ur'(?<!\/)\b(' + \
-                                           re.escape(seek_phrase) + \
-                                           ur')[^A-Z0-9]', re.UNICODE)
-                    if not kb.has_key(seek_phrase):
-                        kb[seek_phrase] = seek_ptn
-                        standardised_titles[seek_phrase] = \
-                                                         m_kb_line.group('repl')
-                        seek_phrases.append(seek_phrase)
-            else:
-                # KB line was not correctly formatted - die with error
-                emsg = """Error: Could not build list of journal titles\n""" \
-                       """- KB %(kb)s has errors.\n""" \
-                       """- Mapping: %(mapping)s\n""" \
-                       % { 'kb' : fpath , 'mapping' : rawline}
-                write_message(emsg, sys.stderr, verbose=0)
-                halt(msg="Error: Unformatted journal kb exp '%s'" % rawline, exit_code=1)
-
-        if fpath_needs_closing:
-            fh.close()
-
-        # Now, for every 'replacement term' found in the KB, if it is
-        # not already in the KB as a "search term", add it:
-        for repl_term in repl_terms.keys():
-            raw_repl_phrase = repl_term.upper()
-            raw_repl_phrase = re_punctuation.sub(u' ', raw_repl_phrase)
-            raw_repl_phrase = \
-                 re_group_captured_multiple_space.sub(u' ', \
-                                                       raw_repl_phrase)
-            raw_repl_phrase = raw_repl_phrase.strip()
-            if not kb.has_key(raw_repl_phrase):
-                # The replace-phrase was not in the KB as a seek phrase
-                # It should be added.
-                seek_ptn = re.compile(r'(?<!\/)\b(' + \
-                                       re.escape(raw_repl_phrase) + \
-                                       r')[^A-Z0-9]', re.UNICODE)
-                kb[raw_repl_phrase] = seek_ptn
-                standardised_titles[raw_repl_phrase] = \
-                                                 repl_term
-                seek_phrases.append(raw_repl_phrase)
-
-        # Sort the titles by string length (long - short)
-        seek_phrases.sort(_cmp_bystrlen_reverse)
-    except IOError:
-        # problem opening KB for reading, or problem while reading from it:
-        emsg = """Error: Could not build list of journal titles - failed """ \
-               """to read from KB %(kb)s.""" \
-               % { 'kb' : fpath }
-        write_message(emsg, sys.stderr, verbose=0)
-        halt(err=IOError, msg="Error: Unable to open journal kb '%s'" % fpath, exit_code=1)
-
-    # return the raw knowledge base:
-    return (kb, standardised_titles, seek_phrases)
-
 
 
 def limit_m_tags(xml_file, length_limit):
@@ -768,7 +176,7 @@ def format_volume(citation_elements):
     """
     re_roman = re.compile(re_roman_numbers + u'$', re.UNICODE)
     for el in citation_elements:
-        if el['type'] == 'TITLE'\
+        if el['type'] == 'JOURNAL'\
             and re_roman.match(el['volume']):
                 print el
                 el['volume'] = str(roman2arabic(el['volume'].upper()))
@@ -782,7 +190,7 @@ def handle_special_journals(citation_elements, kbs):
     e.g. JHEP 0301 instead of JHEP 01
     """
     for el in citation_elements:
-        if el['type'] == 'TITLE' and el['title'] in kbs['special_journals'] \
+        if el['type'] == 'JOURNAL' and el['title'] in kbs['special_journals'] \
                 and re.match('\d{1,2}$', el['volume']):
 
             # Sometimes the page is omitted and the year is written in its place
@@ -864,7 +272,7 @@ def look_for_books(citation_elements, kbs):
 
 def split_volume_from_journal(citation_elements):
     for el in citation_elements:
-        if el['type'] == 'TITLE' and ';' in el['title']:
+        if el['type'] == 'JOURNAL' and ';' in el['title']:
             el['title'], series = el['title'].rsplit(';', 1)
             el['volume'] = series + el['volume']
     return citation_elements
@@ -872,13 +280,18 @@ def split_volume_from_journal(citation_elements):
 ## End of elements transformations
 
 def parse_reference_line(ref_line, kbs, bad_titles_count={}):
+    """Parse one reference line
+    
+    @input a string representing a single reference bullet
+    @output parsed references (a list of elements objects)
+    """
     # Strip the 'marker' (e.g. [1]) from this reference line:
     (line_marker, ref_line) = remove_reference_line_marker(ref_line)
     # Find DOI sections in citation
     (ref_line, identified_dois) = identify_and_tag_DOI(ref_line)
     # Identify and replace URLs in the line:
     (ref_line, identified_urls) = identify_and_tag_URLs(ref_line)
-    # Tag <cds.TITLE>, etc.
+    # Tag <cds.JOURNAL>, etc.
     tagged_line, bad_titles_count = tag_reference_line(ref_line,
                                                        kbs,
                                                        bad_titles_count)
@@ -1016,11 +429,11 @@ def parse_tagged_reference_line(line_marker,
         cur_misc_txt += processed_line[0:tag_match_start]
 
         # Catches both standard titles, and ibid's
-        if tag_type.find("TITLE") != -1:
+        if tag_type.find("JOURNAL") != -1:
             # This tag is an identified journal TITLE. It should be followed
             # by VOLUME, YEAR and PAGE tags.
 
-            # See if the found title has been tagged as an ibid: <cds.TITLEibid>
+            # See if the found title has been tagged as an ibid: <cds.JOURNALibid>
             if tag_match.group('ibid'):
                 is_ibid = True
                 closing_tag_length = len(CFG_REFEXTRACT_MARKER_CLOSING_TITLE_IBID)
@@ -1069,7 +482,7 @@ def parse_tagged_reference_line(line_marker,
                     # 'extra_ibids' are there to hold ibid's without the word 'ibid', which
                     # come directly after this title
                     # i.e., they are recognised using title numeration instead of ibid notation
-                    identified_citation_element =   {   'type'       : "TITLE",
+                    identified_citation_element =   {   'type'       : "JOURNAL",
                                                         'misc_txt'   : cur_misc_txt,
                                                         'title'      : title_text,
                                                         'volume'     : reference_volume,
@@ -1100,7 +513,7 @@ def parse_tagged_reference_line(line_marker,
 
                         # Takes the just found title text
                         identified_citation_element['extra_ibids'].append(
-                                                { 'type'       : "TITLE",
+                                                { 'type'       : "JOURNAL",
                                                   'misc_txt'   : "",
                                                   'title'      : title_text,
                                                   'volume'     : reference_volume,
@@ -1238,7 +651,7 @@ def parse_tagged_reference_line(line_marker,
                 cur_misc_txt = u""
 
         # These following tags may be found separately;
-        # They are usually found when a "TITLE" tag is hit
+        # They are usually found when a "JOURNAL" tag is hit
         # (ONLY immediately afterwards, however)
         # Sitting by themselves means they do not have
         # an associated TITLE tag, and should be MISC
@@ -1294,6 +707,13 @@ def parse_tagged_reference_line(line_marker,
                                     cur_misc_txt,
                                     tag_type)
 
+        elif tag_type == "PUBLISHER":
+            identified_citation_element, processed_line, cur_misc_txt = \
+                map_tag_to_subfield(tag_type,
+                                    processed_line[tag_match_end:],
+                                    cur_misc_txt,
+                                    'publisher')
+
         if identified_citation_element:
             # Append the found tagged data and current misc text
             citation_elements.append(identified_citation_element)
@@ -1330,6 +750,7 @@ def parse_tagged_reference_line(line_marker,
 
 
 def map_tag_to_subfield(tag_type, line, cur_misc_txt, dest):
+    """Create a new reference element"""
     closing_tag = '</cds.%s>' % tag_type
     # extract the institutional report-number from the line:
     idx_closing_tag = line.find(closing_tag)
@@ -1483,6 +904,7 @@ def write_raw_references_to_stream(recid, raw_refs, strm):
 
 
 def extract_one(config, kbs, num, pdf_path):
+    """Extract references from one file"""
     write_message("* processing pdffile: %s" % pdf_path, verbose=2)
 
     # 1. Get this document body as plaintext:
@@ -1700,39 +1122,6 @@ def write_titles_statistics(all_found_titles_count, destination_file):
             dfilehdl.write("%d:%s\n" % (kcount, ktitle.encode("utf-8")))
     finally:
         dfilehdl.close()
-
-
-def load_kbs(kb_journals=None, kb_reports=None, kb_authors=None, kb_books=None,
-         kb_conferences=None, kb_journals_re=None, inspire=CFG_INSPIRE_SITE):
-    if kb_journals is None:
-        if inspire:
-            kb_journals = CFG_REFEXTRACT_KB_JOURNAL_TITLES_INSPIRE
-        else:
-            kb_journals = CFG_REFEXTRACT_KB_JOURNAL_TITLES
-
-    if kb_journals_re is None:
-        kb_journals_re = CFG_REFEXTRACT_KB_JOURNAL_TITLES_RE
-
-    if kb_reports is None:
-        kb_reports = CFG_REFEXTRACT_KB_REPORT_NUMBERS
-
-    if kb_authors is None:
-        kb_authors = CFG_REFEXTRACT_KB_AUTHORS
-
-    if kb_books is None:
-        kb_books = CFG_REFEXTRACT_KB_BOOKS
-
-    if kb_conferences is None:
-        kb_conferences = CFG_REFEXTRACT_KB_CONFERENCES
-
-    return {
-        'journals_re': build_journals_re_knowledge_base(kb_journals_re),
-        'journals': build_journals_knowledge_base(kb_journals),
-        'reports' : build_reportnum_knowledge_base(kb_reports),
-        'authors' : build_authors_knowledge_base(kb_authors),
-        'books' : build_books_knowledge_base(kb_books),
-        'special_journals': ('JHEP', 'JINST', 'JCAP'),
-    }
 
 
 def build_xml_references(citations, inspire=CFG_INSPIRE_SITE):
