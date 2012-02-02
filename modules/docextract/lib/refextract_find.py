@@ -69,10 +69,12 @@ def find_reference_section(docbody):
             index = len(docbody) - 1 - reversed_index
             temp_ref_details, found_title = find_numeration(docbody[index:index+3], title)
             if temp_ref_details:
-                if ref_details and ref_details['title'] \
+                if ref_details and 'title' in ref_details \
+                               and ref_details['title'] \
                                and not temp_ref_details['title']:
                     continue
-                if ref_details and ref_details['marker'] \
+                if ref_details and 'marker' in ref_details \
+                               and ref_details['marker'] \
                                and not temp_ref_details['marker']:
                     continue
 
