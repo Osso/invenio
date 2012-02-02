@@ -41,19 +41,20 @@
     4. Markup standardised citations in MARC XML and output
        them.
 
-    Can be called in either a daemon mode by specifying a collection
-    or record id and also in a standalone mode by providing a physical
-    fulltext file using
+    It requires providing as argument a physical fulltext file using
     [-f, --fulltext].
 """
 import sys
 
-from invenio.refextract_daemon import main as daemon_main
+from invenio.refextract_cli import main as cli_main
+from invenio.refextract_cli import get_cli_options
+from invenio.refextract_engine import begin_extraction
 
 
 if __name__ == '__main__':
     try:
-        daemon_main()
+        (options, args) = get_cli_options()
+        cli_main(options, args, begin_extraction)
     except KeyboardInterrupt:
         # Exit cleanly
         print 'Interrupted'

@@ -208,18 +208,14 @@ def main():
    (run on a collection)
       refextract --collections "Reports"
    (run as standalone)
-      refextract -x /home/chayward/refs.xml -f /home/chayward/thesis.pdf
+      refextract -o /home/chayward/refs.xml /home/chayward/thesis.pdf
 
 """,
         version="Invenio v%s" % CFG_VERSION,
-        specific_params=("hVv:x:r:c:f:nai",
+        specific_params=("hVv:x:r:c:nai",
                             ["help",
                              "version",
                              "verbose=",
-                             "raw-references",
-                             "output-raw-refs",
-                             "xmlfile=",
-                             "dictfile=",
                              "inspire",
                              "kb-journals=",
                              "kb-journals-re=",

@@ -1548,7 +1548,7 @@ def extract_one(config, kbs, num, pdf_path):
     return out, record_titles_count
 
 
-def begin_extraction(config):
+def begin_extraction(config, files):
     """Starts the core extraction procedure. [Entry point from main]
 
        Only refextract_daemon calls this directly, from _task_run_core()
@@ -1569,7 +1569,7 @@ def begin_extraction(config):
         write_message("Using invenio journal title form", verbose=2)
 
     # Gather fulltext document locations from input arguments
-    extract_jobs = config.fulltext
+    extract_jobs = files
 
     # Read the authors knowledge base, creating the search
     # and replace terms

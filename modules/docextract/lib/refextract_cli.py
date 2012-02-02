@@ -54,9 +54,7 @@ HELP_MESSAGE = """
   --no-overwrite       Do not touch record if it already has references
 
   Standalone Refextract options:
-  -f, --fulltext       A single pdf or text document
-                       from where to extract references. [path]
-  -x, --xmlfile        Write the extracted references, in xml form, to a file
+  -o, --out            Write the extracted references, in xml form, to a file
                        rather than standard output.
   --dictfile           Write statistics about all matched title abbreviations
                        (i.e. LHS terms in the titles knowledge base) to a file.
@@ -69,10 +67,10 @@ HELP_MESSAGE = """
                        and standardisation of citations within lines.
 """
 
-USAGE_MESSAGE = """Usage: refextract [options] -f file1 [-f file2 ...]
+USAGE_MESSAGE = """Usage: docextract [options] file1 [file2 ...]
 Command options: %s
 Examples:
-    refextract -x /home/chayward/refs.xml -f /home/chayward/thesis.pdf
+    docextract -o /home/chayward/refs.xml /home/chayward/thesis.pdf
 """ % HELP_MESSAGE
 
 
@@ -86,8 +84,6 @@ def get_cli_options():
     parser = optparse.OptionParser(description=DESCRIPTION,
                                    usage=USAGE_MESSAGE,
                                    add_help_option=False)
-    # Add a pdf/text file from where to extract references
-    parser.add_option('-f', '--fulltext', action='append')
     # Display help and exit
     parser.add_option('-h', '--help', action='store_true')
     # Display version and exit
@@ -112,23 +108,7 @@ def get_cli_options():
     # extraction job to the specified file
     parser.add_option('--dictfile')
     # Write out MARC XML references to the specified file
-    parser.add_option('-x', '--xmlfile')
-    # To specify records to parse, we need to parse them correctly
-    # to display an error message when these are using in standalone mode
-    parser.add_option('-a', '--new', action='store_true')
-    parser.add_option('-c', '--collections', action='append')
-    parser.add_option('-r', '--recids', action='append')
-    # Do not touch record if it already has references
-    parser.add_option('--no-overwrite', action="store_true")
-    # Bibtask options
-    parser.add_option('-u', '--user')
-    parser.add_option('-t', '--runtime')
-    parser.add_option('-s', '--sleeptime')
-    parser.add_option('-L', '--limit')
-    parser.add_option('-P', '--priority')
-    parser.add_option('-N', '--name')
-    parser.add_option('--profile')
-    parser.add_option('--post-process')
+    parser.add_option('-o', '--out', dest='xmlfile')
     # Handle verbosity
     parser.add_option('-v', '--verbose', type=int, dest='verbosity', default=0)
     # Output a raw list of refs
@@ -196,11 +176,6 @@ def main(config, args, run):
     if config.verbosity not in range(0, 10):
         usage("Error: Verbosity must be an integer between 0 and 10")
 
-    if args:
-        # There should be no standalone arguments for any refextract job
-        # This will catch args before the job is shipped to Bibsched
-        usage("Error: Unrecognised argument '%s'." % args[0])
-
     if config.version:
         # version message and exit
         write_message(__revision__, verbose=0)
@@ -217,9 +192,9 @@ def main(config, args, run):
              "with specific fulltext input. \n Use '--help' for "
              "flag options." % err)
 
-    if not config.fulltext:
+    if not args:
         # no files provided for reference extraction - error message
-        usage("Error: No valid input file specified (-f file [-f file ...])")
+        usage("Error: No valid input file specified (file1 [file2 ...])")
 
-    run(config)
+    run(config, args)
     write_message("Extraction complete", verbose=2)
