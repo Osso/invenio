@@ -23,10 +23,12 @@ Exposes document extration facilities to the world
 """
 
 from tempfile import NamedTemporaryFile
+import re
 
 from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
 from invenio.webuser import collect_user_info
 from invenio.webpage import page
+from invenio.dbquery import run_sql
 from invenio.config import CFG_TMPSHAREDDIR, CFG_ETCDIR
 from invenio.refextract_api import extract_references_from_file_xml, \
                                    extract_references_from_url_xml, \
@@ -39,13 +41,27 @@ except ImportError:
     CFG_INSPIRE_SITE = False
 
 
-def check_login(req):
-    """Check that the user is logged in"""
+re_ipv4 = re.compile('(25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)\.){3}(25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d')
+
+
+def clean_ip_address(ip):
+    if not validate_ipv4_address(ip):
+        ip = clean_ipv6_address(ip)
+    return ip
+
+
+def log_call(name, url, uid, ip):
+    ip = clean_ip_address(ip)
+    run_sql("INSERT INTO xtrCALLS (NOW(), ?, ?, ?, ?)", (name, uid, ip, url))
+
+def log_req(name, req):
     user_info = collect_user_info(req)
-    if user_info['email'] == 'guest':
-        # 1. User is guest: must login prior to upload
-        # return 'Please login before uploading file.'
-        pass
+    log_call(
+        name=name,
+        url=req.get_uri(),
+        uid=user_info['uid'],
+        ip=user_info['remote_ip'],
+    )
 
 
 def check_url(url):
@@ -99,6 +115,7 @@ class WebInterfaceAPIDocExtract(WebInterfaceDirectory):
         if 'pdf' not in form:
             return 'No PDF file uploaded'
 
+        log_req('rest-refextract-pdf', req)
         return extract_from_pdf_string(form['pdf'].file.read())
 
     def extract_references_pdf_url(self, req, form):
@@ -113,6 +130,7 @@ class WebInterfaceAPIDocExtract(WebInterfaceDirectory):
         if not check_url(url):
             return 'Invalid URL specified'
 
+        log_req('rest-refextract-pdf-url', req)
         return extract_references_from_url_xml(url)
 
     def extract_references_txt(self, req, form):
@@ -124,6 +142,7 @@ class WebInterfaceAPIDocExtract(WebInterfaceDirectory):
 
         txt = form['txt'].value
 
+        log_req('rest-refextract-txt', req)
         return extract_references_from_string_xml(txt)
 
 
@@ -167,15 +186,19 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
 
         # Handle the 3 POST parameters
         if 'pdf' in form and form['pdf'].value:
+            log_req('refextract-pdf', req)
             pdf = form['pdf'].value
             references_xml = extract_from_pdf_string(pdf)
         elif 'arxiv' in form and form['arxiv'].value:
+            log_req('refextract-arxiv', req)
             url = make_arxiv_url(arxiv_id=form['arxiv'].value)
             references_xml = extract_references_from_url_xml(url)
         elif 'url' in form and form['url'].value:
+            log_req('refextract-pdf-url', req)
             url = form['url'].value
             references_xml = extract_references_from_url_xml(url)
         elif 'txt' in form and form['txt'].value:
+            log_req('refextract-txt', req)
             txt = form['txt'].value
             references_xml = extract_references_from_string_xml(txt)
         else:
