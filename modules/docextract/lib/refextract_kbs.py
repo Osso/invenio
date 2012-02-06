@@ -83,7 +83,7 @@ def load_kbs(kb_journals=None, kb_reports=None, kb_authors=None, kb_books=None,
         'authors'    : build_authors_knowledge_base(kb_authors),
         'books'      : build_books_knowledge_base(kb_books),
         'publishers' : build_publishers_knowledge_base(kb_publishers),
-        'special_journals': ('JHEP', 'JINST', 'JCAP'),
+        'special_journals': ('JHEP', 'JCAP'),
     }
 
 
