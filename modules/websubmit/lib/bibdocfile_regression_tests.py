@@ -41,6 +41,7 @@ class BibRecDocsTest(unittest.TestCase):
         my_bibrecdoc = BibRecDocs(2)
         #add bibdoc
         my_bibrecdoc.add_new_file(CFG_PREFIX + '/lib/webtest/invenio/test.jpg', 'Main', 'img_test', False, 'test add new file', 'test', '.jpg')
+
         my_bibrecdoc.add_bibdoc(doctype='Main', docname='file', never_fail=False)
         self.assertEqual(len(my_bibrecdoc.list_bibdocs()), 3)
         my_added_bibdoc = my_bibrecdoc.get_bibdoc('file')
@@ -86,6 +87,7 @@ class BibDocsTest(unittest.TestCase):
     def test_BibDocs(self):
         """bibdocfile - BibDocs functions"""
         #add file
+#        import rpdb2; rpdb2.start_embedded_debugger('password', fAllowRemote=True)
         my_bibrecdoc = BibRecDocs(2)
         my_bibrecdoc.add_new_file(CFG_PREFIX + '/lib/webtest/invenio/test.jpg', 'Main', 'img_test', False, 'test add new file', 'test', '.jpg')
         my_new_bibdoc = my_bibrecdoc.get_bibdoc("img_test")
@@ -96,9 +98,10 @@ class BibDocsTest(unittest.TestCase):
         #get recid
         self.assertEqual(my_new_bibdoc.bibrec_links[0]["recid"], 2)
         #change name
-        my_new_bibdoc.change_name(2, 'new_name')
+        my_bibrecdoc.change_name(newname = "new_name", docid = my_new_bibdoc.id)
         #get docname
         self.assertEqual(my_new_bibdoc.bibrec_links[0]["docname"], 'new_name')
+
         #get type
         self.assertEqual(my_new_bibdoc.get_type(), 'Main')
         #get id
@@ -168,8 +171,12 @@ class BibDocsTest(unittest.TestCase):
         #hidden?
         self.assertEqual(my_new_bibdoc.hidden_p('.jpg', version=1), True)
         #add and get icon
+
+#        import rpdb2; rpdb2.start_embedded_debugger('password', fAllowRemote=True)
         my_new_bibdoc.add_icon( CFG_PREFIX + '/lib/webtest/invenio/icon-test.gif')
-        value =  my_bibrecdoc.list_bibdocs()[1]
+#        value =  my_bibrecdoc.list_bibdocs()[1]
+        value = my_bibrecdoc.get_bibdoc("new_name")
+
         self.assertEqual(value.get_icon(), my_new_bibdoc.get_icon())
         #delete icon
         my_new_bibdoc.delete_icon()
@@ -199,7 +206,7 @@ class BibRelationTest(unittest.TestCase):
     def test_RelationCreation_Version(self):
         """
         Testing relations between particular versions of a document
-        We create twi relations differing only on the BibDoc version
+        We create two relations differing only on the BibDoc version
         number and verify that they are indeed differen (store different data)
         """
 
@@ -262,7 +269,7 @@ class BibDocFilesTest(unittest.TestCase):
         self.assertEqual(my_new_bibdocfile.get_type(), 'Main')
         #get path
         self.assert_(my_new_bibdocfile.get_path().startswith(CFG_WEBSUBMIT_FILEDIR))
-        self.assert_(my_new_bibdocfile.get_path().endswith('/img_test.jpg;1'))
+        self.assert_(my_new_bibdocfile.get_path().endswith('/content.jpg;1'))
         #get bibdocid
         self.assertEqual(my_new_bibdocfile.get_bibdocid(), my_new_bibdoc.get_id())
         #get name
@@ -271,7 +278,7 @@ class BibDocFilesTest(unittest.TestCase):
         self.assertEqual(my_new_bibdocfile.get_full_name() , 'img_test.jpg')
         #get full path
         self.assert_(my_new_bibdocfile.get_full_path().startswith(CFG_WEBSUBMIT_FILEDIR))
-        self.assert_(my_new_bibdocfile.get_full_path().endswith('/img_test.jpg;1'))
+        self.assert_(my_new_bibdocfile.get_full_path().endswith('/content.jpg;1'))
         #get format
         self.assertEqual(my_new_bibdocfile.get_format(), '.jpg')
         #get version
@@ -281,7 +288,7 @@ class BibDocFilesTest(unittest.TestCase):
         #get comment
         self.assertEqual(my_new_bibdocfile.get_comment(), my_new_bibdoc.get_comment('.jpg', version=1))
         #get recid
-        self.assertEqual(my_new_bibdocfile.bibrec_links[0]["recid"], 2)
+        self.assertEqual(my_new_bibdoc.bibrec_links[0]["recid"], 2)
         #get status
         self.assertEqual(my_new_bibdocfile.get_status(), '')
         #get size
@@ -325,6 +332,7 @@ class MoreInfoTest(unittest.TestCase):
     def test_initialData(self):
         """Testing if passing the initial data really enriches the existing structure"""
         more_info = MoreInfo(docid = 134)
+
         more_info.set_data("ns1", "k1", "vsrjklfh23478956@#%@#@#%")
         more_info2 = MoreInfo(docid = 134, initial_data = {"ns1" : { "k2" : "weucb2324@#%@#$%@"}})
         self.assertEqual(more_info.get_data("ns1", "k2"), "weucb2324@#%@#$%@")
@@ -334,6 +342,7 @@ class MoreInfoTest(unittest.TestCase):
         more_info3 = MoreInfo(docid = 134)
         self.assertEqual(more_info3.get_data("ns1", "k2"), "weucb2324@#%@#$%@")
         self.assertEqual(more_info3.get_data("ns1", "k1"), "vsrjklfh23478956@#%@#@#%")
+
         more_info.del_key("ns1", "k1")
         more_info.del_key("ns1", "k2")
 

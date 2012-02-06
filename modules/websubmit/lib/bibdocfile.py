@@ -916,6 +916,48 @@ class BibRecDocs(object):
         raise InvenioWebSubmitFileError, "Recid '%s' is not connected with a " \
             "docid '%s'" % (self.id, docid)
 
+    def change_name(self, newname, oldname=None, docid=None):
+        """
+        Renames document of a given name.
+
+        @param newname: the new name.
+        @type newname: string
+        @raise InvenioWebSubmitFileError: if the new name corresponds to
+            a document already attached to the record owning this document.
+        """
+        if not oldname and not docid:
+            raise StandardError("Trying to rename unspecified document")
+
+        if not oldname:
+            oldname = self.get_docname(docid)
+        if not docid:
+            docid = self.get_docid(oldname)
+
+        doc = self.get_bibdoc(oldname)
+
+        try:
+            newname = normalize_docname(newname)
+
+            res = run_sql("SELECT id_bibdoc FROM bibrec_bibdoc WHERE id_bibrec=%s AND docname=%s", (self.id, newname))
+            if res:
+                raise InvenioWebSubmitFileError, "A bibdoc called %s already exists for recid %s" % (newname, self.id)
+
+            run_sql("update bibrec_bibdoc set docname=%s where id_bibdoc=%s and id_bibrec=%s", (newname, docid, self.id))
+        finally:
+            # updating the document
+            for a in doc.bibrec_links:
+                if a["recid"] == self.id:
+                    a["docname"] = newname
+            # updating the record structure
+            del self.bibdocs[oldname]
+            self.bibdocs[newname] = doc
+
+            # TODO: Piotr: Filenames: This might not be necessary any more
+            Md5Folder(doc.basedir).update()
+            doc.touch()
+            doc._build_file_list('rename')
+            doc._build_related_file_list()
+
     def has_docname_p(self, docname):
         """
         @param docname: the document name,
@@ -1404,7 +1446,7 @@ class BibRecDocs(object):
             docname = self.get_docname(bibdoc.id)
             if docname in docnames:
                 new_docname = self.propose_unique_docname(self.get_docname(bibdoc.id))
-                bibdoc.change_name(self.id, new_docname)
+                self.change_name(docid=bibdoc.id, newname=new_docname)
                 self.merge_bibdocs(docname, new_docname)
             docnames.add(docname)
 
@@ -2061,32 +2103,6 @@ class BibDoc(object):
             if subformat_re.match(docfile.get_subformat()):
                 self.delete_file(docfile.get_format(), docfile.get_version())
 
-    def change_name(self, recid, newname):
-        """
-        Renames this document in connection with a given record.
-
-        @param newname: the new name.
-        @type newname: string
-        @raise InvenioWebSubmitFileError: if the new name corresponds to
-            a document already attached to the record owning this document.
-        """
-        try:
-            newname = normalize_docname(newname)
-
-            res = run_sql("SELECT id_bibdoc FROM bibrec_bibdoc WHERE id_bibrec=%s AND docname=%s", (recid, newname))
-            if res:
-                raise InvenioWebSubmitFileError, "A bibdoc called %s already exists for recid %s" % (newname, recid)
-
-            run_sql("update bibrec_bibdoc set docname=%s where id_bibdoc=%s and id_bibrec=%s", (newname, self.id, recid))
-            self.docname = newname
-        finally:
-            # TODO: Piotr: Filenames: This might not be necessary any more
-            Md5Folder(self.basedir).update()
-            self.touch()
-            self._build_file_list('rename')
-            self._build_related_file_list()
-
-
     def set_comment(self, comment, format, version=None):
         """
         Updates the comment of a specific format/version of the document.
@@ -2323,13 +2339,15 @@ class BibDoc(object):
         versions.sort()
         return versions
 
-    def delete(self, recid=None):
+    def delete(self, recid = None):
         """
         Delete this document.
         @see: L{undelete} for how to undelete the document.
         @raise InvenioWebSubmitFileError: in case of errors.
         """
-        try:
+#        try:
+#            import rpdb2; rpdb2.start_embedded_debugger('password', fAllowRemote=True)
+        if True:
             today = datetime.today()
             recids = []
             if recid:
@@ -2341,13 +2359,13 @@ class BibDoc(object):
                 brd = BibRecDocs(rid)
                 docname = brd.get_docname(self.id)
                 # if the document is attached to some records
-                self.change_name(rid, 'DELETED-%s%s-%s' % (today.strftime('%Y%m%d%H%M%S'), today.microsecond, docname))
+                brd.change_name(docid=self.id, newname = 'DELETED-%s%s-%s' % (today.strftime('%Y%m%d%H%M%S'), today.microsecond, docname))
 
             run_sql("UPDATE bibdoc SET status='DELETED' WHERE id=%s", (self.id,))
             self.status = 'DELETED'
-        except Exception, e:
-            register_exception()
-            raise InvenioWebSubmitFileError, "It's impossible to delete bibdoc %s: %s" % (self.id, e)
+#        except Exception, e:
+#            register_exception()
+#            raise InvenioWebSubmitFileError, "It's impossible to delete bibdoc %s: %s" % (self.id, e)
 
     def deleted_p(self):
         """
@@ -2387,7 +2405,7 @@ class BibDoc(object):
                     # Let's remove DELETED-20080214144322- in front of the docname
                     original_name = '-'.join(docname.split('-')[2:])
                     original_name = bibrecdocs.propose_unique_docname(original_name)
-                    self.change_name(recid, original_name)
+                    bibrecdocs.change_name(docid=self.id, newname=original_name)
                 except Exception, e:
                     raise InvenioWebSubmitFileError, "It's impossible to restore the previous docname %s. %s kept as docname because: %s" % (original_name, docname, e)
             else:
@@ -3782,13 +3800,14 @@ class MoreInfo(object):
         if self.cache_reads or self.cache_only:
             if namespace in self.cache and key in self.cache[namespace]:
                 return self.cache[namespace][key]
+
         if not self.cache_only:
             # we have a permission to read from the database
             value = self._database_read_value(namespace, key)
             if value:
                 if not namespace in self.cache:
                     self.cache[namespace] = {}
-                self.cache[namespace] = value
+                self.cache[namespace][key] = value
             return value
         return None
 
@@ -3796,6 +3815,7 @@ class MoreInfo(object):
         """retrieving data from the database"""
         if not namespace in self.cache:
             return None
+
         del self.cache[namespace][key]
         self._mark_dirty(namespace, key)
         if not self.cache_only:

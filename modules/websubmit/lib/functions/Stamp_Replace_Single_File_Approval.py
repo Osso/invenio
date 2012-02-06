@@ -417,7 +417,7 @@ def Stamp_Replace_Single_File_Approval(parameters, \
             ## do so.
             if new_file_name != "":
                 try:
-                    bibdoc_file_to_stamp.change_name(bibrecdocs.id, new_file_name)
+                    bibrecdocs.change_name(newname = new_file_name, docid = bibdoc_file_to_stamp.id)
                 except (IOError, InvenioWebSubmitFileError):
                     ## Unable to change the name
                     wrn_msg = "Warning in Stamp_Replace_Single_File_Approval" \
