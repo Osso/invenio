@@ -2155,7 +2155,7 @@ def revise(file_path, bibdoc_name, rename, doctype, description,
 
             # Rename
             if rename and rename != bibdoc_name:
-                bibdoc.change_name(bibrecdocs.id, rename)
+                bibrecdocs.change_name(newname=rename, docid=bibdoc.id)
                 _do_log(working_dir, 'renamed ' + bibdoc_name +' to '+ rename)
 
             # Add icons

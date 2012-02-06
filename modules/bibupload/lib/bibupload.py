@@ -1785,7 +1785,7 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                             if newname != docname:
                                 try:
                                     if not pretend:
-                                        bibdoc.change_name(rec_id, newname)
+                                        bibrecdocs.change_name(newname = newname, docid = bibdoc.id)
                                         ## Let's refresh the list of bibdocs.
                                         bibrecdocs.build_bibdoc_list()
                                 except StandardError, e:
@@ -1852,7 +1852,7 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                             if newname != docname:
                                 try:
                                     if not pretend:
-                                        bibdoc.change_name(rec_id, newname)
+                                        bibrecdocs.change_name(docid = bibdoc.id, newname=newname)
                                         ## Let's refresh the list of bibdocs.
                                         bibrecdocs.build_bibdoc_list()
                                 except StandardError, e:
@@ -1936,7 +1936,7 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                     register_exception()
                     raise
             if not pretend:
-                _process_document_moreinfos(more_infos, docname, version, urls[0][1], mode)
+                _process_document_moreinfos(more_infos, newname, version, urls[0][1], mode)
 
             # resolving temporary version and identifier
             brd = BibRecDocs(rec_id)
@@ -2534,7 +2534,9 @@ def post_results_to_callback_url(results, callback_url):
 def bibupload_records(records, opt_mode = None, opt_tag = None,
                       opt_stage_to_start_from = 1, opt_notimechange = 0,
                       pretend = False):
-    """perform the task of uploading a set of records"""
+    """perform the task of uploading a set of records
+    returns list of (error_code, recid) tuples for separate records
+    """
 
     #Dictionaries maintaining temporary identifiers
     # Structure: identifier -> number
@@ -2542,6 +2544,7 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
     tmp_ids = {}
     tmp_vers = {}
 
+    results = []
     # The first phase -> assigning meaning to temporary identifiers
 
     for record in records:
@@ -2563,7 +2566,7 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
                 pretend = pretend,
                 tmp_ids = tmp_ids,
                 tmp_vers = tmp_vers)
-
+            results.append(error)
             if error[0] == 1:
                 if record:
                     write_message(record_xml_output(record),
@@ -2601,6 +2604,7 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
                                  tmp_vers = tmp_vers)
 
 
+    return results
 
 def task_run_core():
     """ Reimplement to add the body of the task."""
