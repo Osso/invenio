@@ -75,6 +75,10 @@ def extract_from_pdf_string(pdf, inspire=CFG_INSPIRE_SITE):
     return refs
 
 
+def make_arxiv_url(arxiv_id):
+    return "http://arxiv.org/pdf/%s.pdf" % arxiv_id
+
+
 class WebInterfaceAPIDocExtract(WebInterfaceDirectory):
     """DocExtract REST API"""
     _exports = [
@@ -142,6 +146,7 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
         <form action="extract-references" method="post"
                                             enctype="multipart/form-data">
             <p>PDF: <input type="file" name="pdf" /></p>
+            <p>arXiv: <input type="text" name="arxiv" /></p>
             <p>URL: <input type="text" name="url" style="width: 600px;"/></p>
             <textarea name="txt" style="width: 500px; height: 500px;"></textarea>
             <p><input type="submit" /></p>
@@ -159,6 +164,9 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
         if form.has_key('pdf') and form['pdf'].value:
             pdf = form['pdf'].value
             references_xml = extract_from_pdf_string(pdf)
+        elif form.has_key('arxiv') and form['arxiv'].value:
+            url = make_arxiv_url(arxiv_id=form['arxiv'].value)
+            references_xml = extract_references_from_url_xml(url)
         elif form.has_key('url') and form['url'].value:
             url = form['url'].value
             references_xml = extract_references_from_url_xml(url)
