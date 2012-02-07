@@ -45,6 +45,8 @@ CFG_REFEXTRACT_KB_BOOKS = "%s/books.kb" % CFG_CONF_DIR
 CFG_REFEXTRACT_KB_CONFERENCES = "%s/conferences.kb" % CFG_CONF_DIR
 # publishers which should be recognised as such
 CFG_REFEXTRACT_KB_PUBLISHERS = "%s/publishers.kb" % CFG_CONF_DIR
+# Journals which should have the year prepended to the volume
+CFG_REFEXTRACT_KB_SPECIAL_JOURNALS = "%s/special-journals.kb" % CFG_CONF_DIR
 # prefix for temp files
 CFG_REFEXTRACT_FILENAME = "refextract"
 

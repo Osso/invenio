@@ -30,7 +30,8 @@ from invenio.refextract_config import \
             CFG_REFEXTRACT_KB_JOURNAL_TITLES_RE, \
             CFG_REFEXTRACT_KB_JOURNAL_TITLES_INSPIRE, \
             CFG_REFEXTRACT_KB_JOURNAL_TITLES, \
-            CFG_REFEXTRACT_KB_REPORT_NUMBERS
+            CFG_REFEXTRACT_KB_REPORT_NUMBERS, \
+            CFG_REFEXTRACT_KB_SPECIAL_JOURNALS
 
 from invenio.refextract_re import re_kb_line, \
                                   re_regexp_character_class, \
@@ -50,7 +51,7 @@ except ImportError:
 
 def load_kbs(kb_journals=None, kb_reports=None, kb_authors=None, kb_books=None,
              kb_conferences=None, kb_journals_re=None, kb_publishers=None,
-             inspire=CFG_INSPIRE_SITE):
+             kb_special_journals=None, inspire=CFG_INSPIRE_SITE):
 
     if kb_journals is None:
         if inspire:
@@ -76,6 +77,9 @@ def load_kbs(kb_journals=None, kb_reports=None, kb_authors=None, kb_books=None,
     if kb_publishers is None:
         kb_publishers = CFG_REFEXTRACT_KB_PUBLISHERS
 
+    if kb_special_journals is None:
+        kb_special_journals = CFG_REFEXTRACT_KB_SPECIAL_JOURNALS
+
     return {
         'journals_re': build_journals_re_knowledge_base(kb_journals_re),
         'journals'   : build_journals_knowledge_base(kb_journals),
@@ -83,7 +87,7 @@ def load_kbs(kb_journals=None, kb_reports=None, kb_authors=None, kb_books=None,
         'authors'    : build_authors_knowledge_base(kb_authors),
         'books'      : build_books_knowledge_base(kb_books),
         'publishers' : build_publishers_knowledge_base(kb_publishers),
-        'special_journals': ('JHEP', 'JCAP'),
+        'special_journals': build_special_journals_knowledge_base(kb_special_journals),
     }
 
 
@@ -427,6 +431,19 @@ def _cmp_bystrlen_reverse(a, b):
     else:
         return 0
 
+
+def build_special_journals_knowledge_base(fpath):
+    journals = set()
+    write_message('Loading special journals kb', verbose=3)
+    fh = open(fpath, "r")
+    try:
+        for line in fh:
+            journals.add(line)
+    finally:
+        fh.close()
+        write_message('Loaded special journals kb', verbose=3)
+
+    return journals
 
 def build_books_knowledge_base(fpath):
     if isinstance(fpath, basestring):

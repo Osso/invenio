@@ -27,7 +27,8 @@ etc_DATA = example.pdf \
            books.kb \
            job-preprints.cfg \
            journal-titles.kb \
-           test2.txt
+           test2.txt \
+           special-journals.kb
 
 EXTRA_DIST = $(etc_DATA)
 
