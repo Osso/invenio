@@ -991,6 +991,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">53</subfield>
       <subfield code="h">Hush, D.R., R.Leighton, and B.G. Horne</subfield>
       <subfield code="t">Progress in supervised Neural Netw. What's new since Lippmann?</subfield>
+      <subfield code="p">IEEE</subfield>
    </datafield>
 </record>""")
 
@@ -1292,7 +1293,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">1</subfield>
       <subfield code="h">(ATLAS Collaboration) G. Aad et al.</subfield>
-      <subfield code="s">JINST,0803,S08003</subfield>
+      <subfield code="s">JINST,3,S08003</subfield>
    </datafield>
 </record>""")
 
@@ -1336,7 +1337,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">7</subfield>
       <subfield code="h">L. Evans, (ed.) and P. Bryant, (ed.)</subfield>
-      <subfield code="s">JINST,0803,S08001</subfield>
+      <subfield code="s">JINST,3,S08001</subfield>
    </datafield>
 </record>""")
 
@@ -1478,10 +1479,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">5</subfield>
       <subfield code="h">I. J. Aitchison and A. J. Hey</subfield>
-   </datafield>
-   <datafield tag="999" ind1="C" ind2="5">
-      <subfield code="o">5</subfield>
-      <subfield code="h">I Llc</subfield>
+      <subfield code="p">CRC Pr.</subfield>
    </datafield>
 </record>""")
 
@@ -1558,11 +1556,8 @@ Rev. D 80 034030 1-25"""
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">15</subfield>
-      <subfield code="h">(E. Berger (eds.))</subfield>
-   </datafield>
-   <datafield tag="999" ind1="C" ind2="5">
-      <subfield code="o">15</subfield>
-      <subfield code="h">V. Barger, J.L. Hewett and T.G. Rizzo</subfield>
+      <subfield code="h">(E. Berger (eds.)) V. Barger, J.L. Hewett and T.G. Rizzo</subfield>
+      <subfield code="p">World Scientific</subfield>
       <subfield code="s">Phys.Rev.,D42,152</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
@@ -1686,6 +1681,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">119</subfield>
       <subfield code="h">D. E. Gray</subfield>
+      <subfield code="p">McGraw-Hill</subfield>
       <subfield code="i">9780070014855</subfield>
    </datafield>
 </record>""")
@@ -1697,6 +1693,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">1</subfield>
       <subfield code="h">D. Griffiths</subfield>
+      <subfield code="p">Wiley-VCH</subfield>
       <subfield code="t">Introduction to elementary particles</subfield>
       <subfield code="xbook" />
    </datafield>
@@ -1722,6 +1719,17 @@ Rev. D 80 034030 1-25"""
       <subfield code="h">D. R. Tovey</subfield>
       <subfield code="s">JHEP,0804,034</subfield>
       <subfield code="r">arXiv:0802.2879</subfield>
+   </datafield>
+</record>""")
+
+    def test_special_journals(self):
+        ref_line = u"""[178] D. R. Tovey, JHEP 04 (2008) 034"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">178</subfield>
+      <subfield code="h">D. R. Tovey</subfield>
+      <subfield code="s">JHEP,0804,034</subfield>
    </datafield>
 </record>""")
 

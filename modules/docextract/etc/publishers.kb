@@ -41,11 +41,11 @@ ED FRONTIERES|Ed. Frontieres
 WORLD SCIENTIFIC|World Scientific
 GIOI PUBL|Gioi Publ.
 HUETIG|Huetig
-BRAUN|Braun
+#BRAUN|Braun
 FACHBUCHVERL|Fachbuchverl.
 ACADEMIC|Academic
 ADDISON WESLEY|Addison-Wesley
-BUTTERWORTH|Butterworth
+#BUTTERWORTH|Butterworth
 HARWOOD ACAD|Harwood Acad.
 HEINEMANN EDUC BOOKS|Heinemann Educ. Books
 IMP COLL PR|Imp. Coll. Pr.
@@ -92,7 +92,7 @@ ADDISON WESLEY|Addison-Wesley
 WORLD SCIENTIFIC|World Scientific
 MUELLER|Mueller
 ECOWIN VERL|Ecowin Verl.
-FREEMAN|Freeman
+#FREEMAN|Freeman
 PITMAN|Pitman
 WORLD SCIENTIFIC|World Scientific
 NAT TECH INFORM SERV|Nat. Tech. Inform. Serv.

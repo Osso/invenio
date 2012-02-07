@@ -433,12 +433,24 @@ def _cmp_bystrlen_reverse(a, b):
 
 
 def build_special_journals_knowledge_base(fpath):
+    """Load special journals database from file
+    
+    Special journals are journals that have a volume which is not unique
+    among different years. To keep the volume unique we are adding the year
+    before the volume.
+    """
     journals = set()
     write_message('Loading special journals kb', verbose=3)
     fh = open(fpath, "r")
     try:
         for line in fh:
-            journals.add(line)
+            # Skip commented lines
+            if line.startswith('#'):
+                continue
+            # Skip empty line
+            if not line.strip():
+                continue
+            journals.add(line.strip())
     finally:
         fh.close()
         write_message('Loaded special journals kb', verbose=3)
