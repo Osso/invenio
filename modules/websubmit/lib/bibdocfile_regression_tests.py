@@ -48,6 +48,7 @@ class BibRecDocsTest(unittest.TestCase):
         #add bibdocfile in empty bibdoc
         my_added_bibdoc.add_file_new_version(CFG_PREFIX + '/lib/webtest/invenio/test.gif', \
         description= 'added in empty bibdoc', comment=None, format=None, flags=['PERFORM_HIDE_PREVIOUS'])
+#        import rpdb2; rpdb2.start_embedded_debugger('password', fAllowRemote=True)
         #propose unique docname
         self.assertEqual(my_bibrecdoc.propose_unique_docname('file'), 'file_2')
         #has docname
@@ -58,8 +59,10 @@ class BibRecDocsTest(unittest.TestCase):
         #check file exists
         self.assertEqual(my_bibrecdoc.check_file_exists(CFG_PREFIX + '/lib/webtest/invenio/test.jpg'), True)
         #get bibdoc names
-        self.assertEqual(my_bibrecdoc.get_bibdoc_names('Main')[0], '0104007_02')
-        self.assertEqual(my_bibrecdoc.get_bibdoc_names('Main')[1],'img_test')
+
+        self.assertTrue('0104007_02' in my_bibrecdoc.get_bibdoc_names('Main'))
+        self.assertTrue('img_test' in my_bibrecdoc.get_bibdoc_names('Main'))
+
         #get total size
         self.assertEqual(my_bibrecdoc.get_total_size(), 1647591)
         #get total size latest version
@@ -186,7 +189,7 @@ class BibDocsTest(unittest.TestCase):
         my_new_bibdoc.delete()
         self.assertEqual(my_new_bibdoc.deleted_p(), True)
         #undelete
-        my_new_bibdoc.undelete(previous_status='')
+        my_new_bibdoc.undelete(previous_status='', recid=2)
         #expunging
         my_new_bibdoc.expunge()
         my_bibrecdoc.build_bibdoc_list()
