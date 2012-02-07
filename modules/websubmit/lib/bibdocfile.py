@@ -752,7 +752,7 @@ class BibRecDocs(object):
                                              human_readable=self.human_readable)
             self.bibdocs[row[1]] = cur_doc
 
-    def list_bibdocs_by_names(self, doctype=''):
+    def list_bibdocs_by_names(self, doctype=None):
         """
         Returns the dictionary of all bibdocs object belonging to a recid.
         Keys in the dictionary are names of documetns and values are BibDoc objects.
@@ -763,13 +763,16 @@ class BibRecDocs(object):
         @return: the dictionary of bibdocs.
         @rtype: dictionary of Dcname -> BibDoc
         """
+        if not doctype:
+            return self.bibdocs
+
         res = {}
         for (docname, doc) in self.bibdocs.items():
             if doc.doctype == doctype:
                 res[docname] = doc
         return res
 
-    def list_bibdocs(self, doctype=''):
+    def list_bibdocs(self, doctype=None):
         """
         Returns the list all bibdocs object belonging to a recid.
         If C{doctype} is set, it returns just the bibdocs of that doctype.
@@ -782,9 +785,12 @@ class BibRecDocs(object):
         if not doctype:
             return self.bibdocs.values()
         else:
-            return [bibdoc for bibdoc in self.bibdocs.values() if doctype == bibdoc.doctype]
+            if doctype:
+                return [bibdoc for bibdoc in self.bibdocs.values() if doctype == bibdoc.doctype]
+            else:
+                return [bibdoc for bibdoc in self.bibdocs.values()]
 
-    def get_bibdoc_names(self, doctype=''):
+    def get_bibdoc_names(self, doctype=None):
         """
         Returns all the names of the documents associated with the bibrec.
         If C{doctype} is set, restrict the result to all the matching doctype.
@@ -794,7 +800,6 @@ class BibRecDocs(object):
         @return: the list of document names.
         @rtype: list of string
         """
-
         return [docname for (docname, bibdoc) in self.list_bibdocs_by_names(doctype).items()]
 
     def check_file_exists(self, path):
@@ -2356,9 +2361,7 @@ class BibDoc(object):
         @see: L{undelete} for how to undelete the document.
         @raise InvenioWebSubmitFileError: in case of errors.
         """
-#        try:
-#            import rpdb2; rpdb2.start_embedded_debugger('password', fAllowRemote=True)
-        if True:
+        try:
             today = datetime.today()
             recids = []
             if recid:
@@ -2374,9 +2377,9 @@ class BibDoc(object):
 
             run_sql("UPDATE bibdoc SET status='DELETED' WHERE id=%s", (self.id,))
             self.status = 'DELETED'
-#        except Exception, e:
-#            register_exception()
-#            raise InvenioWebSubmitFileError, "It's impossible to delete bibdoc %s: %s" % (self.id, e)
+        except Exception, e:
+            register_exception()
+            raise InvenioWebSubmitFileError, "It's impossible to delete bibdoc %s: %s" % (self.id, e)
 
     def deleted_p(self):
         """
