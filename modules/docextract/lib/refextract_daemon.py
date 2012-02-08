@@ -82,15 +82,15 @@ def task_run_core_wrapper():
 def task_run_core():
     """calls extract_references in refextract"""
     write_message("Starting references extraction.")
-    task_update_progress("fetching record ids")
+    task_update_progress("Fetching record ids")
 
     last_id, last_date = fetch_last_updated()
 
     if task_get_option('new'):
         # Fetch all records inserted since last run
-        sql = "SELECT id, creation_date FROM bibrec " \
-            "WHERE creation_date >= %s " \
-            "AND id > %s " \
+        sql = "SELECT `id`, `creation_date` FROM `bibrec` " \
+            "WHERE `modification_date` >= %s " \
+            "AND `id` > %s " \
             "ORDER BY `creation_date`"
         records = run_sql(sql, (last_date.isoformat(), last_id))
     else:
@@ -155,6 +155,7 @@ def _task_submit_elaborate_specific_parameter(key, value, opts, args):
 
     if key in ('-a', '--new'):
         task_set_option('new', True)
+        task_set_option('no-overwrite', True)
     elif key in ('-i', '--inspire'):
         task_set_option('inspire', True)
     elif key in ('--kb-reports'):
