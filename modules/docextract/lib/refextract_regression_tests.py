@@ -61,10 +61,12 @@ def reference_test(test, ref_line, parsed_reference, ignore_misc=True):
     #print u'refs: %s' % ref_line
     ref_line = wash_and_repair_reference_line(ref_line)
     #print u'cleaned: %s' % ref_line
-    out = parse_references([ref_line], inspire=test.inspire,
-        kb_journals=test.kb_journals, kb_reports=test.kb_reports,
-        kb_authors=test.kb_authors, kb_books=test.kb_books,
-        kb_conferences=test.kb_conferences, kb_journals_re=test.kb_journals_re)
+    out = parse_references([ref_line], inspire=test.inspire, kbs_files={
+        'journals'       : test.kb_journals,
+        'journals-re'    : test.kb_journals_re,
+        'report-numbers' : test.kb_report_numbers,
+        'books'          : test.kb_books,
+    })
     compare_references(test, out, parsed_reference)
 
 
@@ -124,10 +126,6 @@ class RefextractTest(unittest.TestCase):
         self.kb_books = [
             ('Griffiths, David', 'Introduction to elementary particles', '2008')
         ]
-        self.kb_conferences = []
-        self.kb_authors = [
-            "Du ̈hrssen---Dührssen"
-        ]
         self.kb_journals = [
             "PHYSICAL REVIEW SPECIAL TOPICS ACCELERATORS AND BEAMS---Phys.Rev.ST Accel.Beams",
             "PHYS REV D---Phys.Rev.;D",
@@ -164,7 +162,7 @@ class RefextractTest(unittest.TestCase):
         self.kb_journals_re = [
             "DAN---Dokl.Akad.Nauk Ser.Fiz.",
         ]
-        self.kb_reports = [
+        self.kb_report_numbers = [
             "#####CERN#####",
             "< yy 999>",
             "< yyyy 999>",

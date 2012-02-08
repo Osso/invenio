@@ -20,19 +20,17 @@
 import re
 import sys
 import csv
+import os
+
+try:
+    from hashlib import md5
+except ImportError:
+    from md5 import new as md5
 
 from invenio.refextract_cli import halt
-from invenio.refextract_config import \
-            CFG_REFEXTRACT_KB_AUTHORS, \
-            CFG_REFEXTRACT_KB_BOOKS, \
-            CFG_REFEXTRACT_KB_CONFERENCES, \
-            CFG_REFEXTRACT_KB_PUBLISHERS, \
-            CFG_REFEXTRACT_KB_JOURNAL_TITLES_RE, \
-            CFG_REFEXTRACT_KB_JOURNAL_TITLES_INSPIRE, \
-            CFG_REFEXTRACT_KB_JOURNAL_TITLES, \
-            CFG_REFEXTRACT_KB_REPORT_NUMBERS, \
-            CFG_REFEXTRACT_KB_SPECIAL_JOURNALS
-
+from invenio.refextract_config import CFG_REFEXTRACT_KBS, \
+                                      CFG_REFEXTRACT_JOURNALS_INSPIRE
+from invenio.data_cacher import DataCacher
 from invenio.refextract_re import re_kb_line, \
                                   re_regexp_character_class, \
                                   re_report_num_chars_to_escape, \
@@ -49,46 +47,77 @@ except ImportError:
     CFG_INSPIRE_SITE = False
 
 
-def load_kbs(kb_journals=None, kb_reports=None, kb_authors=None, kb_books=None,
-             kb_conferences=None, kb_journals_re=None, kb_publishers=None,
-             kb_special_journals=None, inspire=CFG_INSPIRE_SITE):
-
-    if kb_journals is None:
-        if inspire:
-            kb_journals = CFG_REFEXTRACT_KB_JOURNAL_TITLES_INSPIRE
-        else:
-            kb_journals = CFG_REFEXTRACT_KB_JOURNAL_TITLES
-
-    if kb_journals_re is None:
-        kb_journals_re = CFG_REFEXTRACT_KB_JOURNAL_TITLES_RE
-
-    if kb_reports is None:
-        kb_reports = CFG_REFEXTRACT_KB_REPORT_NUMBERS
-
-    if kb_authors is None:
-        kb_authors = CFG_REFEXTRACT_KB_AUTHORS
-
-    if kb_books is None:
-        kb_books = CFG_REFEXTRACT_KB_BOOKS
-
-    if kb_conferences is None:
-        kb_conferences = CFG_REFEXTRACT_KB_CONFERENCES
-
-    if kb_publishers is None:
-        kb_publishers = CFG_REFEXTRACT_KB_PUBLISHERS
-
-    if kb_special_journals is None:
-        kb_special_journals = CFG_REFEXTRACT_KB_SPECIAL_JOURNALS
-
+def load_kbs(kbs_files):
+    """Load kbs from specified files"""
     return {
-        'journals_re': build_journals_re_knowledge_base(kb_journals_re),
-        'journals'   : build_journals_knowledge_base(kb_journals),
-        'reports'    : build_reportnum_knowledge_base(kb_reports),
-        'authors'    : build_authors_knowledge_base(kb_authors),
-        'books'      : build_books_knowledge_base(kb_books),
-        'publishers' : build_publishers_knowledge_base(kb_publishers),
-        'special_journals': build_special_journals_knowledge_base(kb_special_journals),
+        'journals_re'   : build_journals_re_kb(kbs_files['journals-re']),
+        'journals'      : build_journals_kb(kbs_files['journals']),
+        'report-numbers': build_reportnum_kb(kbs_files['report-numbers']),
+        'authors'       : build_authors_kb(kbs_files['authors']),
+        'books'         : build_books_kb(kbs_files['books']),
+        'publishers'    : build_publishers_kb(kbs_files['publishers']),
+        'special_journals': build_special_journals_kb(kbs_files['special-journals']),
     }
+
+
+class RefExtractKBsDataCacher(DataCacher):
+    """
+    Cache holding refextract knowledge bases
+    """
+    def __init__(self, custom_kbs_files=None, inspire=CFG_INSPIRE_SITE):
+
+        def cache_filler():
+            kbs_files = CFG_REFEXTRACT_KBS.copy()
+            # On inspire sites, use inspire journals kb by default
+            if inspire:
+                kbs_files['journals'] = CFG_REFEXTRACT_JOURNALS_INSPIRE
+            if custom_kbs_files:
+                kbs_files.update(custom_kbs_files)
+            print 'kbs_files', kbs_files
+            return load_kbs(kbs_files)
+
+        def timestamp_verifier():
+            """Checks all the knowledge bases modification times"""
+            files_paths = kbs_files.values()
+            modification_times = (os.stat(p).st_mtime for p in files_paths)
+            return max(modification_times)
+
+        DataCacher.__init__(self, cache_filler, timestamp_verifier)
+
+
+def make_cache_key(custom_kbs_files=None, inspire=CFG_INSPIRE_SITE):
+    """Create cache key for kbs caches instances
+
+    This function generates a unique key for a given set of arguments.
+
+    The files dictionary is transformed like this:
+    {'journal': '/var/journal.kb', 'books': '/var/books.kb'}
+    to
+    "journal=/var/journal.kb;books=/var/books.kb"
+
+    Then _inspire is appended if we are an INSPIRE site.
+    """
+    if custom_kbs_files:
+        serialized_args = ('%s=%s' % (k,v) for k,v in custom_kbs_files.items())
+        serialized_args = ';'.join(serialized_args)
+    else:
+        serialized_args = "default"
+    cache_key = md5(serialized_args).digest()
+    if inspire:
+        cache_key += '_inspire'
+    return cache_key
+
+
+def get_kbs(kbs_files=None, inspire=CFG_INSPIRE_SITE, cache={}):
+    """Create kbs caching instance
+    
+    This function makes sure only one cache instance for one given set of
+    arguments is created.
+    """
+    cache_key = make_cache_key(kbs_files, inspire)
+    if cache_key not in cache:
+        cache[cache_key] = RefExtractKBsDataCacher(kbs_files, inspire)
+    return cache[cache_key].cache
 
 
 def order_reportnum_patterns_bylen(numeration_patterns):
@@ -190,7 +219,7 @@ def institute_num_pattern_to_regex(pattern):
     return pattern
 
 
-def build_reportnum_knowledge_base(fpath):
+def build_reportnum_kb(fpath):
     """Given the path to a knowledge base file containing the details
        of institutes and the patterns that their preprint report
        numbering schemes take, create a dictionary of regexp search
@@ -432,7 +461,7 @@ def _cmp_bystrlen_reverse(a, b):
         return 0
 
 
-def build_special_journals_knowledge_base(fpath):
+def build_special_journals_kb(fpath):
     """Load special journals database from file
     
     Special journals are journals that have a volume which is not unique
@@ -457,7 +486,7 @@ def build_special_journals_knowledge_base(fpath):
 
     return journals
 
-def build_books_knowledge_base(fpath):
+def build_books_kb(fpath):
     if isinstance(fpath, basestring):
         fpath_needs_closing = True
         try:
@@ -488,7 +517,7 @@ def build_books_knowledge_base(fpath):
     return books
 
 
-def build_publishers_knowledge_base(fpath):
+def build_publishers_kb(fpath):
     if isinstance(fpath, basestring):
         fpath_needs_closing = True
         try:
@@ -519,7 +548,7 @@ def build_publishers_knowledge_base(fpath):
     return publishers
 
 
-def build_authors_knowledge_base(fpath):
+def build_authors_kb(fpath):
     replacements = []
 
     if isinstance(fpath, basestring):
@@ -557,10 +586,10 @@ def build_authors_knowledge_base(fpath):
 
     return replacements
 
-def build_journals_re_knowledge_base(fpath):
+def build_journals_re_kb(fpath):
     """Load journals regexps knowledge base
 
-    @see build_journals_knowledge_base
+    @see build_journals_kb
     """
     def make_tuple(match):
         regexp = re.compile(match.group('seek'), re.UNICODE)
@@ -595,7 +624,7 @@ def build_journals_re_knowledge_base(fpath):
     return kb
 
 
-def build_journals_knowledge_base(fpath):
+def build_journals_kb(fpath):
     """Given the path to a knowledge base file, read in the contents
        of that file into a dictionary of search->replace word phrases.
        The search phrases are compiled into a regex pattern object.

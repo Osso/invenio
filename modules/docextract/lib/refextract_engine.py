@@ -58,7 +58,7 @@ from invenio.refextract_xml import create_xml_record, \
 from invenio.docextract_pdf import convert_PDF_to_plaintext
 from invenio.docextract_utils import write_message
 from invenio.refextract_cli import halt
-from invenio.refextract_kbs import load_kbs
+from invenio.refextract_kbs import get_kbs
 from invenio.refextract_re import get_reference_line_numeration_marker_patterns, \
                                   regex_match_list, \
                                   re_tagged_citation, \
@@ -1148,24 +1148,18 @@ def build_xml_references(citations, inspire=CFG_INSPIRE_SITE):
     return xml_references
 
 
-def parse_references(reference_lines, recid=1, inspire=CFG_INSPIRE_SITE,
-        kb_journals=None, kb_reports=None, kb_authors=None,
-        kb_books=None, kb_conferences=None, kb_journals_re=None):
+def parse_references(reference_lines, recid=1,
+                                    kbs_files=None, inspire=CFG_INSPIRE_SITE):
     """Parse a list of references
 
     Given a list of raw reference lines (list of strings),
     output the MARC-XML content extracted version
     """
-    kbs = load_kbs(kb_journals=kb_journals,
-                   kb_reports=kb_reports,
-                   kb_authors=kb_authors,
-                   kb_books=kb_books,
-                   kb_conferences=kb_conferences,
-                   kb_journals_re=kb_journals_re,
-                   inspire=inspire)
+    # RefExtract knowledge bases
+    kbs = get_kbs(kbs_files=kbs_files, inspire=inspire)
     # Identify journal titles, report numbers, URLs, DOIs, and authors...
-    (processed_references, counts, bad_titles_count) = \
-     parse_references_elements(reference_lines, kbs)
+    (processed_references, counts, dummy_bad_titles_count) = \
+                                parse_references_elements(reference_lines, kbs)
     # Generate marc xml using the elements list
     xml_out = build_xml_references(processed_references, inspire)
     # Generate the xml string to be outputted

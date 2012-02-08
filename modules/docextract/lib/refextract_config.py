@@ -29,24 +29,21 @@ from invenio.config import CFG_VERSION, CFG_ETCDIR
 CFG_REFEXTRACT_VERSION = "Invenio/%s refextract/%s" % (CFG_VERSION, '1.2')
 # Module config directory
 CFG_CONF_DIR = '%s/docextract' % CFG_ETCDIR
-# periodicals knowledge base:
-CFG_REFEXTRACT_KB_JOURNAL_TITLES = "%s/journal-titles.kb" % CFG_CONF_DIR
-CFG_REFEXTRACT_KB_JOURNAL_TITLES_RE = "%s/journal-titles-re.kb" % CFG_CONF_DIR
-CFG_REFEXTRACT_KB_JOURNAL_TITLES_INSPIRE = "%s/journal-titles-inspire.kb" % CFG_CONF_DIR
-# report numbers knowledge base:
-CFG_REFEXTRACT_KB_REPORT_NUMBERS = "%s/report-numbers.kb" % CFG_CONF_DIR
-# authors which should be recognised as such
-CFG_REFEXTRACT_KB_AUTHORS = "%s/authors.kb" % CFG_CONF_DIR
-# collaborations which should be recognised as such
-CFG_REFEXTRACT_KB_COLLABORATIONS = "%s/collaborations.kb" % CFG_CONF_DIR
-# books which should be recognised as such
-CFG_REFEXTRACT_KB_BOOKS = "%s/books.kb" % CFG_CONF_DIR
-# conferences which should be recognised as such
-CFG_REFEXTRACT_KB_CONFERENCES = "%s/conferences.kb" % CFG_CONF_DIR
-# publishers which should be recognised as such
-CFG_REFEXTRACT_KB_PUBLISHERS = "%s/publishers.kb" % CFG_CONF_DIR
-# Journals which should have the year prepended to the volume
-CFG_REFEXTRACT_KB_SPECIAL_JOURNALS = "%s/special-journals.kb" % CFG_CONF_DIR
+
+CFG_REFEXTRACT_KBS = {
+   'journals'        : "%s/journal-titles.kb" % CFG_CONF_DIR,
+   'journals-re'     : "%s/journal-titles-re.kb" % CFG_CONF_DIR,
+   'report-numbers'  : "%s/report-numbers.kb" % CFG_CONF_DIR,
+   'authors'         : "%s/authors.kb" % CFG_CONF_DIR,
+   'collaborations'  : "%s/collaborations.kb" % CFG_CONF_DIR,
+   'books'           : "%s/books.kb" % CFG_CONF_DIR,
+   'conferences'     : "%s/conferences.kb" % CFG_CONF_DIR,
+   'publishers'      : "%s/publishers.kb" % CFG_CONF_DIR,
+   'special-journals': "%s/special-journals.kb" % CFG_CONF_DIR,
+}
+
+CFG_REFEXTRACT_JOURNALS_INSPIRE = "%s/journal-titles-inspire.kb" % CFG_CONF_DIR
+
 # prefix for temp files
 CFG_REFEXTRACT_FILENAME = "refextract"
 

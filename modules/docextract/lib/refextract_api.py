@@ -33,7 +33,7 @@ from invenio.refextract_engine import parse_references, \
                                       get_plaintext_document_body, \
                                       parse_reference_line, \
                                       extract_references_from_fulltext, \
-                                      load_kbs
+                                      get_kbs
 from invenio.config import CFG_INSPIRE_SITE
 from invenio.bibindex_engine import CFG_JOURNAL_PUBINFO_STANDARD_FORM
 from invenio.bibdocfile import BibRecDocs, InvenioWebSubmitFileError
@@ -220,7 +220,7 @@ def record_has_fulltext(recid):
 
 
 def search_from_reference(text):
-    kbs = load_kbs()
+    kbs = get_kbs()
     elements, dummy_m, dummy_c, dummy_co = parse_reference_line(text, kbs)
     for el in elements:
         if el['type'] == 'TITLE':

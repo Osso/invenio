@@ -145,7 +145,7 @@ def tag_reference_line(line, kbs, record_titles_count):
 
     # Identify and record coordinates of institute preprint report numbers:
     found_pprint_repnum_matchlens, found_pprint_repnum_replstr, working_line2 =\
-       identify_report_numbers(working_line2, kbs['reports'])
+       identify_report_numbers(working_line2, kbs['report-numbers'])
 
     # Identify and record coordinates of non-standard journal titles:
     found_title_len, found_title_matchtext, working_line2, line_titles_count = \

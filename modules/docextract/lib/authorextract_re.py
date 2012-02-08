@@ -19,7 +19,7 @@
 
 import re
 
-from invenio.refextract_config import CFG_REFEXTRACT_KB_COLLABORATIONS
+from invenio.refextract_config import CFG_REFEXTRACT_KBS
 
 
 def get_author_affiliation_numeration_str(punct=None):
@@ -391,7 +391,7 @@ def make_extra_author_regex_str():
 
     ## Build the 'or'd regular expression of the author lines in the author knowledge base
     auths = []
-    fpath = CFG_REFEXTRACT_KB_COLLABORATIONS
+    fpath = CFG_REFEXTRACT_KBS['collaborations']
 
     try:
         fh = open(fpath, "r")
