@@ -995,12 +995,13 @@ def begin_extraction(config, files):
 
     # Read the authors knowledge base, creating the search
     # and replace terms
-    kbs = load_kbs(kb_authors=config.kb_authors,
-                   kb_journals=config.kb_journals,
-                   kb_reports=config.kb_reports,
-                   kb_books=config.kb_books,
-                   kb_conferences=config.kb_conferences,
-                   inspire=config.inspire)
+    kbs = get_kbs(inspire=config.inspire, kb_files={
+        'authors'       : config.kb_authors,
+        'journals'      : config.kb_journals,
+        'report-numbers': config.kb_report-numbers,
+        'books'         : config.kb_books,
+        'conferences'   : config.kb_conferences,
+    })
 
     # A dictionary to contain the counts of all 'bad titles' found during
     # this reference extraction job:

@@ -17,7 +17,11 @@
 ## along with Invenio; if not, write to the Free Software Foundation, Inc.,
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-"""Initialise Refextract task"""
+"""
+Refextract task
+
+Sends references to parse through bibsched
+"""
 
 import sys, traceback
 from datetime import datetime
@@ -36,103 +40,13 @@ from invenio.refextract_cli import HELP_MESSAGE, DESCRIPTION
 from invenio.refextract_api import update_references, \
                                    FullTextNotAvailable, \
                                    RecordHasReferences
-
-
-class TaskNotFound(Exception):
-    pass
-
+from invenio.docextract_task import task_run_core_wrapper
 
 def split_ids(value):
     return [c.strip() for c in value.split(',') if c.strip()]
 
 
-def fetch_last_updated(name='refextract'):
-    select_sql = "SELECT last_id, last_updated FROM xtrJOB" \
-        " WHERE name = %s LIMIT 1"
-    row = run_sql(select_sql, (name,))
-    if not row:
-        sql = "INSERT INTO xtrJOB (name, last_updated, last_id) " \
-            "VALUES (%s, NOW(), 0)"
-        run_sql(sql, (name,))
-        row = run_sql(select_sql, (name,))
-
-    # Fallback in case we receive None instead of a valid date
-    last_id   = row[0][0] or 0
-    last_date = row[0][1] or datetime(year=1, month=1, day=1)
-
-    return last_id, last_date
-
-
-def store_last_updated(recid, creation_date, name='refextract'):
-    sql = "UPDATE xtrJOB SET last_id = %s WHERE name=%s AND last_id < %s"
-    run_sql(sql, (recid, name, recid))
-    sql = "UPDATE xtrJOB SET last_updated = %s " \
-                "WHERE name=%s AND last_updated < %s"
-    iso_date = creation_date.isoformat()
-    run_sql(sql, (iso_date, name, iso_date))
-
-def task_run_core_wrapper():
-    try:
-        return task_run_core()
-    except Exception:
-        # Remove extra '\n'
-        write_message(traceback.format_exc()[:-1])
-        raise
-
-def task_run_core():
-    """calls extract_references in refextract"""
-    write_message("Starting references extraction.")
-    task_update_progress("Fetching record ids")
-
-    last_id, last_date = fetch_last_updated()
-
-    if task_get_option('new'):
-        # Fetch all records inserted since last run
-        sql = "SELECT `id`, `creation_date` FROM `bibrec` " \
-            "WHERE `modification_date` >= %s " \
-            "AND `id` > %s " \
-            "ORDER BY `creation_date`"
-        records = run_sql(sql, (last_date.isoformat(), last_id))
-    else:
-        recids = task_get_option('recids')
-        for collection in task_get_option('collections'):
-            recids.add(get_collection_reclist(collection))
-        format_strings = ','.join(['%s'] * len(recids))
-        records = run_sql("SELECT `id`, `creation_date` FROM `bibrec` " \
-            "WHERE `id` IN (%s) ORDER BY `creation_date`" % format_strings,
-                list(recids))
-
-    if task_get_option('inspire'):
-        inspire = True
-    else:
-        inspire = CFG_INSPIRE_SITE
-
-    count = 1
-    total = len(records)
-    for recid, creation_date in records:
-        task_sleep_now_if_required(can_stop_too=True)
-        msg = "Extracting references for %s (%d/%d)" % (recid, count, total)
-        task_update_progress(msg)
-        write_message(msg)
-        try:
-            update_references(recid,
-                              inspire=inspire,
-                              overwrite=not task_get_option('no-overwrite'))
-            write_message("Extracted references for %s" % recid)
-        except FullTextNotAvailable:
-            write_message("No full text available for %s" % recid)
-        except RecordHasReferences:
-            write_message("Record %s has references, skipping" % recid)
-        if task_get_option('new'):
-            store_last_updated(recid, creation_date)
-        count += 1
-
-    write_message("Reference extraction complete.")
-
-    return True
-
-
-def _task_submit_check_options():
+def check_options():
     """ Reimplement this method for having the possibility to check options
     before submitting the task, in order for example to provide default
     values. It must return False if there are errors in the options.
@@ -146,7 +60,7 @@ def _task_submit_check_options():
     return True
 
 
-def _task_submit_elaborate_specific_parameter(key, value, opts, args):
+def parse_option(key, value, opts, args):
     """ Must be defined for bibtask to create a task """
     if args and len(args) > 0:
         # There should be no standalone arguments for any refextract job
@@ -188,6 +102,23 @@ def _task_submit_elaborate_specific_parameter(key, value, opts, args):
     return True
 
 
+def task_run_core(recid):
+    if task_get_option('inspire'):
+        inspire = True
+    else:
+        inspire = CFG_INSPIRE_SITE
+
+    try:
+        update_references(recid,
+                          inspire=inspire,
+                          overwrite=not task_get_option('no-overwrite'))
+        write_message("Extracted references for %s" % recid)
+    except FullTextNotAvailable:
+        write_message("No full text available for %s" % recid)
+    except RecordHasReferences:
+        write_message("Record %s has references, skipping" % recid)
+
+
 def main():
     """Constructs the refextract bibtask."""
     # Build and submit the task
@@ -198,6 +129,7 @@ def main():
         help_specific_usage =  HELP_MESSAGE + """
   Scheduled (daemon) Refextract options:
   -a, --new          Run on all newly inserted records.
+  -m, --modified     Run on all newly modified records.
   -r, --recids       Record id for extraction.
   -c, --collections  Entire Collection for extraction.
 
@@ -220,14 +152,14 @@ def main():
                              "inspire",
                              "kb-journals=",
                              "kb-journals-re=",
-                             "kb-reports=",
+                             "kb-report-numbers=",
                              "kb-authors=",
                              "kb-books=",
                              "recids=",
                              "collections=",
                              "new",
+                             "modified",
                              "no-overwrite"]),
-        task_submit_elaborate_specific_parameter_fnc= \
-        _task_submit_elaborate_specific_parameter,
-        task_submit_check_options_fnc=_task_submit_check_options,
-        task_run_fnc=task_run_core_wrapper)
+        task_submit_elaborate_specific_parameter_fnc=parse_option,
+        task_submit_check_options_fnc=check_options,
+        task_run_fnc=task_run_core_wrapper('refextract', task_run_core))

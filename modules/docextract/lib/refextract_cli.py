@@ -45,7 +45,7 @@ HELP_MESSAGE = """
                        knowledge-base file.
   --kb-journals-re     Manually specify the location of a journal title regexps
                        knowledge-base file.
-  --kb-reports         Manually specify the location of a report number
+  --kb-report-numbers  Manually specify the location of a report number
                        knowledge-base file.
   --kb-authors         Manually specify the location of an author
                        knowledge-base file.
@@ -92,7 +92,7 @@ def get_cli_options():
     parser.add_option('-i', '--inspire', action='store_true')
     # The location of the report number kb requested to override
     # a 'configuration file'-specified kb
-    parser.add_option('--kb-reports', dest='kb_reports')
+    parser.add_option('--kb-report-numbers', dest='kb_report_numbers')
     # The location of the journal title kb requested to override
     # a 'configuration file'-specified kb, holding
     # 'seek---replace' terms, used when matching titles in references

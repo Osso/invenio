@@ -73,7 +73,6 @@ class RefExtractKBsDataCacher(DataCacher):
                 kbs_files['journals'] = CFG_REFEXTRACT_JOURNALS_INSPIRE
             if custom_kbs_files:
                 kbs_files.update(custom_kbs_files)
-            print 'kbs_files', kbs_files
             return load_kbs(kbs_files)
 
         def timestamp_verifier():
