@@ -36,6 +36,7 @@ pylib_DATA = websubmit_config.py websubmit_engine.py file.py \
              websubmit_managedocfiles.py \
              bibdocfile.py \
              bibdocfilecli.py \
+             bibdocfile_templates.py \
              bibdocfile_regression_tests.py \
              hocrlib.py \
              websubmit_file_metadata.py \
@@ -46,6 +47,10 @@ metadataplugin_DATA = __init__.py \
                       wsm_extractor_plugin.py \
                       wsm_pyexiv2_plugin.py \
                       wsm_pdftk_plugin.py
+
+bibdocfileplugindir = $(libdir)/python/invenio/bibdocfile_plugins
+bibdocfileplugin_DATA = __init__.py \
+		        bom_textdoc.py
 
 noinst_DATA = fulltext_files_migration_kit.py icon_migration_kit.py
 
