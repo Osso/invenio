@@ -76,6 +76,11 @@ def extract_from_pdf_string(pdf, inspire=CFG_INSPIRE_SITE):
 
 
 def make_arxiv_url(arxiv_id):
+    """Make a url we can use to download a pdf from arxiv
+    
+    Arguments:
+    arxiv_id -- the arxiv id of the record to link to
+    """
     return "http://arxiv.org/pdf/%s.pdf" % arxiv_id
 
 

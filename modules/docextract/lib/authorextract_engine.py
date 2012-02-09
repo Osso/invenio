@@ -17,6 +17,13 @@
 ## along with Invenio; if not, write to the Free Software Foundation, Inc.,
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
+"""
+Authorextract Engine
+
+This file contains functions to extract authors and affiliations
+from PDFs files.
+"""
+
 import re
 
 from invenio.authorextract_re import get_single_and_extra_author_pattern, \

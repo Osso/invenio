@@ -17,6 +17,14 @@
 ## along with Invenio; if not, write to the Free Software Foundation, Inc.,
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
+"""Command line handling
+
+Here we define:
+* help messages
+* arguments parsing
+* proxy to execute the core of the author extract
+"""
+
 import argparse
 
 description = ""

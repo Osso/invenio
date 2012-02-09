@@ -17,15 +17,14 @@
 ## along with Invenio; if not, write to the Free Software Foundation, Inc.,
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-"""RefExtract configuration."""
+"""RefExtract configuration"""
 
-__revision__ = "$Id$"
 
 from invenio.config import CFG_VERSION, CFG_ETCDIR
 
 # pylint: disable=C0301
 
-# version number:
+# Version number:
 CFG_REFEXTRACT_VERSION = "Invenio/%s refextract/%s" % (CFG_VERSION, '1.2')
 # Module config directory
 CFG_CONF_DIR = '%s/docextract' % CFG_ETCDIR
@@ -44,28 +43,28 @@ CFG_REFEXTRACT_KBS = {
 
 CFG_REFEXTRACT_JOURNALS_INSPIRE = "%s/journal-titles-inspire.kb" % CFG_CONF_DIR
 
-# prefix for temp files
+# Prefix for temp files
 CFG_REFEXTRACT_FILENAME = "refextract"
 
 ## MARC Fields and subfields used by refextract:
 
-## reference fields:
-CFG_REFEXTRACT_CTRL_FIELD_RECID          = "001" ## control-field recid
-CFG_REFEXTRACT_TAG_ID_REFERENCE          = "999" ## ref field tag
-CFG_REFEXTRACT_IND1_REFERENCE            = "C"   ## ref field ind1
-CFG_REFEXTRACT_IND2_REFERENCE            = "5"   ## ref field ind2
-CFG_REFEXTRACT_SUBFIELD_MARKER           = "o"   ## ref marker subfield
-CFG_REFEXTRACT_SUBFIELD_MISC             = "m"   ## ref misc subfield
-CFG_REFEXTRACT_SUBFIELD_DOI              = "a"   ## ref DOI subfield (NEW)
-CFG_REFEXTRACT_SUBFIELD_REPORT_NUM       = "r"   ## ref reportnum subfield
-CFG_REFEXTRACT_SUBFIELD_TITLE            = "s"   ## ref journal subfield
-CFG_REFEXTRACT_SUBFIELD_URL              = "u"   ## ref url subfield
-CFG_REFEXTRACT_SUBFIELD_URL_DESCR        = "z"   ## ref url-text subfield
-CFG_REFEXTRACT_SUBFIELD_AUTH             = "h"   ## ref author subfield
-CFG_REFEXTRACT_SUBFIELD_QUOTED           = "t"   ## ref title subfield
-CFG_REFEXTRACT_SUBFIELD_ISBN             = "i"   ## ref isbn subfield
-CFG_REFEXTRACT_SUBFIELD_PUBLISHER        = "p"   ## ref publisher subfield
-CFG_REFEXTRACT_SUBFIELD_BOOK             = "xbook"   ## ref book subfield
+# Reference fields:
+CFG_REFEXTRACT_CTRL_FIELD_RECID          = "001"   # control-field recid
+CFG_REFEXTRACT_TAG_ID_REFERENCE          = "999"   # ref field tag
+CFG_REFEXTRACT_IND1_REFERENCE            = "C"     # ref field ind1
+CFG_REFEXTRACT_IND2_REFERENCE            = "5"     # ref field ind2
+CFG_REFEXTRACT_SUBFIELD_MARKER           = "o"     # ref marker subfield
+CFG_REFEXTRACT_SUBFIELD_MISC             = "m"     # ref misc subfield
+CFG_REFEXTRACT_SUBFIELD_DOI              = "a"     # ref DOI subfield (NEW)
+CFG_REFEXTRACT_SUBFIELD_REPORT_NUM       = "r"     # ref reportnum subfield
+CFG_REFEXTRACT_SUBFIELD_TITLE            = "s"     # ref journal subfield
+CFG_REFEXTRACT_SUBFIELD_URL              = "u"     # ref url subfield
+CFG_REFEXTRACT_SUBFIELD_URL_DESCR        = "z"     # ref url-text subfield
+CFG_REFEXTRACT_SUBFIELD_AUTH             = "h"     # ref author subfield
+CFG_REFEXTRACT_SUBFIELD_QUOTED           = "t"     # ref title subfield
+CFG_REFEXTRACT_SUBFIELD_ISBN             = "i"     # ref isbn subfield
+CFG_REFEXTRACT_SUBFIELD_PUBLISHER        = "p"     # ref publisher subfield
+CFG_REFEXTRACT_SUBFIELD_BOOK             = "xbook" # ref book subfield
 
 ## refextract statistics fields:
 CFG_REFEXTRACT_TAG_ID_EXTRACTION_STATS   = "999" ## ref-stats tag

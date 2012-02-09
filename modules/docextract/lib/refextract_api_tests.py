@@ -18,9 +18,9 @@
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 """
-The Refextract test suite for tasks
+The Refextract task tests suite for tasks
 
-It required a fully functional invenio installation.
+It requires a fully functional invenio installation.
 """
 
 import unittest
