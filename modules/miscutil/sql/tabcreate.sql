@@ -2893,13 +2893,12 @@ CREATE TABLE IF NOT EXISTS tag (
 CREATE TABLE IF NOT EXISTS bibdoc (
   id mediumint(9) unsigned NOT NULL auto_increment,
   status text NOT NULL default '',
-  docname varchar(250) COLLATE utf8_bin NOT NULL default 'file',
   creation_date datetime NOT NULL default '0000-00-00',
   modification_date datetime NOT NULL default '0000-00-00',
   text_extraction_date datetime NOT NULL default '0000-00-00',
   more_info mediumblob NULL default NULL,
+  doctype varchar(255),
   PRIMARY KEY  (id),
-  KEY docname (docname),
   KEY creation_date (creation_date),
   KEY modification_date (modification_date)
 ) ENGINE=MyISAM;
@@ -2907,17 +2906,39 @@ CREATE TABLE IF NOT EXISTS bibdoc (
 CREATE TABLE IF NOT EXISTS bibrec_bibdoc (
   id_bibrec mediumint(9) unsigned NOT NULL default '0',
   id_bibdoc mediumint(9) unsigned NOT NULL default '0',
+  docname varchar(250) COLLATE utf8_bin NOT NULL default 'file',
   type varchar(255),
+  KEY docname (docname),
   KEY  (id_bibrec),
   KEY  (id_bibdoc)
 ) ENGINE=MyISAM;
 
 CREATE TABLE IF NOT EXISTS bibdoc_bibdoc (
-  id_bibdoc1 mediumint(9) unsigned NOT NULL,
-  id_bibdoc2 mediumint(9) unsigned NOT NULL,
-  type varchar(255),
+  id mediumint(9) unsigned NOT NULL auto_increment,
+  id_bibdoc1 mediumint(9) unsigned,
+  ver_bibdoc1 mediumint(9) unsigned, -- NULL means all versions
+  fmt_bibdoc1 varchar(255),
+  id_bibdoc2 mediumint(9) unsigned,
+  ver_bibdoc2 mediumint(9) unsigned, -- NULL means all versions
+  fmt_bibdoc2 varchar(255),
+
+  rel_type varchar(255),
   KEY  (id_bibdoc1),
-  KEY  (id_bibdoc2)
+  KEY  (id_bibdoc2),
+  KEY  (id)
+) ENGINE=MyISAM;
+
+-- Storage of moreInfo fields
+CREATE TABLE IF NOT EXISTS bibdoc_moreinfo (
+  id_bibdoc mediumint(9) unsigned DEFAULT NULL,
+  ver_bibdoc mediumint(9) unsigned DEFAULT NULL, -- NULL means all versions
+  fmt_bibdoc VARCHAR(25) DEFAULT NULL,
+  id_rel mediumint(9) unsigned DEFAULT NULL,
+
+  namespace VARCHAR(25) DEFAULT NULL, -- namespace in the moreinfo dictionary
+  data_key VARCHAR(25), -- key in the moreinfo dictionary
+  data_value MEDIUMBLOB,
+  KEY (id_bibdoc, ver_bibdoc, fmt_bibdoc, id_rel, namespace, data_key)
 ) ENGINE=MyISAM;
 
 -- tables for publication requests:

@@ -73,6 +73,15 @@ from invenio.jsonutils import json, CFG_JSON_AVAILABLE
 import invenio.template
 webstyle_templates = invenio.template.load('webstyle')
 websearch_templates = invenio.template.load('websearch')
+bibdocfile_templates = invenio.template.load('bibdocfile')
+
+#TODO: Piotr: In the case of errors after merge, uncomment these lines
+#try:
+#    from invenio.fckeditor_invenio_connector import FCKeditorConnectorInvenio
+#    fckeditor_available = True
+#except ImportError, e:
+#    fckeditor_available = False
+
 
 from invenio.websubmit_managedocfiles import \
      create_file_upload_interface, \
@@ -195,11 +204,13 @@ class WebInterfaceFilesPages(WebInterfaceDirectory):
                     version = ''
 
             display_hidden = isUserSuperAdmin(user_info)
+            from invenio import bibdocfile
+            bibrecdocs = bibdocfile.BibRecDocs(self.recid)
 
             if version != 'all':
                 # search this filename in the complete list of files
                 for doc in bibarchive.list_bibdocs():
-                    if docname == doc.get_docname():
+                    if docname == bibrecdocs.get_docname(doc.id):
                         try:
                             docfile = doc.get_file(format, version)
                             (auth_code, auth_message) = docfile.is_restricted(user_info)
@@ -220,7 +231,7 @@ class WebInterfaceFilesPages(WebInterfaceDirectory):
                             if not docfile.hidden_p():
                                 if not readonly:
                                     ip = str(req.remote_ip)
-                                    res = doc.register_download(ip, version, format, uid)
+                                    res = doc.register_download(ip, version, format, uid, self.recid)
                                 try:
                                     return docfile.stream(req, download=is_download)
                                 except InvenioWebSubmitFileError, msg:
@@ -237,7 +248,7 @@ class WebInterfaceFilesPages(WebInterfaceDirectory):
             if docname and format and not warn:
                 req.status = apache.HTTP_NOT_FOUND
                 warn += print_warning(_("Requested file does not seem to exist."))
-            filelist = bibarchive.display("", version, ln=ln, verbose=verbose, display_hidden=display_hidden)
+            filelist = bibdocfile_templates.tmpl_display_bibrecdocs(bibarchive, "", version, ln=ln, verbose=verbose, display_hidden=display_hidden)
 
             t = warn + websubmit_templates.tmpl_filelist(
                 ln=ln,
@@ -316,8 +327,9 @@ def websubmit_legacy_getfile(req, form):
             ## Let's obtain the recid from the docid
             if docid:
                 try:
-                    bibdoc = BibDoc(docid=docid)
-                    recid = bibdoc.get_recid()
+                    bibdoc = BibDoc.create_instance(docid=docid)
+                    # in this case we take the first attached ... with the possibility of an exception
+                    recid = bibdoc.bibrec_links[0]["recid"]
                 except InvenioWebSubmitFileError, e:
                     return warningMsg(_("An error has happened in trying to retrieve the requested file."), req, CFG_SITE_NAME, ln)
             else:
@@ -326,8 +338,9 @@ def websubmit_legacy_getfile(req, form):
             if not name and docid:
                 ## Let's obtain the name from the docid
                 try:
-                    bibdoc = BibDoc(docid)
-                    name = bibdoc.get_docname()
+                    bibdoc = BibDoc.create_instance(docid)
+                    brd = BibRecDocs(recid)
+                    name = brd.get_docname(bibdoc.id)
                 except InvenioWebSubmitFileError, e:
                     return warningMsg(_("An error has happened in trying to retrieving the requested file."), req, CFG_SITE_NAME, ln)
 
