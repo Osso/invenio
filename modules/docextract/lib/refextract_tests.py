@@ -199,16 +199,19 @@ class SearchTest(unittest.TestCase):
         setup_loggers(verbosity=1)
 
     def test_not_recognized(self):
-        search_string = search_from_reference('[1] J. Mars, oh hello')
-        self.assertEqual(search_string, None)
+        field, pattern = search_from_reference('[1] J. Mars, oh hello')
+        self.assertEqual(field, '')
+        self.assertEqual(pattern, '')
 
     def test_report(self):
-        search_string = search_from_reference('[1] J. Mars, oh hello, [hep-ph/0104088]')
-        self.assertEqual(search_string, 'report:"hep-ph/0104088"')
+        field, pattern = search_from_reference('[1] J. Mars, oh hello, [hep-ph/0104088]')
+        self.assertEqual(field, 'report')
+        self.assertEqual(pattern, 'hep-ph/0104088')
 
     def test_journal(self):
-        search_string = search_from_reference('[1] J. Mars, oh hello, Nucl.Phys. B76 (1974) 477-482')
-        self.assertEqual(search_string, 'journal:"Nucl.Phys.,B76,477"')
+        field, pattern = search_from_reference('[1] J. Mars, oh hello, Nucl.Phys. B76 (1974) 477-482')
+        self.assertEqual(field, 'journal')
+        self.assertEqual(pattern, 'Nucl.Phys.,B76,477')
 
 
 if __name__ == '__main__':

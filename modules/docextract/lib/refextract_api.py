@@ -220,16 +220,24 @@ def record_has_fulltext(recid):
 
 
 def search_from_reference(text):
+    field = ''
+    pattern = ''
+
     kbs = get_kbs()
     elements, dummy_m, dummy_c, dummy_co = parse_reference_line(text, kbs)
+
     for el in elements:
-        if el['type'] == 'TITLE':
-            template = 'journal:"%s"' % CFG_JOURNAL_PUBINFO_STANDARD_FORM
-            return template \
+        if el['type'] == 'JOURNAL':
+            field = 'journal'
+            pattern = CFG_JOURNAL_PUBINFO_STANDARD_FORM \
                 .replace('773__p', el['title']) \
                 .replace('773__v', el['volume']) \
                 .replace('773__c', el['page']) \
                 .replace('773__y', el['year'])
+            break
         elif el['type'] == 'REPORTNUMBER':
-            return 'report:"%s"' % el['report_num']
-    return None
+            field = 'report'
+            pattern = el['report_num']
+            break
+
+    return field, pattern.encode('utf-8')
