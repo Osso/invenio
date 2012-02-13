@@ -59,7 +59,7 @@ def filter_processed_lines(out):
     if len(lines) != len(new_out):
         write_message("-----Filter results: unfiltered section line length" \
               "is %d and filtered length is %d\n" \
-              %  (len(lines), len(new_out)), verbose=2)
+              % (len(lines), len(new_out)), verbose=2)
 
     return new_out
 

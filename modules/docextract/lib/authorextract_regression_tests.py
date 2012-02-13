@@ -56,65 +56,53 @@ class AuthorextractExtractSectionTest(unittest.TestCase):
 class AuthorextractAuthorParsingTest(unittest.TestCase):
     def setUp(self):
         self.authlines = [
-            """B. Aubert,1"""
-            ,"""M. Bona,1"""
-            ,"""Y. Karyotakis,1"""
-            ,"""J. P. Lees,1"""
-            ,"""V. Poireau,1"""
-            ,"""E. Prencipe,1"""
-            ,"""X. Prudent,1"""
-            ,"""V. Tisserand,1"""
-            ,"""J. Garra Tico,2"""
-            ,"""E. Grauges,2"""
-            ,"""L. Lopezab
-            """
-            ,"""A. Palanoab
-            """
-            ,"""M. Pappagalloab
-            """
-            ,"""N. L. Blount,56"""
-            ,"""J. Brau,56"""
-            ,"""R. Frey,56"""
-            ,"""O. Igonkina,56"""
-            ,"""J. A. Kolb,56"""
-            ,"""M. Lu,56"""
-            ,"""R. Rahmat,56"""
-            ,"""N. B. Sinev,56"""
-            ,"""D. Strom,56"""
-            ,"""J. Strube,56"""
-            ,"""E. Torrence,56"""
-            ,"""G. Castelliab
-            """
-            ,"""N. Gagliardiab
-            """
-            ,"""M. Margoniab
-            """
-            ,"""M. Morandina
-            """
-            ,"""M. Posoccoa
-            """
-            ,"""M. Rotondoa
-            """
-            ,"""F. Simonettoab
-            """
-            ,"""R. Stroiliab
-            """
-            ,"""C. Vociab
-            """
-            ,"""E. Ben"""
-            ,"""H. Briand,58"""
-            ,"""G. Calderini,58"""
-            ,"""J. Chauveau,58"""
-            ,"""P. David,58"""
-            ,"""L. Del Buono,58"""
-            ,"""O. Hamon,58"""
-            ,"""J. Ocariz,58"""
-            ,"""A. Perez,58"""
-            ,"""J. Prendki,58"""
-            ,"""S. Sitt,58"""
-            ,"""L. Gladney,59"""
-            ,"""M. Biasiniab
-            """]
+            "B. Aubert,1",
+            "M. Bona,1",
+            "Y. Karyotakis,1",
+            "J. P. Lees,1",
+            "V. Poireau,1",
+            "E. Prencipe,1",
+            "X. Prudent,1",
+            "V. Tisserand,1",
+            "J. Garra Tico,2",
+            "E. Grauges,2""",
+            "L. Lopezab    \n",
+            "A. Palanoab   \n",
+            "M. Pappagalloab    \n",
+            "N. L. Blount,56    \n",
+            "J. Brau,56     \n",
+            "R. Frey,56  ",
+            "O. Igonkina,56  ",
+            "J. A. Kolb,56  ",
+            "M. Lu,56   ",
+            "R. Rahmat,56  ",
+            "N. B. Sinev,56  ",
+            "D. Strom,56   ",
+            "J. Strube,56  ",
+            "E. Torrence,56   ",
+            "G. Castelliab     \n",
+            "N. Gagliardiab   \n",
+            "M. Margoniab   \n",
+            "M. Morandina    \n",
+            "M. Posoccoa   \n",
+            "M. Rotondoa   \n",
+            "F. Simonettoab   \n",
+            "R. Stroiliab   \n",
+            "C. Vociab   \n",
+            "E. Ben",
+            "H. Briand,58",
+            "G. Calderini,58",
+            "J. Chauveau,58",
+            "P. David,58",
+            "L. Del Buono,58",
+            "O. Hamon,58",
+            "J. Ocariz,58",
+            "A. Perez,58",
+            "J. Prendki,58",
+            "S. Sitt,58",
+            "L. Gladney,59",
+            "M. Biasiniab\n",
+    ]
 
     def test_reference_parsing(self):
         """Use a hardcoded set of authors to test the parsing"""
@@ -126,9 +114,7 @@ class AuthorextractAuthorParsingTest(unittest.TestCase):
             processed_authors.append(xml_line)
 
 
-
-TEST_SUITE = make_test_suite(#AuthorextractExtractSectionTest,
-                             AuthorextractAuthorParsingTest)
+TEST_SUITE = make_test_suite(AuthorextractAuthorParsingTest)
 
 if __name__ == '__main__':
     run_test_suite(TEST_SUITE)

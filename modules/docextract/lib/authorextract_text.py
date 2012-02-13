@@ -51,7 +51,6 @@ def extract_section_from_fulltext(fulltext):
                      sect_start["title_marker_same_line"])
 
 
-
 def rebuild_author_lines(author_lines, author_pattern):
     """Given the lines that we think make up the author section reset
     everything so that each author is on one line
@@ -123,5 +122,3 @@ def rebuild_author_lines(author_lines, author_pattern):
     author_string = ' '.join([x.strip() for x in author_lines])
     author_pattern.sub(found_author, author_string)
     return authors
-
- 

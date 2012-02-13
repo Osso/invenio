@@ -215,7 +215,6 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
             m_ref_line_marker = p_ref_line_marker.match(line)
             current_string = line.strip()
 
-
         if m_ref_line_marker and (not current_ref \
                 or current_ref == int(m_ref_line_marker.group('num')) + 1):
             # Reference line marker found! : Append this reference to the
@@ -230,7 +229,7 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
             try:
                 current_ref = int(m_ref_line_marker.group('num'))
             except IndexError:
-                pass # this line doesn't have numbering
+                pass  # this line doesn't have numbering
             working_line = u''
         else:
             if current_string != u'':
@@ -420,7 +419,7 @@ def correct_rebuilt_lines(rebuilt_lines, p_refmarker):
                             # of the previous line. If it's a space, then just
                             # directly append this new section. Else, append a
                             # space then this new section.
-                            if previous_line[len(previous_line)-1] not in (u' ',u'-'):
+                            if previous_line[len(previous_line)-1] not in (u' ', u'-'):
                                 movesect = ' ' + movesect
                             previous_line += movesect
                             fixed[len(fixed) - 1] = previous_line
@@ -445,7 +444,7 @@ def correct_rebuilt_lines(rebuilt_lines, p_refmarker):
                             # If it's a space, then just directly append this
                             # new section. Else, append a space then this new
                             # section.
-                            if previous_line[len(previous_line)-1] not in (u' ',u'-'):
+                            if previous_line[len(previous_line)-1] not in (u' ', u'-'):
                                 movesect = ' ' + movesect
                             previous_line += movesect
                             fixed[len(fixed) - 1] = previous_line
@@ -462,7 +461,7 @@ def correct_rebuilt_lines(rebuilt_lines, p_refmarker):
                         # Check the last character of the previous line. If
                         # it's a space, then just directly append this new
                         # section. Else, append a space then this new section.
-                        if previous_line[len(previous_line)-1] not in (u' ',u'-'):
+                        if previous_line[len(previous_line)-1] not in (u' ', u'-'):
                             movesect = ' ' + movesect
                         previous_line += movesect
                         fixed[len(fixed) - 1] = previous_line
@@ -481,7 +480,7 @@ def correct_rebuilt_lines(rebuilt_lines, p_refmarker):
                     # Check the last character of the previous line. If it's a
                     # space, then just directly append this new section. Else,
                     # append a space then this new section.
-                    if previous_line[len(previous_line)-1] not in (u' ',u'-'):
+                    if previous_line[len(previous_line)-1] not in (u' ', u'-'):
                         movesect = ' ' + movesect
                     previous_line += movesect
                     fixed[len(fixed) - 1] = previous_line
@@ -496,21 +495,21 @@ def test_for_blank_lines_separating_reference_lines(ref_sect):
        @return: (int) 0 if blank lines do not separate reference lines; 1 if
         they do.
     """
-    num_blanks = 0            # Number of blank lines found between non-blanks
-    num_lines = 0             # Number of reference lines separated by blanks
-    blank_line_separators = 0 # Flag to indicate whether blanks lines separate
-                              # ref lines
-    multi_nonblanks_found = 0 # Flag to indicate whether multiple nonblank
-                              # lines are found together (used because
-                              # if line is dbl-spaced, it isnt a blank that
-                              # separates refs & can't be relied upon)
+    num_blanks = 0             # Number of blank lines found between non-blanks
+    num_lines = 0              # Number of reference lines separated by blanks
+    blank_line_separators = 0  # Flag to indicate whether blanks lines separate
+                               # ref lines
+    multi_nonblanks_found = 0  # Flag to indicate whether multiple nonblank
+                               # lines are found together (used because
+                               # if line is dbl-spaced, it isnt a blank that
+                               # separates refs & can't be relied upon)
     x = 0
     max_line = len(ref_sect)
     while x < max_line:
         if not ref_sect[x].isspace():
             # not an empty line:
             num_lines += 1
-            x += 1 # Move past line
+            x += 1  # Move past line
             while x < len(ref_sect) and not ref_sect[x].isspace():
                 multi_nonblanks_found = 1
                 x += 1

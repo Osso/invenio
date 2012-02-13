@@ -58,39 +58,39 @@ re_isbn = re.compile(ur"""
 re_kb_line = re.compile(ur'^\s*(?P<seek>[^\s].*)\s*---\s*(?P<repl>[^\s].*)\s*$',
                         re.UNICODE)
 
-## precompile some often-used regexp for speed reasons:
+# precompile some often-used regexp for speed reasons:
 re_regexp_character_class = re.compile(ur'\[[^\]]+\]', re.UNICODE)
 re_multiple_hyphens = re.compile(ur'-{2,}', re.UNICODE)
 
 
-## In certain papers, " bf " appears just before the volume of a
-## cited item. It is believed that this is a mistyped TeX command for
-## making the volume "bold" in the paper.
-## The line may look something like this after numeration has been recognised:
-## M. Bauer, B. Stech, M. Wirbel, Z. Phys. bf C : <cds.VOL>34</cds.VOL>
-## <cds.YR>(1987)</cds.YR> <cds.PG>103</cds.PG>
-## The " bf " stops the title from being correctly linked with its series
-## and/or numeration and thus breaks the citation.
-## The pattern below is used to identify this situation and remove the
-## " bf" component:
+# In certain papers, " bf " appears just before the volume of a
+# cited item. It is believed that this is a mistyped TeX command for
+# making the volume "bold" in the paper.
+# The line may look something like this after numeration has been recognised:
+# M. Bauer, B. Stech, M. Wirbel, Z. Phys. bf C : <cds.VOL>34</cds.VOL>
+# <cds.YR>(1987)</cds.YR> <cds.PG>103</cds.PG>
+# The " bf " stops the title from being correctly linked with its series
+# and/or numeration and thus breaks the citation.
+# The pattern below is used to identify this situation and remove the
+# " bf" component:
 re_identify_bf_before_vol = \
                 re.compile(ur' bf ((\w )?: \<cds\.VOL\>)', \
                             re.UNICODE)
 
-## Patterns used for creating institutional preprint report-number
-## recognition patterns (used by function "institute_num_pattern_to_regex"):
-## Recognise any character that isn't a->z, A->Z, 0->9, /, [, ], ' ', '"':
+# Patterns used for creating institutional preprint report-number
+# recognition patterns (used by function "institute_num_pattern_to_regex"):
+# Recognise any character that isn't a->z, A->Z, 0->9, /, [, ], ' ', '"':
 re_report_num_chars_to_escape = \
                 re.compile(ur'([^\]A-Za-z0-9\/\[ "])', re.UNICODE)
-## Replace "hello" with hello:
+# Replace "hello" with hello:
 re_extract_quoted_text = (re.compile(ur'\"([^"]+)\"', re.UNICODE), ur'\g<1>',)
-## Replace / [abcd ]/ with /( [abcd])?/ :
+# Replace / [abcd ]/ with /( [abcd])?/ :
 re_extract_char_class = (re.compile(ur' \[([^\]]+) \]', re.UNICODE), \
                           ur'( [\g<1>])?')
 
 
-## URL recognition:
-## Stand-alone URL (e.g. http://invenio-software.org/ )
+# URL recognition:
+# Stand-alone URL (e.g. http://invenio-software.org/ )
 re_raw_url = \
  re.compile(ur"""\"?
     (
@@ -101,8 +101,8 @@ re_raw_url = \
     )
     \"?""", re.UNICODE|re.I|re.VERBOSE)
 
-## HTML marked-up URL (e.g. <a href="http://invenio-software.org/">
-## CERN Document Server Software Consortium</a> )
+# HTML marked-up URL (e.g. <a href="http://invenio-software.org/">
+# CERN Document Server Software Consortium</a> )
 re_html_tagged_url = \
  re.compile(ur"""(\<a\s+href\s*=\s*([\'"])?
     (((https?|s?ftp):\/\/)?([\w\d\_\.\-])+(:\d{1,5})?
@@ -112,8 +112,8 @@ re_html_tagged_url = \
     \<\/a\>)""", re.UNICODE|re.I|re.VERBOSE)
 
 
-## Numeration recognition pattern - used to identify numeration
-## associated with a title when marking the title up into MARC XML:
+# Numeration recognition pattern - used to identify numeration
+# associated with a title when marking the title up into MARC XML:
 vol_tag = ur'<cds\.VOL\>(?P<vol>[^<]+)<\/cds\.VOL>'
 year_tag = ur'\<cds\.YR\>\((?P<yr>[^<]+)\)\<\/cds\.YR\>'
 series_tag = ur'(?P<series>(?:[A-H]|I{1,3}V?|VI{0,3}))?'
@@ -122,11 +122,11 @@ re_recognised_numeration_for_title_plus_series = re.compile(
     ur'^\s*[\.,]?\s*(?:Ser\.\s*)?' + series_tag + ur'\s*:?\s*' + vol_tag +
     u'\s*(?: ' + year_tag + u')?\s*(?: ' + page_tag + u')', re.UNICODE)
 
-## Another numeration pattern. This one is designed to match marked-up
-## numeration that is essentially an IBID, but without the word "IBID". E.g.:
-## <cds.JOURNAL>J. Phys. A</cds.JOURNAL> : <cds.VOL>31</cds.VOL>
-## <cds.YR>(1998)</cds.YR> <cds.PG>2391</cds.PG>; : <cds.VOL>32</cds.VOL>
-## <cds.YR>(1999)</cds.YR> <cds.PG>6119</cds.PG>.
+# Another numeration pattern. This one is designed to match marked-up
+# numeration that is essentially an IBID, but without the word "IBID". E.g.:
+# <cds.JOURNAL>J. Phys. A</cds.JOURNAL> : <cds.VOL>31</cds.VOL>
+# <cds.YR>(1998)</cds.YR> <cds.PG>2391</cds.PG>; : <cds.VOL>32</cds.VOL>
+# <cds.YR>(1999)</cds.YR> <cds.PG>6119</cds.PG>.
 re_numeration_no_ibid_txt = \
           re.compile(ur"""
           ^((\s*;\s*|\s+and\s+)(?P<series>(?:[A-H]|I{1,3}V?|VI{0,3}))?\s*:?\s   ## Leading ; : or " and :", and a possible series letter
@@ -144,8 +144,8 @@ re_title_followed_by_implied_series = \
 
 re_punctuation = re.compile(ur'[\.\,\;\'\(\)\-]', re.UNICODE)
 
-## The following pattern is used to recognise "citation items" that have been
-## identified in the line, when building a MARC XML representation of the line:
+# The following pattern is used to recognise "citation items" that have been
+# identified in the line, when building a MARC XML representation of the line:
 re_tagged_citation = re.compile(ur"""
           \<cds\.                ## open tag: <cds.
           ((?:JOURNAL(?P<ibid>ibid)?)  ## a JOURNAL tag
@@ -165,8 +165,8 @@ re_tagged_citation = re.compile(ur"""
           """, re.UNICODE|re.VERBOSE)
 
 
-## is there pre-recognised numeration-tagging within a
-## few characters of the start if this part of the line?
+# is there pre-recognised numeration-tagging within a
+# few characters of the start if this part of the line?
 re_tagged_numeration_near_line_start = \
                          re.compile(ur'^.{0,4}?<CDS (VOL|SER)>', re.UNICODE)
 
@@ -180,8 +180,8 @@ re_matched_ibid = re.compile(ur'(?:(?:IBID(?!EM))|(?:IBIDEM))(?:[\.,]{0,2}\s*|\s
 re_series_from_numeration = re.compile(ur'^\.?,?\s+([A-H]|(I{1,3}V?|VI{0,3}))\s+:\s+', \
                                re.UNICODE)
 
-## Obtain the series character from the standardised title text
-## Only used when no series letter is obtained from numeration matching
+# Obtain the series character from the standardised title text
+# Only used when no series letter is obtained from numeration matching
 re_series_from_title = re.compile(ur"""
     ([^\s].*)
     (?:[\s\.]+(?:(?P<open_bracket>\()\s*[Ss][Ee][Rr]\.)?
@@ -199,19 +199,19 @@ re_wash_volume_tag = (
 # Roman Numbers
 re_roman_numbers = ur"[XxVvIi]+"
 
-## Sep
+# Sep
 re_sep = ur"\s*[,\s:-]\s*"
 
-## Title tag
+# Title tag
 re_title_tag = ur"(?P<title_tag><cds\.JOURNAL>[^<]*<\/cds\.JOURNAL>)"
 
-## Number (within a volume)
+# Number (within a volume)
 re_volume_sub_number = ur'[Nn][oO\xb0]\.?\s*\d{1,6}'
 re_volume_sub_number_opt = u'(?:' + re_sep + u'(?P<vol_sub>' + \
     re_volume_sub_number + u'))?'
 
-## Volume
-re_volume_prefix = ur"(?:[Vv]o?l?\.?|[Nn]o\.?)" ## Optional Vol./No.
+# Volume
+re_volume_prefix = ur"(?:[Vv]o?l?\.?|[Nn]o\.?)"  # Optional Vol./No.
 re_volume_suffix = ur"(?:\s*\(\d{1,2}(?:-\d)?\))?"
 re_volume_num = ur"\d+|" + "(?P<roman>(?<!\w)" + re_roman_numbers + "(?!\w))"
 re_volume_id = ur"(?P<vol>(?:(?:[A-Za-z]\s?)?(?P<vol_num>%s))|(?:(?:[A-Za-z]\s?)?\d+\s*\-\s*(?:[A-Za-z]\s?)?\d+))" % re_volume_num
@@ -230,7 +230,7 @@ re_month = ur"""(?:(?:
 [Jj]uly|[Aa]ugust|[Ss]eptember|[Oo]ctober|[Nn]ovember|[Dd]ecember
 )\.?)"""
 
-## Year
+# Year
 re_year_num = ur"(?:19|20)\d{2}"
 re_year_text = u"(?P<year>[A-Za-z]?" + re_year_num + u")(?:[A-Za-z]?)"
 re_year = ur"""
@@ -247,18 +247,18 @@ re_year = ur"""
     'month': re_month,
 }
 
-## Page
-re_page_prefix = ur"[pP]?[p]?\.?\s?" ## Starting page num: optional Pp.
-re_page_num = ur"[RL]?\w?\d+[cC]?"    ## pagenum with optional R/L
-re_page_sep = ur"\s*[\s-]\s*"        ## optional separatr between pagenums
+# Page
+re_page_prefix = ur"[pP]?[p]?\.?\s?"  # Starting page num: optional Pp.
+re_page_num = ur"[RL]?\w?\d+[cC]?"    # pagenum with optional R/L
+re_page_sep = ur"\s*[\s-]\s*"         # optional separatr between pagenums
 re_page = re_page_prefix + \
     u"(?P<page>" + re_page_num + u")(?:" + re_page_sep + \
     u"(?P<page_end>" + re_page_num + u"))?"
 
-## Series
+# Series
 re_series = ur"(?P<series>[A-H])"
 
-## Used for allowing 3(1991) without space
+# Used for allowing 3(1991) without space
 re_look_ahead_parentesis = ur"(?=\()"
 re_sep_or_parentesis = u'(?:' + re_sep + u'|' + re_look_ahead_parentesis + ')'
 
@@ -267,15 +267,15 @@ re_sep_or_after_parentesis = u'(?:' + \
     re_sep + u'|' + re_look_behind_parentesis + ')'
 
 
-## After having processed a line for titles, it may be possible to find more
-## numeration with the aid of the recognised titles. The following 2 patterns
-## are used for this:
+# After having processed a line for titles, it may be possible to find more
+# numeration with the aid of the recognised titles. The following 2 patterns
+# are used for this:
 
 re_correct_numeration_2nd_try_ptn1 = (re.compile(
-  re_year + re_sep +         ## Year
-  re_title_tag + re_sep +    ## Recognised, tagged title
-  re_volume + re_sep +       ## The volume
-  re_page,                   ## The page
+  re_year + re_sep +         # Year
+  re_title_tag + re_sep +    # Recognised, tagged title
+  re_volume + re_sep +       # The volume
+  re_page,                   # The page
   re.UNICODE|re.VERBOSE), ur'\g<title_tag> : <cds.VOL>\g<vol></cds.VOL> ' \
     ur'<cds.YR>(\g<year>)</cds.YR> <cds.PG>\g<page></cds.PG>')
 
@@ -291,25 +291,25 @@ re_correct_numeration_2nd_try_ptn2 = (re.compile(
                                       ur'<cds.PG>\g<page></cds.PG>')
 
 re_correct_numeration_2nd_try_ptn3 = (re.compile(
-  re_title_tag + re_sep +    ## Recognised, tagged title
-  re_volume + re_sep +       ## The volume
-  re_page,                   ## The page
+  re_title_tag + re_sep +    # Recognised, tagged title
+  re_volume + re_sep +       # The volume
+  re_page,                   # The page
   re.UNICODE|re.VERBOSE), ur'\g<title_tag>  <cds.VOL>\g<vol></cds.VOL> ' \
                                       ur'<cds.PG>\g<page></cds.PG>')
 
 re_correct_numeration_2nd_try_ptn4 = (re.compile(
-  re_title_tag + re_sep +    ## Recognised, tagged title
-  re_volume + re_volume_sub_number_opt + re_sep +       ## The volume
-  re_year,                   ## The year
+  re_title_tag + re_sep +                          # Recognised, tagged title
+  re_volume + re_volume_sub_number_opt + re_sep +  # The volume
+  re_year,                                         # The year
   re.UNICODE|re.VERBOSE), ur'\g<title_tag>  <cds.VOL>\g<vol></cds.VOL> ' \
                                       ur'<cds.YR>(\g<year>)</cds.YR> ' \
                                       ur'<cds.PG>1</cds.PG>')
 
 re_correct_numeration_2nd_try_ptn5 = (re.compile(
-  re_title_tag + re_sep +       ## Recognised, tagged title
-  re_year + ur"\s*[.,\s:]\s*" + ## Year
-  re_volume + re_sep +          ## The volume
-  re_page,                      ## The page
+  re_title_tag + re_sep +        # Recognised, tagged title
+  re_year + ur"\s*[.,\s:]\s*" +  # Year
+  re_volume + re_sep +           # The volume
+  re_page,                       # The page
   re.UNICODE|re.VERBOSE), ur'\g<title_tag> : <cds.VOL>\g<vol></cds.VOL> ' \
     ur'<cds.YR>(\g<year>)</cds.YR> <cds.PG>\g<page></cds.PG>')
 
@@ -397,8 +397,8 @@ re_numeration_vol_nucphys_yr_subvol_page = (re.compile(
 ## <[FS]?, v, y, p>
 re_numeration_nucphys_vol_yr_page = (re.compile(
   re_nucphysb_subtitle + re_sep +
-  re_volume + re_sep_or_parentesis +        ## The volume (optional "vol"/"no")
-  re_year + re_sep_or_after_parentesis +    ## Year
+  re_volume + re_sep_or_parentesis +        # The volume (optional "vol"/"no")
+  re_year + re_sep_or_after_parentesis +    # Year
   re_page, re.UNICODE|re.VERBOSE), ur' : <cds.VOL>\g<vol></cds.VOL> ' \
                                       ur'<cds.YR>(\g<year>)</cds.YR> ' \
                                       ur'<cds.PG>\g<page></cds.PG> ')
@@ -425,8 +425,6 @@ re_numeration_vol_nucphys_series_yr_page = (re.compile(
                                   ur'<cds.VOL>\g<vol></cds.VOL> ' \
                                   ur'<cds.YR>(\g<year>)</cds.YR> ' \
                                   ur'<cds.PG>\g<page></cds.PG> ')
-
-
 
 ## Pattern 4: <vol, serie, page, year>
 ## <v, s, [FS]?, p, y>
@@ -661,9 +659,7 @@ def regex_match_list(line, patterns):
             break
     return m
 
-
-
-## The different forms of arXiv notation
+# The different forms of arXiv notation
 re_arxiv_notation = re.compile(ur"""
     (arxiv)|(e[\-\s]?print:?\s*arxiv)
     """, re.VERBOSE)

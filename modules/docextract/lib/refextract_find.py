@@ -188,7 +188,6 @@ def find_numeration(docbody, title):
     return ref_details, found_title
 
 
-
 def find_reference_section_no_title_via_brackets(docbody):
     """This function would generally be used when it was not possible to locate
        the start of a document's reference section by means of its title.

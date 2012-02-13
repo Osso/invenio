@@ -274,10 +274,10 @@ def process_reference_line(working_line,
         replacement_locations = replacement_types.keys()
         replacement_locations.sort()
 
-        tagged_line = u"" # This is to be the new 'working-line'. It will
-                          # contain the tagged TITLEs and REPORT-NUMBERs,
-                          # as well as any previously tagged URLs and
-                          # numeration components.
+        tagged_line = u""  # This is to be the new 'working-line'. It will
+                           # contain the tagged TITLEs and REPORT-NUMBERs,
+                           # as well as any previously tagged URLs and
+                           # numeration components.
         # begin:
         for replacement_index in replacement_locations:
             # first, factor in any stripped spaces before this 'replacement'
@@ -332,8 +332,6 @@ def process_reference_line(working_line,
                 )
                 tagged_line += rebuilt_chunk
 
-
-
         # add the remainder of the original working-line into the rebuilt line:
         tagged_line += working_line[startpos:]
 
@@ -352,7 +350,7 @@ def process_reference_line(working_line,
     # (after Titles and Repnum's have been found)
     tagged_line = identify_and_tag_authors(tagged_line, authors_kb)
 
-    return tagged_line.replace('\n','')
+    return tagged_line.replace('\n', '')
 
 
 def wash_volume_tag(line):
@@ -651,15 +649,15 @@ def add_tagged_journal(reading_line,
         # First, try to obtain the series from the identified numeration
         if previous_series_from_numeration:
             previous_match = {
-                'title':  previous_title,
-                'series': previous_series_from_numeration.group(1)
+                'title' : previous_title,
+                'series': previous_series_from_numeration.group(1),
             }
         # If it isn't found, try to get it from the standardised title
         # BUT ONLY if the numeration matched!
         elif previous_series_from_title and previous_series_from_title.group(3):
             previous_match = {
-                'title':  previous_series_from_title.group(1),
-                'series': previous_series_from_title.group(3)
+                'title' : previous_series_from_title.group(1),
+                'series': previous_series_from_title.group(3),
             }
         else:
             previous_match = {'title': previous_title, 'series': None}
@@ -1013,7 +1011,6 @@ def identify_and_tag_authors(line, authors_kb):
                     + add_to_misc \
                     + output_line[end:]
 
-
     # Now that authors have been tagged, search for the extra information which should be included in $h
     # Tag for this datafield, merge into one $h subfield later on
     output_line = identify_and_tag_extra_authors(output_line)
@@ -1033,7 +1030,7 @@ def sum_2_dictionaries(dicta, dictb):
     """
     dict_out = dicta.copy()
     for key in dictb.keys():
-        if dict_out.has_key(key):
+        if 'key' in dict_out:
             # Add the sum for key in dictb to that of dict_out:
             dict_out[key] += dictb[key]
         else:
@@ -1174,7 +1171,7 @@ def identify_journals(line, kb_journals):
         # in the line:
         # for each matched periodical title:
         for title_match in find_all(line, title):
-            if not titles_count.has_key(title):
+            if title not in titles_count:
                 # Add this title into the titles_count dictionary:
                 titles_count[title] = 1
             else:
@@ -1350,9 +1347,9 @@ def identify_and_tag_URLs(line):
     # Attempt to identify and tag all HTML-MARKED-UP URLs in the line:
     m_tagged_url_iter = re_html_tagged_url.finditer(line)
     for m_tagged_url in m_tagged_url_iter:
-        startposn = m_tagged_url.start()       # start position of matched URL
-        endposn   = m_tagged_url.end()         # end position of matched URL
-        matchlen  = len(m_tagged_url.group(0)) # total length of URL match
+        startposn = m_tagged_url.start()        # start position of matched URL
+        endposn   = m_tagged_url.end()          # end position of matched URL
+        matchlen  = len(m_tagged_url.group(0))  # total length of URL match
 
         found_url_full_matchlen[startposn] = matchlen
         found_url_urlstring[startposn]     = m_tagged_url.group(3)
@@ -1361,14 +1358,13 @@ def identify_and_tag_URLs(line):
         # it won't be re-found
         line = line[0:startposn] + u"_"*matchlen + line[endposn:]
 
-
     # Attempt to identify and tag all RAW (i.e. not
     # HTML-marked-up) URLs in the line:
     m_raw_url_iter = re_raw_url.finditer(line)
     for m_raw_url in m_raw_url_iter:
-        startposn   = m_raw_url.start()       # start position of matched URL
-        endposn     = m_raw_url.end()         # end position of matched URL
-        matchlen    = len(m_raw_url.group(0)) # total length of URL match
+        startposn   = m_raw_url.start()        # start position of matched URL
+        endposn     = m_raw_url.end()          # end position of matched URL
+        matchlen    = len(m_raw_url.group(0))  # total length of URL match
         matched_url = m_raw_url.group(1)
 
         if len(matched_url) > 0 and matched_url[-1] in (".", ","):
@@ -1432,9 +1428,8 @@ def identify_and_tag_DOI(line):
         # Get the actual DOI string (remove the url part of the doi string)
         doi_phrase = match.group(6)
 
-
         # Replace the entire matched doi with a tag
-        line = line[0:start]+"<cds.DOI />"+line[end:]
+        line = line[0:start] + "<cds.DOI />" + line[end:]
         # Add the single DOI string to the list of DOI strings
         doi_strings.append(doi_phrase)
 

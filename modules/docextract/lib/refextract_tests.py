@@ -34,6 +34,7 @@ from invenio import refextract_re
 from invenio.refextract_find import get_reference_section_beginning
 from invenio.refextract_api import search_from_reference
 
+
 class ReTest(unittest.TestCase):
     def setUp(self):
         setup_loggers(verbosity=1)
@@ -87,7 +88,7 @@ class IbidTest(unittest.TestCase):
     def test_identify_ibids_simple(self):
         ref_line = u"""[46] E. Schrodinger, Sitzungsber. Preuss. Akad. Wiss. Phys. Math. Kl. 24, 418(1930); ibid, 3, 1(1931)"""
         r = identify_ibids(ref_line.upper())
-        self.assertEqual(r, ({85:4}, {85:u'IBID'}, u'[46] E. SCHRODINGER, SITZUNGSBER. PREUSS. AKAD. WISS. PHYS. MATH. KL. 24, 418(1930); ____, 3, 1(1931)'))
+        self.assertEqual(r, ({85: 4}, {85: u'IBID'}, u'[46] E. SCHRODINGER, SITZUNGSBER. PREUSS. AKAD. WISS. PHYS. MATH. KL. 24, 418(1930); ____, 3, 1(1931)'))
 
 
 class TagNumerationTest(unittest.TestCase):

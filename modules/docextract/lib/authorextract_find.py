@@ -98,4 +98,3 @@ def find_author_section(docbody, author_marker=None, first_author=None):
         auth_sect_details = None
 
     return auth_sect_details
- 

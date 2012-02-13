@@ -97,7 +97,7 @@ def make_cache_key(custom_kbs_files=None, inspire=CFG_INSPIRE_SITE):
     Then _inspire is appended if we are an INSPIRE site.
     """
     if custom_kbs_files:
-        serialized_args = ('%s=%s' % (k,v) for k,v in custom_kbs_files.items())
+        serialized_args = ('%s=%s' % (k, v) for k, v in custom_kbs_files.items())
         serialized_args = ';'.join(serialized_args)
     else:
         serialized_args = "default"
@@ -109,7 +109,7 @@ def make_cache_key(custom_kbs_files=None, inspire=CFG_INSPIRE_SITE):
 
 def get_kbs(kbs_files=None, inspire=CFG_INSPIRE_SITE, cache={}):
     """Create kbs caching instance
-    
+
     This function makes sure only one cache instance for one given set of
     arguments is created.
     """
@@ -188,7 +188,8 @@ def institute_num_pattern_to_regex(pattern):
         pattern.
        @return: (string) the regexp for recognising the pattern.
     """
-    simple_replacements = [ ('9',    r'\d'),
+    simple_replacements = [
+                            ('9',    r'\d'),
                             ('9+',   r'\d+'),
                             ('w+',   r'\w+'),
                             ('a',    r'[A-Za-z]'),
@@ -197,7 +198,7 @@ def institute_num_pattern_to_regex(pattern):
                             ('yyyy', r'[12]\d{3}'),
                             ('yy',   r'\d\d'),
                             ('s',    r'\s*'),
-                            (r'/',   r'\/')
+                            (r'/',   r'\/'),
                           ]
     # first, escape certain characters that could be sensitive to a regexp:
     pattern = re_report_num_chars_to_escape.sub(r'\\\g<1>', pattern)
@@ -462,7 +463,7 @@ def _cmp_bystrlen_reverse(a, b):
 
 def build_special_journals_kb(fpath):
     """Load special journals database from file
-    
+
     Special journals are journals that have a volume which is not unique
     among different years. To keep the volume unique we are adding the year
     before the volume.
@@ -484,6 +485,7 @@ def build_special_journals_kb(fpath):
         write_message('Loaded special journals kb', verbose=3)
 
     return journals
+
 
 def build_books_kb(fpath):
     if isinstance(fpath, basestring):
@@ -584,6 +586,7 @@ def build_authors_kb(fpath):
             fh.close()
 
     return replacements
+
 
 def build_journals_re_kb(fpath):
     """Load journals regexps knowledge base
@@ -691,7 +694,7 @@ def build_journals_kb(fpath):
                 # Add the 'replacement term' into the dictionary of
                 # replacement terms:
                 repl_terms[m_kb_line.group('repl')] = None
-            
+
                 # Get the "seek term":
                 seek_phrase = m_kb_line.group('seek')
                 # add the phrase from the KB if the 'seek' phrase is longer
@@ -699,7 +702,7 @@ def build_journals_kb(fpath):
                 # seek_ptn = re.compile(ur'(?<!\w)(' + \
                 #                        re.escape(seek_phrase) + \
                 #                        ur')\W', re.UNICODE)
-                # 
+                #
                 # kb[seek_phrase] = seek_ptn
                 standardised_titles[seek_phrase] = m_kb_line.group('repl')
                 seek_phrases.append(seek_phrase)
@@ -727,7 +730,7 @@ def build_journals_kb(fpath):
                  re_group_captured_multiple_space.sub(u' ', \
                                                        raw_repl_phrase)
             raw_repl_phrase = raw_repl_phrase.strip()
-            if not kb.has_key(raw_repl_phrase):
+            if raw_repl_phrase not in kb:
                 # The replace-phrase was not in the KB as a seek phrase
                 # It should be added.
                 seek_ptn = re.compile(r'(?<!\/)\b(' + \
@@ -754,4 +757,3 @@ def build_journals_kb(fpath):
 
     # return the raw knowledge base:
     return (kb, standardised_titles, seek_phrases)
-

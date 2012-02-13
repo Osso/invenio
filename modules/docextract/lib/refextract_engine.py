@@ -125,7 +125,6 @@ def limit_m_tags(xml_file, length_limit):
     os.rename(temp_xml_file, xml_file)
 
 
-
 def remove_reference_line_marker(line):
     """Trim a reference line's 'marker' from the beginning of the line.
        @param line: (string) - the reference line.
@@ -277,11 +276,13 @@ def split_volume_from_journal(citation_elements):
             el['volume'] = series + el['volume']
     return citation_elements
 
+
 ## End of elements transformations
+
 
 def parse_reference_line(ref_line, kbs, bad_titles_count={}):
     """Parse one reference line
-    
+
     @input a string representing a single reference bullet
     @output parsed references (a list of elements objects)
     """
@@ -446,7 +447,6 @@ def parse_tagged_reference_line(line_marker,
                 idx_closing_tag = processed_line.find(CFG_REFEXTRACT_MARKER_CLOSING_TITLE,
                                                        tag_match_end)
 
-
             if idx_closing_tag == -1:
                 # no closing TITLE tag found - get rid of the solitary tag
                 processed_line = processed_line[tag_match_end:]
@@ -482,15 +482,15 @@ def parse_tagged_reference_line(line_marker,
                     # 'extra_ibids' are there to hold ibid's without the word 'ibid', which
                     # come directly after this title
                     # i.e., they are recognised using title numeration instead of ibid notation
-                    identified_citation_element =   {   'type'       : "JOURNAL",
-                                                        'misc_txt'   : cur_misc_txt,
-                                                        'title'      : title_text,
-                                                        'volume'     : reference_volume,
-                                                        'year'       : reference_year,
-                                                        'page'       : reference_page,
-                                                        'is_ibid'    : is_ibid,
-                                                        'extra_ibids': []
-                                                    }
+                    identified_citation_element = {   'type'       : "JOURNAL",
+                                                      'misc_txt'   : cur_misc_txt,
+                                                      'title'      : title_text,
+                                                      'volume'     : reference_volume,
+                                                      'year'       : reference_year,
+                                                      'page'       : reference_page,
+                                                      'is_ibid'    : is_ibid,
+                                                      'extra_ibids': []
+                                                  }
                     count_title += 1
                     cur_misc_txt = u""
 
@@ -578,10 +578,10 @@ def parse_tagged_reference_line(line_marker,
 
             # Save the current misc text
             identified_citation_element = {
-                'type'       :     "URL",
-                'misc_txt'   :     "%s" % cur_misc_txt,
-                'url_string' :     "%s" % url_string,
-                'url_desc'   :     "%s" % url_desc
+                'type'       : "URL",
+                'misc_txt'   : "%s" % cur_misc_txt,
+                'url_string' : "%s" % url_string,
+                'url_desc'   : "%s" % url_desc
             }
 
             count_url += 1
@@ -639,7 +639,7 @@ def parse_tagged_reference_line(line_marker,
                 # Now move past the ending tag in the line:
                 processed_line = processed_line[idx_closing_tag_nearest + len("</cds.AUTHxxxx>"):]
                 #SAVE the current misc text
-                identified_citation_element =   {
+                identified_citation_element = {
                     'type'       : "AUTH",
                     'misc_txt'   : "%s" % cur_misc_txt,
                     'auth_txt'   : "%s" % auth_txt,
@@ -719,10 +719,8 @@ def parse_tagged_reference_line(line_marker,
             citation_elements.append(identified_citation_element)
             identified_citation_element = None
 
-
         # Look for the next tag in the processed line:
         tag_match = re_tagged_citation.search(processed_line)
-
 
     # place any remaining miscellaneous text into the
     # appropriate MARC XML fields:
@@ -771,6 +769,7 @@ def map_tag_to_subfield(tag_type, line, cur_misc_txt, dest):
 
     return identified_citation_element, line, cur_misc_txt
 
+
 def convert_unusable_tag_to_misc(line,
                                  misc_text,
                                  tag_match_end,
@@ -818,6 +817,7 @@ def convert_unusable_tag_to_misc(line,
 # ----> 2. Finding reference section in full-text:
 
 # ----> 3. Found reference section - now take out lines and rebuild them:
+
 
 def remove_leading_garbage_lines_from_reference_section(ref_sectn):
     """Sometimes, the first lines of the extracted references are completely

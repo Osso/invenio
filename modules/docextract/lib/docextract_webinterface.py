@@ -77,7 +77,7 @@ def extract_from_pdf_string(pdf, inspire=CFG_INSPIRE_SITE):
 
 def make_arxiv_url(arxiv_id):
     """Make a url we can use to download a pdf from arxiv
-    
+
     Arguments:
     arxiv_id -- the arxiv id of the record to link to
     """
@@ -87,9 +87,9 @@ def make_arxiv_url(arxiv_id):
 class WebInterfaceAPIDocExtract(WebInterfaceDirectory):
     """DocExtract REST API"""
     _exports = [
-        ('extract-references-pdf','extract_references_pdf'),
-        ('extract-references-pdf-url','extract_references_pdf_url'),
-        ('extract-references-txt','extract_references_txt'),
+        ('extract-references-pdf', 'extract_references_pdf'),
+        ('extract-references-pdf-url', 'extract_references_pdf_url'),
+        ('extract-references-txt', 'extract_references_txt'),
     ]
 
     def extract_references_pdf(self, req, form):
@@ -166,16 +166,16 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
         user_info = collect_user_info(req)
 
         # Handle the 3 POST parameters
-        if form.has_key('pdf') and form['pdf'].value:
+        if 'pdf' in form and form['pdf'].value:
             pdf = form['pdf'].value
             references_xml = extract_from_pdf_string(pdf)
-        elif form.has_key('arxiv') and form['arxiv'].value:
+        elif 'arxiv' in form and form['arxiv'].value:
             url = make_arxiv_url(arxiv_id=form['arxiv'].value)
             references_xml = extract_references_from_url_xml(url)
-        elif form.has_key('url') and form['url'].value:
+        elif 'url' in form and form['url'].value:
             url = form['url'].value
             references_xml = extract_references_from_url_xml(url)
-        elif form.has_key('txt') and form['txt'].value:
+        elif 'txt' in form and form['txt'].value:
             txt = form['txt'].value
             references_xml = extract_references_from_string_xml(txt)
         else:
@@ -197,7 +197,7 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
                                 user_info=user_info)
 
         # Render the page (including header, footer)
-        return page(title = 'References Extractor',
-                    body  = out,
-                    uid   = user_info['uid'],
-                    req   = req)
+        return page(title='References Extractor',
+                    body=out,
+                    uid=user_info['uid'],
+                    req=req)

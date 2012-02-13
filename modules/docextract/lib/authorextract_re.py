@@ -41,7 +41,7 @@ def get_author_affiliation_numeration_str(punct=None):
         re_punct = re.escape(punct)
 
     ## Generic number finder (MUST NOT INCLUDE NAMED GROUPS!!!)
-    numeration_str =  """
+    numeration_str = """
     (?:\s*(%(punct)s)\s*            ## Left numeration punctuation
         (%(num)s\s*                 ## Core numeration item, either specific or generic
             %(num_chain)s           ## Extra numeration, either generic or empty
@@ -156,6 +156,7 @@ invalid_prefixes = (
     'at',
 )
 
+
 def make_auth_regex_str(etal, initial_surname_author=None, surname_initial_author=None):
     """
         Returns a regular expression to be used to identify groups of author names in a citation.
@@ -211,7 +212,6 @@ def make_auth_regex_str(etal, initial_surname_author=None, surname_initial_autho
         ## Standard author, with a maximum of 6 initials, and a surname.
         ## The Initials MUST be uppercase, and MUST have at least a dot, hypen or apostrophe between them.
         initial_surname_author = get_initial_surname_author_pattern()
-
 
     if not surname_initial_author:
         ## The author name of the form: 'surname initial(s)'
@@ -377,6 +377,7 @@ re_auth_with_number = re.compile(make_auth_regex_str(
 ## Used to obtain authors chained by connectives across multiple lines
 re_comma_or_and_at_start = re.compile("^(,|((,\s*)?[Aa][Nn][Dd]|&))\s", re.UNICODE)
 
+
 def make_extra_author_regex_str():
     """ From the authors knowledge-base, construct a single regex holding the or'd possibilities of patterns
     which should be included in $h subfields. The word 'Collaboration' is also converted to 'Coll', and
@@ -386,7 +387,7 @@ def make_extra_author_regex_str():
     def add_to_auth_list(s):
         """ Strip the line, replace spaces with '\s' and append 'the' to the start
         and 's' to the end. Add the prepared line to the list of extra kb authors."""
-        s = u"(?:the\s)?" + s.strip().replace(u' ',u'\s') + u"s?"
+        s = u"(?:the\s)?" + s.strip().replace(u' ', u'\s') + u"s?"
         auths.append(s)
 
     ## Build the 'or'd regular expression of the author lines in the author knowledge base
@@ -458,5 +459,3 @@ def get_single_author_pattern():
 
 ## Targets single author names
 re_single_author_pattern = re.compile(get_single_and_extra_author_pattern(), re.VERBOSE)
-
-

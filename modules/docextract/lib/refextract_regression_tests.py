@@ -1845,7 +1845,6 @@ Rev. D 80 034030 1-25"""
    </datafield>
 </record>""")
 
-
     def test_dot_after_year(self):
         ref_line = u"""[1] Neutrino Mass and New Physics, Phys.Rev. 2006. 56:569-628"""
         reference_test(self, ref_line, u"""<record>

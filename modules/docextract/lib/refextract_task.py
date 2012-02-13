@@ -23,7 +23,8 @@ Refextract task
 Sends references to parse through bibsched
 """
 
-import sys, traceback
+import sys
+import traceback
 from datetime import datetime
 
 from invenio.bibtask import task_init, task_set_option, \
@@ -41,6 +42,7 @@ from invenio.refextract_api import update_references, \
                                    FullTextNotAvailable, \
                                    RecordHasReferences
 from invenio.docextract_task import task_run_core_wrapper
+
 
 def split_ids(value):
     return [c.strip() for c in value.split(',') if c.strip()]
@@ -126,7 +128,7 @@ def main():
         authorization_msg="Refextract Task Submission",
         description=DESCRIPTION,
         # get the global help_message variable imported from refextract.py
-        help_specific_usage =  HELP_MESSAGE + """
+        help_specific_usage=HELP_MESSAGE + """
   Scheduled (daemon) Refextract options:
   -a, --new          Run on all newly inserted records.
   -m, --modified     Run on all newly modified records.

@@ -19,7 +19,8 @@
 
 """Generic Framework for extracting metadata from records using bibsched"""
 
-import sys, traceback
+import sys
+import traceback
 
 from invenio.bibtask import task_init, task_set_option, \
                             task_get_option, write_message, \

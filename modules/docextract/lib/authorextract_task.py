@@ -19,7 +19,10 @@
 
 """Initialise Refextract task"""
 
-import sys, os, time, traceback
+import sys
+import os
+import time
+import traceback
 from shutil import copyfile
 from tempfile import mkstemp
 from datetime import datetime
@@ -118,7 +121,7 @@ def task_run_core():
     return True
 
 
-def _task_submit_check_options():
+def parse_option():
     """ Reimplement this method for having the possibility to check options
     before submitting the task, in order for example to provide default
     values. It must return False if there are errors in the options.
@@ -132,7 +135,7 @@ def _task_submit_check_options():
     return True
 
 
-def _task_submit_elaborate_specific_parameter(key, value, opts, args):
+def check_options(key, value, opts, args):
     """ Must be defined for bibtask to create a task """
     if args and len(args) > 0:
         ## There should be no standalone arguments for any refextract job
@@ -170,7 +173,7 @@ def main():
         authorization_msg="Refextract Task Submission",
         description=description,
         # get the global help_message variable imported from refextract.py
-        help_specific_usage =  help_message + """
+        help_specific_usage=help_message + """
 Scheduled (daemon) Refextract options:
   -a, --new          Run on all newly inserted records.
   -r, --recids       Record id for extraction.
@@ -195,7 +198,6 @@ Scheduled (daemon) Refextract options:
                              "recids=",
                              "collections=",
                              "new"]),
-        task_submit_elaborate_specific_parameter_fnc= \
-        _task_submit_elaborate_specific_parameter,
-        task_submit_check_options_fnc=_task_submit_check_options,
+        task_submit_elaborate_specific_parameter_fnc=parse_option,
+        task_submit_check_options_fnc=check_options,
         task_run_fnc=task_run_core)

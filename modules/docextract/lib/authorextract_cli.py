@@ -48,6 +48,7 @@ Standalone AuthorExtract options:
                        extraction of authors.
 """
 
+
 def get_cli_options():
     """Get the various arguments and options from the command line and populate
        a dictionary of cli_options.

@@ -284,7 +284,6 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
                   'page'                : encode_for_xml(element['page']),
                 }
 
-
             # Now, if there are any extra (numeration based) IBID's after this title
             if len(element['extra_ibids']) > 0:
                 # At least one IBID is present, these are to be outputted each into their own datafield
@@ -662,18 +661,18 @@ def filter_processed_references(out):
     """ apply filters to reference lines found - to remove junk"""
     reference_lines = out.split('\n')
 
-    ## Remove too long and too short m tags
+    # Removes too long and too short m tags
     m_restricted, ref_lines = restrict_m_subfields(reference_lines)
 
     if m_restricted:
         a_tag = re.compile('\<subfield code=\"a\"\>(.*?)\<\/subfield\>')
         for i in range(len(ref_lines)):
-            ## Checks to see that the datafield has the attribute ind2="6",
-            ## Before looking to see if the subfield code attribute is 'a'
+            # Checks to see that the datafield has the attribute ind2="6",
+            # Before looking to see if the subfield code attribute is 'a'
             if ref_lines[i].find('<datafield tag="999" ind1="C" ind2="6">') != -1 \
                 and (len(ref_lines) - 1) > i:
-                ## For each line in this datafield element, try to find the subfield whose code attribute is 'a'
-                while ref_lines[i].find('</datafield>') != -1 and (len(ref_lines)-1) > i:
+                # For each line in this datafield element, try to find the subfield whose code attribute is 'a'
+                while ref_lines[i].find('</datafield>') != -1 and (len(ref_lines) - 1) > i:
                     i += 1
                     # <subfield code="a">Invenio/X.XX.X
                     # refextract/X.XX.X-timestamp-err-repnum-title-URL-misc
@@ -694,7 +693,7 @@ def filter_processed_references(out):
 
     if len(reference_lines) != len(new_out):
         write_message("* filter results: unfilter references line length is %d and filtered length is %d" \
-              %  (len(reference_lines), len(new_out)), verbose=2)
+              % (len(reference_lines), len(new_out)), verbose=2)
 
     return new_out
 
@@ -708,7 +707,7 @@ def restrict_m_subfields(reference_lines):
     m_tag = re.compile('\<subfield code=\"m\"\>(.*?)\<\/subfield\>')
     filter_list = []
     m_restricted = 0
-    for i in range(len(reference_lines)): ## set up initial filter
+    for i in range(len(reference_lines)):  # set up initial filter
         filter_list.append(1)
     for i in range(len(reference_lines)):
         if m_tag.search(reference_lines[i]):
@@ -719,7 +718,7 @@ def restrict_m_subfields(reference_lines):
                     ## If both of these are true then its a solitary "m" tag
                     mlength = len(m_tag.search(reference_lines[i]).group(1))
                     if mlength < min_length or mlength > max_length:
-                        filter_list[i-2] = filter_list[i-1] = filter_list[i] = filter_list[i+1] = 0
+                        filter_list[i - 2] = filter_list[i - 1] = filter_list[i] = filter_list[i + 1] = 0
                         m_restricted += 1
     new_reference_lines = []
     for i in range(len(reference_lines)):
@@ -765,22 +764,24 @@ def compress_subfields(out, subfield_code):
            </datafield>
            """
     in_lines = out.split('\n')
-    ## hold the subfield compressed version of the xml, line by line
+    # hold the subfield compressed version of the xml, line by line
     new_rec_lines = []
-    ## Used to indicate when the selected subfield has already been reached inside a particular datafield
+    # Used to indicate when the selected subfield has already been reached
+    # inside a particular datafield
     position = 0
-    ## Where the concatenated misc text is held before appended at the end
+    # Where the concatenated misc text is held before appended at the end
     content_text = ""
-    ## Components of the misc subfield elements
+    # Components of the misc subfield elements
     subfield_start = "      <subfield code=\"%s\">" % subfield_code
-    subfield_end   = "</subfield>"
+    subfield_end = "</subfield>"
 
     for line in in_lines:
         ## If reached the end of the datafield
         if line.find('</datafield>') != -1:
             if len(content_text) > 0:
-                ## Insert the concatenated misc contents back where it was first encountered
-                ## (dont RIGHTstrip semi-colons, as these may be needed for &amp; or &lt;)
+                # Insert the concatenated misc contents back where it was first
+                # encountered (dont RIGHTstrip semi-colons, as these may be
+                # needed for &amp; or &lt;)
                 if subfield_code == 'm':
                     content_text = content_text.strip(" ,.").lstrip(" ;")
                 new_rec_lines[position] = new_rec_lines[position] + \
@@ -788,7 +789,8 @@ def compress_subfields(out, subfield_code):
                 content_text = ""
             position = 0
             new_rec_lines.append(line)
-        ## Found subfield in question, concatenate subfield contents for this single datafield
+        # Found subfield in question, concatenate subfield contents
+        # for this single datafield
         elif line.find(subfield_start.strip()) != -1:
             if position == 0:
                 ## Save the position of this found subfield
@@ -796,10 +798,10 @@ def compress_subfields(out, subfield_code):
                 new_rec_lines.append(subfield_start)
                 position = len(new_rec_lines) - 1
             new_text = get_subfield_content(line, subfield_code)
-            if (len(content_text) > 0) and (len(new_text)) > 0:
+            if content_text and new_text:
                 ## Append spaces between merged text, if needed
-                if (content_text[-1]+new_text[0]).find(" ") == -1:
-                    new_text = " "+new_text
+                if (content_text[-1] + new_text[0]).find(" ") == -1:
+                    new_text = " " + new_text
             content_text += new_text
         else:
             new_rec_lines.append(line)
@@ -807,4 +809,3 @@ def compress_subfields(out, subfield_code):
     ## Create the readable file from the list of lines.
     new_out = [l.rstrip() for l in new_rec_lines]
     return '\n'.join(filter(None, new_out))
-

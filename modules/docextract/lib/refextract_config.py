@@ -49,28 +49,28 @@ CFG_REFEXTRACT_FILENAME = "refextract"
 ## MARC Fields and subfields used by refextract:
 
 # Reference fields:
-CFG_REFEXTRACT_CTRL_FIELD_RECID          = "001"   # control-field recid
-CFG_REFEXTRACT_TAG_ID_REFERENCE          = "999"   # ref field tag
-CFG_REFEXTRACT_IND1_REFERENCE            = "C"     # ref field ind1
-CFG_REFEXTRACT_IND2_REFERENCE            = "5"     # ref field ind2
-CFG_REFEXTRACT_SUBFIELD_MARKER           = "o"     # ref marker subfield
-CFG_REFEXTRACT_SUBFIELD_MISC             = "m"     # ref misc subfield
-CFG_REFEXTRACT_SUBFIELD_DOI              = "a"     # ref DOI subfield (NEW)
-CFG_REFEXTRACT_SUBFIELD_REPORT_NUM       = "r"     # ref reportnum subfield
-CFG_REFEXTRACT_SUBFIELD_TITLE            = "s"     # ref journal subfield
-CFG_REFEXTRACT_SUBFIELD_URL              = "u"     # ref url subfield
-CFG_REFEXTRACT_SUBFIELD_URL_DESCR        = "z"     # ref url-text subfield
-CFG_REFEXTRACT_SUBFIELD_AUTH             = "h"     # ref author subfield
-CFG_REFEXTRACT_SUBFIELD_QUOTED           = "t"     # ref title subfield
-CFG_REFEXTRACT_SUBFIELD_ISBN             = "i"     # ref isbn subfield
-CFG_REFEXTRACT_SUBFIELD_PUBLISHER        = "p"     # ref publisher subfield
-CFG_REFEXTRACT_SUBFIELD_BOOK             = "xbook" # ref book subfield
+CFG_REFEXTRACT_CTRL_FIELD_RECID          = "001"    # control-field recid
+CFG_REFEXTRACT_TAG_ID_REFERENCE          = "999"    # ref field tag
+CFG_REFEXTRACT_IND1_REFERENCE            = "C"      # ref field ind1
+CFG_REFEXTRACT_IND2_REFERENCE            = "5"      # ref field ind2
+CFG_REFEXTRACT_SUBFIELD_MARKER           = "o"      # ref marker subfield
+CFG_REFEXTRACT_SUBFIELD_MISC             = "m"      # ref misc subfield
+CFG_REFEXTRACT_SUBFIELD_DOI              = "a"      # ref DOI subfield (NEW)
+CFG_REFEXTRACT_SUBFIELD_REPORT_NUM       = "r"      # ref reportnum subfield
+CFG_REFEXTRACT_SUBFIELD_TITLE            = "s"      # ref journal subfield
+CFG_REFEXTRACT_SUBFIELD_URL              = "u"      # ref url subfield
+CFG_REFEXTRACT_SUBFIELD_URL_DESCR        = "z"      # ref url-text subfield
+CFG_REFEXTRACT_SUBFIELD_AUTH             = "h"      # ref author subfield
+CFG_REFEXTRACT_SUBFIELD_QUOTED           = "t"      # ref title subfield
+CFG_REFEXTRACT_SUBFIELD_ISBN             = "i"      # ref isbn subfield
+CFG_REFEXTRACT_SUBFIELD_PUBLISHER        = "p"      # ref publisher subfield
+CFG_REFEXTRACT_SUBFIELD_BOOK             = "xbook"  # ref book subfield
 
 ## refextract statistics fields:
-CFG_REFEXTRACT_TAG_ID_EXTRACTION_STATS   = "999" ## ref-stats tag
-CFG_REFEXTRACT_IND1_EXTRACTION_STATS     = "C"   ## ref-stats ind1
-CFG_REFEXTRACT_IND2_EXTRACTION_STATS     = "6"   ## ref-stats ind2
-CFG_REFEXTRACT_SUBFIELD_EXTRACTION_STATS = "a"   ## ref-stats subfield
+CFG_REFEXTRACT_TAG_ID_EXTRACTION_STATS   = "999"  # ref-stats tag
+CFG_REFEXTRACT_IND1_EXTRACTION_STATS     = "C"    # ref-stats ind1
+CFG_REFEXTRACT_IND2_EXTRACTION_STATS     = "6"    # ref-stats ind2
+CFG_REFEXTRACT_SUBFIELD_EXTRACTION_STATS = "a"    # ref-stats subfield
 
 
 ## Internal tags are used by refextract to mark-up recognised citation
@@ -112,4 +112,3 @@ CGF_REFEXTRACT_SEMI_COLON_MISC_TEXT_SENSITIVITY = 60
 ## than this value is found, then the latter author group is dumped into misc.
 ## (A higher value will increase splitting strictness. i.e. Fewer splits)
 CGF_REFEXTRACT_ADJACENT_AUTH_MISC_SEPARATION = 10
-
