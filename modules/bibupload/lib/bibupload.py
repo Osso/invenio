@@ -1426,7 +1426,7 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
     """
 
     # Let's define some handy sub procedure.
-    import rpdb2; rpdb2.start_embedded_debugger('password')
+#    import rpdb2; rpdb2.start_embedded_debugger('password')
     def _add_new_format(bibdoc, url, format, docname, doctype, newname, description, comment, flags, pretend=False):
         """Adds a new format for a given bibdoc. Returns True when everything's fine."""
         write_message('Add new format to %s url: %s, format: %s, docname: %s, doctype: %s, newname: %s, description: %s, comment: %s, flags: %s' % (repr(bibdoc), url, format, docname, doctype, newname, description, comment, flags), verbose=9)
