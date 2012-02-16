@@ -1426,6 +1426,7 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
     """
 
     # Let's define some handy sub procedure.
+    import rpdb2; rpdb2.start_embedded_debugger('password')
     def _add_new_format(bibdoc, url, format, docname, doctype, newname, description, comment, flags, pretend=False):
         """Adds a new format for a given bibdoc. Returns True when everything's fine."""
         write_message('Add new format to %s url: %s, format: %s, docname: %s, doctype: %s, newname: %s, description: %s, comment: %s, flags: %s' % (repr(bibdoc), url, format, docname, doctype, newname, description, comment, flags), verbose=9)
@@ -1640,6 +1641,9 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                 version = None
             else:
                 bibdoc_tmpver = None
+            if not version: #treating cases of empty string etc...
+                version = None
+
             document_moreinfo = _get_subfield_value(fft, 'w')
             version_moreinfo = _get_subfield_value(fft, 'p')
             version_format_moreinfo = _get_subfield_value(fft, 's')
@@ -1650,7 +1654,6 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
             is_tmp_id, bibdoc_tmpid = parse_identifier(bibdoc_tmpid)
             if not is_tmp_id:
                 bibdoc_tmpid = None
-
             flags = field_get_subfield_values(fft, 'o')
 
             for flag in flags:
@@ -1667,7 +1670,7 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                 if restriction2 != restriction:
                     raise StandardError, "fft '%s' specifies a different restriction from previous fft with docname '%s'" % (str(fft), name)
                 if version2 != version:
-                    raise StandardError, "fft '%x' specifies a different version than the previous fft with docname '%s'" % (str(fft), name)
+                    raise StandardError, "fft '%s' specifies a different version than the previous fft with docname '%s'" % (str(fft), name)
                 for (url2, format2, description2, comment2, flags2) in urls:
                     if format == format2:
                         raise StandardError, "fft '%s' specifies a second file '%s' with the same format '%s' from previous fft with docname '%s'" % (str(fft), url, format, name)

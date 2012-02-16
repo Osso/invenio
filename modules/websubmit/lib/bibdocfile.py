@@ -627,7 +627,6 @@ class BibRecDocs(object):
         self.deleted_too = deleted_too
         self.bibdocs = {}
         self.attachment_types = {} # dictionary docname->attachment type
-        #TODO: Piotr: Replace type reference from FFT with this one !
         self.build_bibdoc_list()
 
     def __repr__(self):
@@ -928,12 +927,6 @@ class BibRecDocs(object):
             # updating the record structure
             del self.bibdocs[oldname]
             self.bibdocs[newname] = doc
-
-            # TODO: Piotr: Filenames: This might not be necessary any more
-            Md5Folder(doc.basedir).update()
-            doc.touch()
-            doc._build_file_list('rename')
-            doc._build_related_file_list()
 
     def has_docname_p(self, docname):
         """
@@ -2368,7 +2361,7 @@ class BibDoc(object):
         """
         return len(self.docfiles) == 0
 
-    def undelete(self, previous_status, recid): #TODO: Piotr: restore previous status = '' and set default recid to none
+    def undelete(self, previous_status='', recid=None):
         """
         Undelete a deleted file (only if it was actually deleted via L{delete}).
         The previous C{status}, i.e. the restriction key can be provided.
@@ -2713,11 +2706,14 @@ class BibDocFile(object):
         self.fullpath = os.path.abspath(fullpath)
         self.doctype = doctype
         self.docid = docid
+
         self.recid = recid
+
         self.version = version
         self.status = status
         self.checksum = checksum
         self.human_readable = human_readable
+
         if more_info:
             self.description = more_info.get_description(format, version)
             self.comment = more_info.get_comment(format, version)
