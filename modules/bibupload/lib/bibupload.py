@@ -116,6 +116,9 @@ def resolve_identifier(tmps, identifier):
     if is_tmp:
         if not tmp_id in tmps:
             raise StandardError("Temporary identifier %s not present in the dictionary" % (tmp_id, ))
+        if tmps[tmp_id] == -1:
+            # the identifier has been signalised but never assigned a value - probably error during processing
+            raise StandardError("Temporary identifier %s has been declared, but never assigned a value. Probably an error during processign of an appropriate FFT has happened. Please see the log" % (tmp_id, ))
         return int(tmps[tmp_id])
     else:
         return int(identifier)
@@ -1426,7 +1429,6 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
     """
 
     # Let's define some handy sub procedure.
-#    import rpdb2; rpdb2.start_embedded_debugger('password')
     def _add_new_format(bibdoc, url, format, docname, doctype, newname, description, comment, flags, pretend=False):
         """Adds a new format for a given bibdoc. Returns True when everything's fine."""
         write_message('Add new format to %s url: %s, format: %s, docname: %s, doctype: %s, newname: %s, description: %s, comment: %s, flags: %s' % (repr(bibdoc), url, format, docname, doctype, newname, description, comment, flags), verbose=9)
@@ -1534,6 +1536,41 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
         docs = {} # docnames and their data
 
         for fft in record_get_field_instances(record, 'FFT', ' ', ' '):
+            # Very first, we retrieve the potentially temporary odentifiers...
+            #even if the rest fails, we should include them in teh dictionary
+
+            version = _get_subfield_value(fft, 'v', '')
+            # checking if version is temporary... if so, filling a different varaible
+            is_tmp_ver, bibdoc_tmpver = parse_identifier(version)
+            if is_tmp_ver:
+                version = None
+            else:
+                bibdoc_tmpver = None
+            if not version: #treating cases of empty string etc...
+                version = None
+
+            bibdoc_tmpid = field_get_subfield_values(fft, 'i')
+            bibdoc_tmpid = bibdoc_tmpid[0] if bibdoc_tmpid else None
+            is_tmp_id, bibdoc_tmpid = parse_identifier(bibdoc_tmpid)
+            if not is_tmp_id:
+                bibdoc_tmpid = None
+
+
+            # In the case of having temporary id's, we dont resolve them yet but signaklise that they have been used
+            # value -1 means that identifier has been declared but not assigned a value yet
+            if bibdoc_tmpid:
+                if bibdoc_tmpid in tmp_ids:
+                    write_message("WARNING: the temporary identifier %s has been declared more than once. Ignoring the second occurance" % (bibdoc_tmpid, ))
+                else:
+                    tmp_ids[bibdoc_tmpid] = -1
+
+            if bibdoc_tmpver:
+                if bibdoc_tmpver in tmp_vers:
+                    write_message("WARNING: the temporary version identifier %s has been declared more than once. Ignoring the second occurance" % (bibdoc_tmpver, ))
+                else:
+                    tmp_vers[bibdoc_tmpver] = -1
+
+
             # Let's discover the type of the document
             # This is a legacy field and will not be enforced any particular
             # check on it.
@@ -1634,27 +1671,18 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                 else:
                     restriction = KEEP_OLD_VALUE
 
-            version = _get_subfield_value(fft, 'v', '')
-            # checking if version is temporary... if so, filling a different varaible
-            is_tmp_ver, bibdoc_tmpver = parse_identifier(version)
-            if is_tmp_ver:
-                version = None
-            else:
-                bibdoc_tmpver = None
-            if not version: #treating cases of empty string etc...
-                version = None
 
             document_moreinfo = _get_subfield_value(fft, 'w')
             version_moreinfo = _get_subfield_value(fft, 'p')
             version_format_moreinfo = _get_subfield_value(fft, 's')
             format_moreinfo = _get_subfield_value(fft, 'u')
 
-            bibdoc_tmpid = field_get_subfield_values(fft, 'i')
-            bibdoc_tmpid = bibdoc_tmpid[0] if bibdoc_tmpid else None
-            is_tmp_id, bibdoc_tmpid = parse_identifier(bibdoc_tmpid)
-            if not is_tmp_id:
-                bibdoc_tmpid = None
+
             flags = field_get_subfield_values(fft, 'o')
+
+
+
+
 
             for flag in flags:
                 if flag not in CFG_BIBDOCFILE_AVAILABLE_FLAGS:
@@ -1941,13 +1969,13 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
             # resolving temporary version and identifier
             brd = BibRecDocs(rec_id)
             if bibdoc_tmpid:
-                if bibdoc_tmpid in tmp_ids:
+                if bibdoc_tmpid in tmp_ids and tmp_ids[bibdoc_tmpid] != -1:
                     write_message("WARNING: the temporary identifier %s has been declared more than once. Ignoring the second occurance" % (bibdoc_tmpid, ))
                 else:
                     tmp_ids[bibdoc_tmpid] = brd.get_docid(docname)
 
             if bibdoc_tmpver:
-                if bibdoc_tmpver in tmp_vers:
+                if bibdoc_tmpver in tmp_vers and tmp_vers[bibdoc_tmpver] != -1:
                     write_message("WARNING: the temporary version identifier %s has been declared more than once. Ignoring the second occurance" % (bibdoc_tmpver, ))
                 else:
                     if version == None:

@@ -3228,7 +3228,7 @@ allow any</subfield>
         # compare expected results:
         inserted_xm = print_record(recid, 'xm')
         inserted_hm = print_record(recid, 'hm')
-        import rpdb2; rpdb2.start_embedded_debugger('password', fAllowRemote=True)
+#        import rpdb2; rpdb2.start_embedded_debugger('password', fAllowRemote=True)
         self.assertEqual(compare_xmbuffers(inserted_xm,
                                           testrec_expected_xm), '')
         self.assertEqual(compare_hmbuffers(inserted_hm,
