@@ -2626,7 +2626,7 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
     write_message("Uploading BRT, MIT and BDA fields")
     if opt_mode != "holdingpen":
         for record in records:
-            record_id = record_extract_oai_id(record)
+            record_id = retrieve_rec_id(record, opt_mode, pretend=pretend)
             bibupload_post_phase(record,
                                  rec_id = record_id,
                                  mode = opt_mode,
