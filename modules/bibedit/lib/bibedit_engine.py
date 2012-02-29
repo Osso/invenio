@@ -90,6 +90,8 @@ from invenio.bibcirculation_utils import create_item_details_url
 from invenio.refextract_api import replace_references, FullTextNotAvailable
 from invenio import xmlmarc2textmarc as xmlmarc2textmarc
 
+from invenio.bibdocfile import BibRecDocs, InvenioWebSubmitFileError
+
 import invenio.template
 bibedit_templates = invenio.template.load('bibedit')
 
@@ -383,6 +385,10 @@ def perform_request_ajax(req, recid, uid, data, isBulk = False, \
                                                   undo_redo, cacheMTime))
     elif request_type in ('preview', ):
         response.update(perform_request_preview_record(request_type, recid, uid, data))
+    elif request_type in ('get_pdf_url', ):
+        response.update(perform_request_get_pdf_url(recid, uid))
+    elif request_type in ('record_has_pdf', ):
+        response.update(perform_request_record_has_pdf(recid, uid))
     elif request_type in ('refextract', ):
         response.update(perform_request_ref_extract(recid, uid))
 
@@ -626,7 +632,7 @@ def perform_request_record(req, request_type, recid, uid, data, ln=CFG_SITE_LANG
             if template_to_merge:
                 record = merge_record_with_template(record, template_to_merge)
                 create_cache_file(recid, uid, record, True)
-                
+
             response['cacheDirty'], response['record'], \
                 response['cacheMTime'], response['recordRevision'], \
                 response['revisionAuthor'], response['lastRevision'], \
@@ -1221,7 +1227,7 @@ def perform_request_ref_extract(recid, uid):
 
     # 1) Retrieve record from cache
     # 2) Add 999C5 from cache to ref_bibrecord if $$9 CURATOR
-    cache_dirty, record_revision, record, pending_changes, disabled_hp_changes, undo_list, redo_list = get_cache_file_contents(recid, uid)
+    dummy1, dummy2, record, dummy3, dummy4, dummy5, dummy6 = get_cache_file_contents(recid, uid)
     for field_instance in record_get_field_instances(record, "999", "C", "5"):
         for subfield_instance in field_instance[0]:
             if subfield_instance[0] == '9' and subfield_instance[1] == 'CURATOR':
@@ -1261,7 +1267,8 @@ def perform_request_preview_record(request_type, recid, uid, data):
 
     return response
 
-def perform_request_get_pdf_url(recid):
+
+def perform_request_get_pdf_url(recid, uid):
     """ Handle request to get the URL of the attached PDF
     """
     response = {}
@@ -1276,18 +1283,14 @@ def perform_request_get_pdf_url(recid):
         response['pdf_url'] = ''
     return response
 
+
 def perform_request_record_has_pdf(recid, uid):
     """ Check if record has a pdf attached
     """
-    response = {'record_has_pdf': True}
     rec_info = BibRecDocs(recid)
     docs = rec_info.list_bibdocs()
-    try:
-        doc = docs[0]
-    except IndexError:
-        response['record_has_pdf'] = False
-    finally:
-        return response
+    return {'record_has_pdf': bool(docs)}
+
 
 def _get_formated_record(record, new_window):
     """Returns a record in a given format
