@@ -190,7 +190,7 @@ def update_references(recid, inspire=CFG_INSPIRE_SITE, overwrite=True):
 
     # Update record
     task_low_level_submission('bibupload', 'refextract', '-P', '5',
-                              '-c', temp_path)
+                              '-z', temp_path)
 
 
 def look_for_fulltext(recid):
