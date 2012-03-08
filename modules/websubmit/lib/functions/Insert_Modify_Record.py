@@ -52,6 +52,10 @@ def Insert_Modify_Record(parameters, curdir, form, user_info=None):
                                            time.strftime("%Y-%m-%d_%H:%M:%S")))
     os.close(tmp_fd)
     shutil.copy(initial_file, final_file)
-    bibupload_id = task_low_level_submission('bibupload', 'websubmit.Insert_Modify_Record', '-c', final_file, '-P', '3', '-I', str(sequence_id))
+    bibupload_id = task_low_level_submission('bibupload',
+                                             'websubmit.Insert_Modify_Record',
+                                             '--ignore-strong-tags',
+                                             '-c', final_file, '-P', '3',
+                                             '-I', str(sequence_id))
     open(os.path.join(curdir, 'bibupload_id'), 'w').write(str(bibupload_id))
     return ""

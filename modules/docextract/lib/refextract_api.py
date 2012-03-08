@@ -199,7 +199,7 @@ def update_references(recid, overwrite=True):
 
     # Update record
     task_low_level_submission('bibupload', 'refextract', '-P', '5',
-                              '-c', temp_path)
+                              '-z', temp_path)
 
 
 def list_pdfs(recid):
