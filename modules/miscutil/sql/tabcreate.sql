@@ -3655,7 +3655,7 @@ CREATE TABLE IF NOT EXISTS jrnISSUE (
 
 CREATE TABLE IF NOT EXISTS hstRECORD (
   id_bibrec mediumint(8) unsigned NOT NULL,
-  marcxml blob NOT NULL,
+  marcxml longblob NOT NULL,
   job_id mediumint(15) unsigned NOT NULL,
   job_name varchar(255) NOT NULL,
   job_person varchar(255) NOT NULL,

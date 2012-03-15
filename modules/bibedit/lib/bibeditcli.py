@@ -35,17 +35,20 @@ Options to inspect record history::
     [recidC.revdateD]    record A dated B and record C dated D
     --revert-to-revision [recid.revdate]  submit given record revision to
     become current revision
+    --check-revisions [recid]             check if revisions are not corrupted
+                                          * stands for all records
 
 """
 
 __revision__ = "$Id$"
 
 import sys
-
+import zlib
+from invenio.dbquery import run_sql
 from invenio.bibedit_utils import get_marcxml_of_revision_id, \
     get_record_revision_ids, get_xml_comparison, record_locked_by_other_user, \
     record_locked_by_queue, revision_format_valid_p, save_xml_record, \
-    split_revid, get_info_of_revision_id
+    split_revid, get_info_of_revision_id, get_record_revisions
 
 def print_usage():
     """Print help."""
@@ -136,6 +139,31 @@ def cli_revert_to_revision(revid):
     print 'Your modifications have now been submitted. They will be ' \
         'processed as soon as the task queue is empty.'
 
+
+def check_rev(recid, verbose=True):
+    revisions = get_record_revisions(recid)
+    for recid, job_date in revisions:
+        rev = '%s.%s' % (recid, job_date)
+        try:
+            get_marcxml_of_revision_id(rev)
+            if verbose:
+                print '%s: ok' % rev
+        except zlib.error:
+            print '%s: invalid' % rev
+
+
+def cli_check_revisions(recid):
+    if recid == '*':
+        print 'Checking all records'
+        recids = run_sql("SELECT id FROM bibrec ORDER BY id")
+        for index, rec in enumerate(recids):
+            if index % 1000 == 0 and index:
+                print index, 'records processed'
+            check_rev(rec[0], verbose=False)
+    else:
+        check_rev(recid)
+
+
 def main():
     """Main entry point."""
     if '--help' in sys.argv or \
@@ -189,6 +217,12 @@ def main():
                 print_usage()
                 sys.exit(1)
             cli_revert_to_revision(revid)
+        elif cmd == '--check-revisions':
+            try:
+                recid = opts[0]
+            except IndexError:
+                recid = '*'
+            cli_check_revisions(recid)
         else:
             print "ERROR: Please specify a command.  Please see '--help'."
             sys.exit(1)
