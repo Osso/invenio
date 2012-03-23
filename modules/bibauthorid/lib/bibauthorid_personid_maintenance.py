@@ -34,6 +34,7 @@ from bibauthorid_backinterface import check_merger                         #emit
 from bibauthorid_backinterface import get_full_personid_papers
 from bibauthorid_backinterface import get_full_results
 from bibauthorid_backinterface import personid_get_recids_affected_since as get_recids_affected_since
+from bibauthorid_backinterface import restore_personids                    #emitting
 
 def convert_personid():
     from dbquery import run_sql # oh come on, the whole function will be removed soon
