@@ -226,18 +226,6 @@ if CFG_OPENAIRE_SITE:
 else:
     openaire_exports = []
 
-if CFG_INSPIRE_SITE:
-    try:
-        from invenio.inspireproject_webinterface import WebInterfaceInspirePages
-    except:
-        register_exception(stream='warning', 
-                prefix="""
-CFG_INSPIRE_SITE set, but I couldn't load inspireproject_webinterface; have
-you installed the inspire repository master branch?  Until this is corrected,
-/inspire URLs won't work properly.""",
-                alert_admin=False)
-        WebInterfaceInspirePages = WebInterfaceDumbPages
-
 if CFG_DEVEL_SITE:
     try:
         from invenio.httptest_webinterface import WebInterfaceHTTPTestPages
@@ -309,8 +297,6 @@ class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
     batchuploader = WebInterfaceBatchUploaderPages()
     bibsword = WebInterfaceSword()
     person = WebInterfaceBibAuthorIDPages()
-    if CFG_INSPIRE_SITE:
-        inspire = WebInterfaceInspirePages()
 
 # This creates the 'handler' function, which will be invoked directly
 # by mod_python.
