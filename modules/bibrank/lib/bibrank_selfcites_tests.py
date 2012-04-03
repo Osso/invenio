@@ -103,10 +103,6 @@ class SelfCitesIndexerTests(unittest.TestCase):
         from invenio.bibrank_selfcites_indexer import get_personids_from_record
         self.assert_(get_personids_from_record(1))
 
-    def test_get_person_bibrecs(self):
-        from invenio.bibrank_selfcites_indexer import get_person_bibrecs
-        get_person_bibrecs(1)
-
     def test_get_authors_tags(self):
         """
         We don't care about the value since it's
@@ -134,36 +130,41 @@ class SelfCitesIndexerTests(unittest.TestCase):
         tags = get_authors_tags()
         self.assert_(not get_collaborations_from_record(1, tags))
 
-    def test_compute_self_citations(self):
-        from invenio.bibrank_selfcites_indexer import compute_self_citations
-        from invenio.bibrank_selfcites_indexer import get_authors_tags
-        tags = get_authors_tags()
-        self.assertEqual(compute_self_citations(1, tags), set())
-
     def test_fetch_references(self):
         from invenio.bibrank_selfcites_indexer import fetch_references
         self.assertEqual(fetch_references(1), set())
 
-    def test_get_self_cites_list(self):
-        from invenio.bibrank_selfcites_indexer import get_self_cites_list
-        counts = get_self_cites_list([1,2,3,4])
+    def test_get_precomputed_self_cites_list(self):
+        from invenio.bibrank_selfcites_indexer import \
+                                            get_precomputed_self_cites_list
+        counts = get_precomputed_self_cites_list([1, 2, 3, 4])
         self.assertEqual(counts, ((1, 0), (2, 0), (3, 0), (4, 0)))
 
-    def test_get_self_cites(self):
-        from invenio.bibrank_selfcites_indexer import get_self_cites
-        ret = get_self_cites(1)
+    def test_get_precomputed_self_cites(self):
+        from invenio.bibrank_selfcites_indexer import \
+                                                  get_precomputed_self_cites
+        ret = get_precomputed_self_cites(1)
         self.assertEqual(ret, 0)
 
-    def test_compute_simple_self_cites(self):
-        from invenio.bibrank_selfcites_indexer import compute_simple_self_cites
+    def test_compute_simple_self_citations(self):
+        from invenio.bibrank_selfcites_indexer import \
+                                                compute_simple_self_citations
         from invenio.bibrank_selfcites_indexer import get_authors_tags
         tags = get_authors_tags()
-        ret = compute_simple_self_cites([1,2,3,4], tags)
-        self.assertEqual(ret, 0)
+        ret = compute_simple_self_citations(1, tags)
+        self.assertEqual(ret, set())
+
+    def test_compute_friends_self_citations(self):
+        from invenio.bibrank_selfcites_indexer import \
+                                                compute_friends_self_citations
+        from invenio.bibrank_selfcites_indexer import get_authors_tags
+        tags = get_authors_tags()
+        ret = compute_friends_self_citations(1, tags)
+        self.assertEqual(ret, set())
 
     def test_get_self_citations_count(self):
         from invenio.bibrank_selfcites_indexer import get_self_citations_count
-        ret = get_self_citations_count([1,2,3,4])
+        ret = get_self_citations_count([1, 2, 3, 4])
         self.assertEqual(ret, 0)
 
     def test_update_self_cites_tables(self):
@@ -195,7 +196,7 @@ class SelfCitesIndexerTests(unittest.TestCase):
         authors = get_authors_from_record(1, tags)
         self.assert_(get_author_coauthors_list(authors))
 
-    def test_store_record_coauthors(self):
+    def test_store_record_coauthors_with_some_deleted(self):
         from invenio.bibrank_selfcites_indexer import store_record_coauthors
         from invenio.bibrank_selfcites_indexer import get_authors_from_record
         from invenio.bibrank_selfcites_indexer import get_authors_tags
@@ -206,7 +207,23 @@ class SelfCitesIndexerTests(unittest.TestCase):
 
         sql = 'DELETE FROM rnkEXTENDEDAUTHORS WHERE id = %s'
         run_sql(sql, (recid,))
-        store_record_coauthors(recid, authors)
+        store_record_coauthors(recid, authors, [1], authors)
+        sql = 'SELECT count(*) FROM rnkEXTENDEDAUTHORS WHERE id = %s'
+        count = run_sql(sql, (recid,))[0][0]
+        self.assert_(count)
+
+    def test_store_record_coauthors_with_none_deleted(self):
+        from invenio.bibrank_selfcites_indexer import store_record_coauthors
+        from invenio.bibrank_selfcites_indexer import get_authors_from_record
+        from invenio.bibrank_selfcites_indexer import get_authors_tags
+        from invenio.dbquery import run_sql
+        tags = get_authors_tags()
+        recid = 1
+        authors = get_authors_from_record(recid, tags)
+
+        sql = 'DELETE FROM rnkEXTENDEDAUTHORS WHERE id = %s'
+        run_sql(sql, (recid,))
+        store_record_coauthors(recid, authors, [], authors)
         sql = 'SELECT count(*) FROM rnkEXTENDEDAUTHORS WHERE id = %s'
         count = run_sql(sql, (recid,))[0][0]
         self.assert_(count)

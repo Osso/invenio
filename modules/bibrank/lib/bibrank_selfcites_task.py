@@ -27,15 +27,19 @@ import sys
 import traceback
 from datetime import datetime
 
-from invenio.config import CFG_VERSION, CFG_SELFCITES_USE_BIBAUTHORID
+from invenio.config import CFG_VERSION, \
+                           CFG_SELFCITES_USE_BIBAUTHORID, \
+                           CFG_SELFCITES_ALGORITHM
 from invenio.bibtask import task_init, task_set_option, \
                             task_get_option, write_message, \
                             task_sleep_now_if_required, \
                             task_update_progress
 from invenio.dbquery import run_sql
-from invenio.docextract_task import task_run_core_wrapper, split_ids
+from invenio.docextract_task import split_ids
+from invenio.search_engine import get_collection_reclist
 from invenio.bibrank_selfcites_indexer import update_self_cites_tables, \
-                                              compute_self_citations, \
+                                              compute_friends_self_citations, \
+                                              compute_simple_self_citations, \
                                               get_authors_tags
 from invenio.bibrank_citation_searcher import get_refers_to
 from invenio.bibauthorid_daemon import get_user_log as bibauthorid_user_log
@@ -116,7 +120,8 @@ def parse_option(key, value, dummy, args):
     return True
 
 
-def compute_and_store_self_citations(recid, tags, verbose=False):
+def compute_and_store_self_citations(recid, tags, citations_fun,
+                                                                verbose=False):
     """Compute and store self-cites in a table
 
     Args:
@@ -147,7 +152,7 @@ def compute_and_store_self_citations(recid, tags, verbose=False):
         if verbose:
             write_message("%s found (cached)" % cached_citations_row[0])
     else:
-        cites = compute_self_citations(recid, tags)
+        cites = citations_fun(recid, tags)
         sql = "REPLACE INTO rnkSELFCITES (`id`, `count`, `references`," \
                     " `last_updated`) VALUES(%s, %s, %s, NOW())"
         references_string = ','.join(str(r) for r in references)
@@ -195,7 +200,7 @@ def fetch_last_updated(name=NAME):
 
     # Fallback in case we receive None instead of a valid date
     start_date = row[0][0] or datetime(year=1, month=1, day=1)
-    start_id   = row[0][1]
+    start_id = row[0][1]
 
     return start_id, start_date, end_date
 
@@ -206,7 +211,6 @@ def store_last_updated(recid, date, name=NAME):
                 "WHERE name=%s AND last_updated <= %s"
     iso_date = date.isoformat()
     run_sql(sql, (iso_date, recid, name, iso_date))
-
 
 
 def skip_already_processed_records(records, start_id, start_date):
@@ -271,7 +275,7 @@ def fetch_concerned_records():
     return records
 
 
-def catch_exceptions(f):
+def print_exceptions(f):
     def fun():
         try:
             return f()
@@ -282,7 +286,7 @@ def catch_exceptions(f):
     return fun
 
 
-@catch_exceptions
+@print_exceptions
 def task_run_core():
     """
     This is what gets executed first when the task is started.
@@ -296,6 +300,7 @@ def task_run_core():
 
     tags = get_authors_tags()
     records = fetch_concerned_records()
+    citations_fun = get_citations_fun()
 
     total = len(records)
     for count, (recid, date) in enumerate(records):
@@ -304,7 +309,7 @@ def task_run_core():
         task_update_progress(msg)
         write_message(msg)
 
-        process_one(recid, tags)
+        process_one(recid, tags, citations_fun)
 
         if date:
             store_last_updated(recid, date)
@@ -313,14 +318,22 @@ def task_run_core():
     return True
 
 
-def process_one(recid, tags):
+def get_citations_fun(algorithm=CFG_SELFCITES_ALGORITHM):
+    if algorithm == 'friends':
+        citations_fun = compute_friends_self_citations
+    else:
+        citations_fun = compute_simple_self_citations
+    return citations_fun
+
+
+def process_one(recid, tags, citations_fun):
     """Self-cites core func, executed on each recid"""
-    update_self_cites_tables(recid, tags)
-    compute_and_store_self_citations(recid, tags)
+    # First update this record then all its references
+    compute_and_store_self_citations(recid, tags, citations_fun)
 
     references = get_refers_to(recid)
     for recordid in references:
-        compute_and_store_self_citations(recordid, tags)
+        compute_and_store_self_citations(recordid, tags, citations_fun)
 
 
 def empty_self_cites_tables():
@@ -330,12 +343,12 @@ def empty_self_cites_tables():
     The purpose is to rebuild the tables from scratch in case there is problem
     with them: inconsitencies, corruption,...
     """
-    run_sql('TRUNCATE rnkRECORDSCACHE')
-    run_sql('TRUNCATE rnkEXTENDEDAUTHORS')
     run_sql('TRUNCATE rnkSELFCITES')
+    run_sql('TRUNCATE rnkEXTENDEDAUTHORS')
+    run_sql('TRUNCATE rnkRECORDSCACHE')
 
 
-def fill_self_cites_tables():
+def fill_self_cites_tables(algorithm=CFG_SELFCITES_ALGORITHM):
     """
     This will fill the self-cites tables with data
 
@@ -344,18 +357,26 @@ def fill_self_cites_tables():
     """
     tags = get_authors_tags()
     all_ids = [r[0] for r in run_sql('SELECT id FROM bibrec ORDER BY id')]
-    # Fill intermediary tables
-    for index, recid in enumerate(all_ids):
-        if index % 1000 == 0:
-            task_update_progress('intermediate %d/%d' % (index, len(all_ids)))
-            task_sleep_now_if_required()
-        update_self_cites_tables(recid, tags)
+    citations_fun = get_citations_fun(algorithm)
+    write_message('using %s' % citations_fun.__name__)
+    if algorithm == 'friends':
+        # We only needs this table for the friends algorithm or assimilated
+        # Fill intermediary tables
+        for index, recid in enumerate(all_ids):
+            if index % 1000 == 0:
+                msg = 'intermediate %d/%d' % (index, len(all_ids))
+                task_update_progress(msg)
+                write_message(msg)
+                task_sleep_now_if_required()
+            update_self_cites_tables(recid, tags)
     # Fill self-cites table
     for index, recid in enumerate(all_ids):
         if index % 1000 == 0:
-            task_update_progress('final %d/%d' % (index, len(all_ids)))
+            msg = 'final %d/%d' % (index, len(all_ids))
+            task_update_progress(msg)
+            write_message(msg)
             task_sleep_now_if_required()
-        compute_and_store_self_citations(recid, tags)
+        compute_and_store_self_citations(recid, tags, citations_fun)
 
 
 def main():

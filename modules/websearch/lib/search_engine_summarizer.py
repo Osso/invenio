@@ -34,7 +34,8 @@ if sys.hexversion < 0x2040000:
     from sets import Set as set
     # pylint: enable=W0622
 
-from invenio.config import CFG_INSPIRE_SITE
+from invenio.config import CFG_INSPIRE_SITE, \
+                           CFG_WEBSEARCH_CITESUMMARY_SELFCITES_THRESHOLD
 from invenio.bibrank_citation_searcher import get_cited_by_list, get_cited_by
 from invenio.bibrank_selfcites_indexer import get_self_citations_count
 from invenio.errorlib import register_exception
@@ -66,17 +67,9 @@ CFG_CITESUMMARY_FAME_THRESHOLDS = [
                                    (0, 0, 'Unknown papers (0)')
                                    ]
 
-## CFG_SELFCITATIONS_THRESHOLD -- only calculate self-citations stats if
-## we are dealing with less than n records
-if CFG_INSPIRE_SITE:
-    CFG_CITESUMMARY_SELFCITES_THRESHOLD = 0
-else:
-    CFG_CITESUMMARY_SELFCITES_THRESHOLD = 1000
-
 
 def render_self_citations(d_recids, d_total_recs, ln):
     """Render the html displayed for self-citations"""
-    d_recid_citers = {}
     d_total_cites = {}
     d_avg_cites = {}
 
@@ -112,7 +105,7 @@ def summarize_records(recids, of, ln, searchpattern="", searchfield="", req=None
             else:
                 d_recids[coll] = recids & search_engine.search_pattern(p=colldef)
             d_total_recs[coll] = len(d_recids[coll])
-            if d_total_recs[coll] > CFG_CITESUMMARY_SELFCITES_THRESHOLD:
+            if d_total_recs[coll] > CFG_WEBSEARCH_CITESUMMARY_SELFCITES_THRESHOLD:
                 compute_self_citations_p = False
 
         prologue = websearch_templates.tmpl_citesummary_prologue(d_total_recs, CFG_CITESUMMARY_COLLECTIONS, searchpattern, searchfield, ln)

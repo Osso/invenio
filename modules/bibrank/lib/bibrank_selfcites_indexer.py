@@ -38,8 +38,11 @@ from invenio.search_engine_utils import get_fieldvalues
 from invenio.bibrank_citation_indexer import tagify
 from invenio.config import CFG_ETCDIR, \
                            CFG_SELFCITES_USE_BIBAUTHORID, \
-                           CFG_SELFCITES_PRECOMPUTE_FRIENDS
+                           CFG_SELFCITES_PRECOMPUTE, \
+                           CFG_SELFCITES_FRIENDS_THRESHOLD, \
+                           CFG_SELFCITES_ALGORITHM
 from invenio.dbquery import run_sql
+from invenio.bibauthorid_searchinterface import get_personids_from_bibrec
 from invenio.bibrank_citation_searcher import get_cited_by
 
 
@@ -60,42 +63,13 @@ def get_personids_from_record(record):
     We limit the result length to 20 authors, after which it returns an
     empty set for performance reasons
     """
-    refs_100 = run_sql("SELECT `bib10x`.`id`, `bibrec_bib10x`.`id_bibrec`" \
-        " FROM `bibrec_bib10x`" \
-        " JOIN `bib10x` ON `bib10x`.`id` = `bibrec_bib10x`.`id_bibxxx`" \
-        " WHERE tag = '100__a'" \
-        " AND `id_bibrec` = %s LIMIT 21", (str(record), ))
-    refs_700 = run_sql("SELECT `bib70x`.`id`, `bibrec_bib70x`.`id_bibrec`" \
-        " FROM `bibrec_bib70x`" \
-        " JOIN `bib70x` ON `bib70x`.`id` = `bibrec_bib70x`.`id_bibxxx`" \
-        " WHERE tag = '700__a'" \
-        " AND `id_bibrec` = %s LIMIT 21", (str(record), ))
-
-    if 0 < len(refs_100) + len(refs_700) <= 20:
-        list_100 = ("'100:%s,%s'" % (p[0], p[1]) for p in refs_100)
-        list_700 = ("'700:%s,%s'" % (p[0], p[1]) for p in refs_700)
-
-        query = "SELECT `personid` FROM `aidPERSONID`" \
-            " WHERE tag = 'paper' AND flag > '-1'" \
-            " AND `data` IN (%s)" % ','.join(chain(list_100, list_700))
-        person_ids = set(row[0] for row in run_sql(query))
+    ids = get_personids_from_bibrec(record)
+    if 0 < len(ids) <= 20:
+        person_ids = set(ids)
     else:
         person_ids = set()
 
     return person_ids
-
-
-def get_person_bibrecs(pid):
-    """Fetch all the records associated to a personid
-
-    args:
-     - pid: integer personid
-
-    Returns a list of records [bibrec1,...,bibrecN]
-    """
-    sql = "SELECT data FROM aidPERSONID WHERE personid = %s and tag = 'paper'"
-    papers = run_sql(sql, (str(pid), ))
-    return set(p[0].split(',')[1] for p in papers)
 
 
 def get_authors_tags():
@@ -120,13 +94,14 @@ def get_authors_tags():
     return tags
 
 
-def get_authors_from_record(recID, tags):
+def get_authors_from_record(recID, tags,
+                                use_bibauthorid=CFG_SELFCITES_USE_BIBAUTHORID):
     """Get all authors for a record
 
     We need this function because there's 3 different types of authors
     and to fetch each one of them we need look through MARC tags
     """
-    if CFG_SELFCITES_USE_BIBAUTHORID:
+    if use_bibauthorid:
         authors = get_personids_from_record(recID)
     else:
         authors_list = chain(
@@ -143,7 +118,7 @@ def get_collaborations_from_record(recID, tags):
     return get_fieldvalues(recID, tags['collaboration_name'])
 
 
-def compute_self_citations(recid, tags):
+def compute_self_citations(recid, tags, authors_fun):
     """Compute the self-citations
 
     We return the total numbers of citations minus the number of self-citations
@@ -185,7 +160,7 @@ def compute_self_citations(recid, tags):
                 # a record from an author, it's fine
                 pass
             else:
-                cit_coauthors = frozenset(get_record_coauthors(cit))
+                cit_coauthors = frozenset(authors_fun(cit, tags))
                 if authors.intersection(cit_coauthors):
                     self_citations.add(cit)
 
@@ -212,14 +187,14 @@ def fetch_references(recid):
     return ids
 
 
-def get_self_cites_list(recids):
+def get_precomputed_self_cites_list(recids):
     """Fetch pre-computed self-cites data for given records"""
     in_sql = ','.join('%s' for dummy in recids)
     sql = "SELECT id, count FROM rnkSELFCITES WHERE id IN (%s)" % in_sql
     return run_sql(sql, recids)
 
 
-def get_self_cites(recid):
+def get_precomputed_self_cites(recid):
     """Fetch pre-computed self-cites data for given record"""
     sql = "SELECT count FROM rnkSELFCITES WHERE id = %s"
     try:
@@ -229,53 +204,49 @@ def get_self_cites(recid):
     return r
 
 
-def compute_simple_self_cites(recids, tags):
+def compute_friends_self_citations(recid, tags):
+    def coauthors(recid, tags):
+        return set(get_record_coauthors(recid)) \
+               | set(get_authors_from_record(recid, tags))
+    return compute_self_citations(recid, tags, coauthors)
+
+
+def compute_simple_self_citations(recid, tags):
     """Simple compute self-citations
 
     The purpose of this algorithm is to provide an alternate way to compute
     self-citations that we can use at runtime.
     Here, we only check for authors citing themselves.
     """
-
-    def compute_one(recid, tags):
-        count = 0
-        authors = get_authors_from_record(recid, tags)
-        citations = get_cited_by(recid)
-        for c in citations:
-            citation_authors = get_authors_from_record(c, tags)
-            if not authors & citation_authors:
-                count += 1
-        return count
-
-    total_cites = 0
-    for recid in recids:
-        total_cites += compute_one(recid, tags)
-    return total_cites
+    return compute_self_citations(recid, tags, get_authors_from_record)
 
 
-def get_self_citations_count(recids):
+def get_self_citations_count(recids, algorithm=CFG_SELFCITES_ALGORITHM,
+                                         precompute=CFG_SELFCITES_PRECOMPUTE):
     """Depending on our site we config, we either:
     * compute self-citations (using a simple algorithm)
     * or fetch self-citations from pre-computed table"""
-    if not CFG_SELFCITES_PRECOMPUTE_FRIENDS:
-        tags = get_authors_tags()
-        return compute_simple_self_cites(recids, tags)
-
-    results = get_self_cites_list(recids)
-
-    results_dict = {}
-    for r in results:
-        results_dict[r[0]] = r[1]
-
     total_cites = 0
-    for r in recids:
-        citers = get_cited_by(r)
-        if r in results_dict:
-            self_cites = results_dict[r]
-        else:
-            self_cites = 0
 
-        total_cites += len(citers) - self_cites
+    if not precompute:
+        tags = get_authors_tags()
+        selfcites_fun = ALL_ALGORITHMS[algorithm]
+
+        for recid in recids:
+            citers = get_cited_by(recid)
+            self_cites = selfcites_fun(recid, tags)
+            total_cites += len(citers) - len(self_cites)
+    else:
+        results = get_precomputed_self_cites_list(recids)
+
+        results_dict = {}
+        for r in results:
+            results_dict[r[0]] = r[1]
+
+        for r in recids:
+            citers = get_cited_by(r)
+            self_cites = results_dict.get(r, 0)
+            total_cites += len(citers) - self_cites
 
     return total_cites
 
@@ -286,9 +257,13 @@ def update_self_cites_tables(recid, tags):
 
     if 0 < len(authors) <= 20:
         # Updated reords cache table
-        if store_record(recid, authors):
+        deleted_authors, added_authors = store_record(recid, authors)
+        if deleted_authors or added_authors:
             # Update extended authors table
-            store_record_coauthors(recid, authors)
+            store_record_coauthors(recid,
+                                   authors,
+                                   deleted_authors,
+                                   added_authors)
 
 
 def store_record(recid, authors):
@@ -303,31 +278,48 @@ def store_record(recid, authors):
     old_authors = set(r[0] for r in rows)
 
     if authors != old_authors:
-        for authorid in old_authors.difference(authors):
+        deleted_authors = old_authors.difference(authors)
+        added_authors = authors.difference(old_authors)
+        for authorid in deleted_authors:
             run_sql('DELETE FROM rnkRECORDSCACHE WHERE id = %s', (recid, ))
-        for authorid in authors.difference(old_authors):
+        for authorid in added_authors:
             run_sql('INSERT IGNORE INTO rnkRECORDSCACHE (id, authorid)' \
                     ' VALUES (%s,%s)', (recid, authorid))
-        return True
+        return deleted_authors, added_authors
 
-    return False
+    return set(), set()
 
 
-def get_author_coauthors_list(personids):
+def get_author_coauthors_list(personids, \
+                        cluster_threshold=CFG_SELFCITES_FRIENDS_THRESHOLD):
     """
     Get all the authors that have written a paper with any of the given authors
     """
-    assert personids
+    personids = list(personids)
+    if not personids:
+        return ()
+
     in_sql = ','.join('%s' for r in personids)
-    return (r[0] for r in run_sql("""
+    coauthors = (r[0] for r in run_sql("""
         SELECT a.authorid FROM rnkRECORDSCACHE as a
         JOIN rnkRECORDSCACHE as b ON a.id = b.id
-        WHERE b.authorid IN (%s)""" % in_sql, personids))
+        WHERE b.authorid IN (%s)
+        GROUP BY a.authorid
+        HAVING count(a.authorid) >= %s""" % (in_sql, cluster_threshold),
+        personids))
 
+    return chain(personids, coauthors)
 
-def store_record_coauthors(recid, authors):
+def store_record_coauthors(recid, authors, deleted_authors, added_authors):
     """Fill table used by get_record_coauthors()"""
-    for personid in get_author_coauthors_list(authors):
+    to_process = authors if deleted_authors else added_authors
+
+    for personid in get_author_coauthors_list(deleted_authors):
+        run_sql('DELETE FROM rnkEXTENDEDAUTHORS WHERE'\
+                ' id = %s AND authorid = %s', (recid, personid))
+
+    for personid in get_author_coauthors_list(to_process):
+        print repr(personid)
         run_sql('INSERT IGNORE INTO rnkEXTENDEDAUTHORS (id, authorid) ' \
                 'VALUES (%s,%s)', (recid, personid))
 
@@ -339,3 +331,9 @@ def get_record_coauthors(recid):
     """
     sql = 'SELECT authorid FROM rnkEXTENDEDAUTHORS WHERE id = %s'
     return (r[0] for r in run_sql(sql, (recid, )))
+
+
+ALL_ALGORITHMS = {
+    'friends': compute_friends_self_citations,
+    'simple': compute_simple_self_citations,
+}
