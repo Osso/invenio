@@ -659,6 +659,13 @@ def write_message(msg, stream=None, verbose=1):
         elif stream == sys.stderr:
             logging.error(msg)
         else:
+            import traceback
+            # sys.stderr.write(traceback.format_exc()[:-1])
+            # sys.stderr.write('\n')
+            print >>sys.stderr, msg
+            print >>sys.stderr, repr(stream)
+            print >>sys.stderr, repr(sys.stdout)
+            sys.exit(1)
             sys.stderr.write("Unknown stream %s.  [must be sys.stdout or sys.stderr]\n" % stream)
     else:
         logging.debug(msg)
