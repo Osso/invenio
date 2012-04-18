@@ -1008,9 +1008,14 @@ def harvest_postprocress_record(oai_src_id, record_id, treat_new=False):
     oai_src_post = oai_src[0][9]
     oai_src_sets = oai_src[0][10].split()
     oai_src_bibfilter = oai_src[0][11]
+    
+    
     result = harvest_record(record_id, oai_src_baseurl, oai_src_prefix)
+    
+    
     if result == None:
         return (False, "Error during harvesting")
+    
     if oai_src_post.find("c") != -1:
         result = convert_record(oai_src_config, result)
         if result == None:
@@ -1094,8 +1099,11 @@ def perform_request_harvest_record(oai_src_id=None, ln=CFG_SITE_LANG, confirm=0,
                                ln=ln,
                                confirm=1)
     if record_id != None:
+        
         # there was a harvest-request
         transformed = harvest_postprocress_record(oai_src_id, record_id)[1]
+        
+        
         upload_record(transformed, ["-i"], oai_src_id)
         result += bibharvest_templates.tmpl_print_info(ln, "Submitted for insertion into the database")
     return result
