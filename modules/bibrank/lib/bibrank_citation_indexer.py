@@ -54,11 +54,12 @@ class memoise:
 
 INTBITSET_OF_DELETED_RECORDS = search_unit(p='DELETED', f='980', m='a')
 
-def get_recids_matching_query(pvalue, fvalue):
-    """Return list of recIDs matching query for PVALUE and FVALUE."""
-    rec_id = list(search_pattern(p=pvalue, f=fvalue, m='e') - INTBITSET_OF_DELETED_RECORDS)
-    return rec_id
-get_recids_matching_query = memoise(get_recids_matching_query)
+
+@memoise
+def get_recids_matching_query(pvalue, fvalue, m='e'):
+    """Return set of recIDs matching query for PVALUE and FVALUE."""
+    return search_pattern(p=pvalue, f=fvalue, m=m) - INTBITSET_OF_DELETED_RECORDS
+
 
 def get_citation_weight(rank_method_code, config):
     """return a dictionary which is used by bibrank daemon for generating
@@ -675,7 +676,7 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     numrecs = len(d_references_report_numbers)
     for thisrecid, refnumbers in d_references_report_numbers.iteritems():
         if done % 1000 == 0:
-            mesg =  "done %s of %s" % (done, numrecs)
+            mesg = "done %s of %s" % (done, numrecs)
             write_message(mesg)
             task_update_progress("d_references_report_numbers " + mesg)
             task_sleep_now_if_required()
@@ -689,14 +690,14 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
                 p.replace("\n", '')
                 p = standardize_report_number(p)
                 # Search for "hep-th/5644654 or such" in existing records
-                rec_ids = get_recids_matching_query(p, f)
+                rec_ids = list(get_recids_matching_query(p, f))
                 if rec_ids and rec_ids[0]:
                     write_citer_cited(thisrecid, rec_ids[0])
                     remove_from_missing(p)
-                    if not result.has_key(rec_ids[0]):
+                    if rec_ids[0] not in result:
                         result[rec_ids[0]] = 0
                     # Citation list should have rec_ids[0] but check anyway
-                    if not citation_list.has_key(rec_ids[0]):
+                    if rec_ids[0] not in citation_list:
                         citation_list[rec_ids[0]] = []
                     #append unless this key already has the item
                     if not thisrecid in citation_list[rec_ids[0]]:
@@ -704,7 +705,7 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
                         #and update result
                         result[rec_ids[0]] += 1
 
-                    if not reference_list.has_key(thisrecid):
+                    if thisrecid not in reference_list:
                         reference_list[thisrecid] = []
                     if not rec_ids[0] in reference_list[thisrecid]:
                         reference_list[thisrecid].append(rec_ids[0])
@@ -716,11 +717,11 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
                     #but the 999C5s fields are not yet normalized
 
                     #rectext = print_record(thisrecid, format='hm', ot=pubreftag[:-1])
-                    rectext = "" # print_record() call disabled to speed things up
+                    rectext = ""  # print_record() call disabled to speed things up
                     lines = rectext.split("\n")
-                    rpart = p #to be used..
+                    rpart = p  # to be used..
                     for l in lines:
-                        if l.find(p) > 0: #the gfhgf/1254312 was found.. get the s-part of it
+                        if l.find(p) > 0:  # the gfhgf/1254312 was found.. get the s-part of it
                             st = l.find('$s')
                             if st > 0:
                                 end = l.find('$', st)
@@ -741,7 +742,7 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     numrecs = len(d_references_s)
     for thisrecid, refss in d_references_s.iteritems():
         if done % 1000 == 0:
-            mesg = "done "+str(done)+" of "+str(numrecs)
+            mesg = "done " + str(done) + " of " + str(numrecs)
             write_message(mesg)
             task_update_progress("d_references_s " + mesg)
             task_sleep_now_if_required()
@@ -751,7 +752,7 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
         for refs in refss:
             if refs:
                 p = refs
-                #remove the latter page number if it is like 67-74
+                # remove the latter page number if it is like 67-74
                 matches = re.compile("(.*)(-\d+$)").findall(p)
                 if matches and matches[0]:
                     p = matches[0][0]
@@ -760,27 +761,27 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
                     rec_ids = list(search_unit(p, 'journal') - INTBITSET_OF_DELETED_RECORDS)
                 except:
                     rec_ids = None
-                write_message("These match searching "+p+" in journal: "+str(rec_id), verbose=9)
+                write_message("These match searching " + p + " in journal: " + str(rec_id), verbose=9)
                 if rec_ids and rec_ids[0]:
-                    #the refered publication is in our collection, remove
-                    #from missing
+                    # the refered publication is in our collection, remove
+                    # from missing
                     remove_from_missing(p)
                 else:
-                    #it was not found so add in missing
+                    # it was not found so add in missing
                     insert_into_missing(thisrecid, p)
-                #check citation and reference for this..
+                # check citation and reference for this..
                 if rec_ids and rec_ids[0]:
-                    #the above should always hold
-                    if not result.has_key(rec_ids[0]):
+                    # the above should always hold
+                    if rec_ids[0] not in result:
                         result[rec_ids[0]] = 0
-                    if not citation_list.has_key(rec_ids[0]):
+                    if rec_ids[0] not in citation_list:
                         citation_list[rec_ids[0]] = []
-                    if not thisrecid in citation_list[rec_ids[0]]:
-                        citation_list[rec_ids[0]].append(thisrecid) #append actual list
-                        result[rec_ids[0]] += 1 #add count for this..
+                    if thisrecid not in citation_list[rec_ids[0]]:
+                        citation_list[rec_ids[0]].append(thisrecid)  # append actual list
+                        result[rec_ids[0]] += 1  # add count for this..
 
-                    #update reference_list accordingly
-                    if not reference_list.has_key(thisrecid):
+                    # update reference_list accordingly
+                    if thisrecid not in reference_list:
                         reference_list[thisrecid] = []
                     if not rec_ids[0] in reference_list[thisrecid]:
                         reference_list[thisrecid].append(rec_ids[0])
@@ -802,28 +803,31 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
 
         for reportcode in reportcodes:
             if reportcode:
-                reportcode = standardize_report_number(reportcode)
-                rec_ids = []
+                std_reportcode = standardize_report_number(reportcode)
                 try:
-                    rec_ids = get_recids_matching_query(reportcode, pubrefntag)
+                    report_pattern = r'^' + re.escape(std_reportcode) \
+                                                 + r'( *\[[a-zA-Z.-]*\])?'
+                    rec_ids = get_recids_matching_query(report_pattern,
+                                                        pubrefntag,
+                                                        'r')
                 except:
-                    rec_ids = []
+                    rec_ids = intbitset()
 
                 if rec_ids:
                     for recid in rec_ids:
-                        #normal checks..
-                        if not citation_list.has_key(thisrecid):
+                        # normal checks..
+                        if thisrecid not in citation_list:
                             citation_list[thisrecid] = []
-                        if not reference_list.has_key(recid):
+                        if recid not in reference_list:
                             reference_list[recid] = []
-                        if not result.has_key(thisrecid):
+                        if thisrecid not in result:
                             result[thisrecid] = 0
 
-                        #normal updates
-                        if not recid in citation_list[thisrecid]:
+                        # normal updates
+                        if recid not in citation_list[thisrecid]:
                             result[thisrecid] += 1
                             citation_list[thisrecid].append(recid)
-                        if not thisrecid in reference_list[recid]:
+                        if thisrecid not in reference_list[recid]:
                             reference_list[recid].append(thisrecid)
 
     mesg = "done fully"
@@ -840,19 +844,19 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
             mesg = "done %s of %s" % (done, numrecs)
             write_message(mesg)
             task_update_progress("d_records_s" + mesg)
-        done = done+1
-        p = recs.replace("\"","")
+        done += 1
+        p = recs.replace("\"", "")
         #search the publication string like Phys. Lett., B 482 (2000) 417 in 999C5s
         rec_ids = list(search_unit(f=pubreftag, p=p, m='a') - INTBITSET_OF_DELETED_RECORDS)
-        write_message("These records match "+p+" in "+pubreftag+" : "+str(rec_ids), verbose=9)
+        write_message("These records match " + p + " in " + pubreftag + " : " + str(rec_ids), verbose=9)
         if rec_ids:
             for rec_id in rec_ids:
                 #normal checks
-                if not result.has_key(thisrecid):
+                if thisrecid not in result:
                     result[thisrecid] = 0
-                if not citation_list.has_key(thisrecid):
+                if thisrecid not in citation_list:
                     citation_list[thisrecid] = []
-                if not reference_list.has_key(rec_id):
+                if rec_id not in reference_list:
                     reference_list[rec_id] = []
 
                 if not rec_id in citation_list[thisrecid]:
