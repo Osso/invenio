@@ -37,6 +37,7 @@ from invenio.dbquery import run_sql, serialize_via_marshal, \
 from invenio.search_engine import search_pattern, search_unit
 from invenio.search_engine_utils import get_fieldvalues
 from invenio.bibformat_utils import parse_tag
+from invenio.bibknowledge import get_kb_mappings
 from invenio.bibtask import write_message, task_get_option, \
                      task_update_progress, task_sleep_now_if_required, \
                      task_get_task_param
@@ -50,11 +51,9 @@ class memoise:
         self.function = function
 
     def __call__(self, *args):
-        if args in self.memo:
-            return self.memo[args]
-        else:
-            object = self.memo[args] = self.function(*args)
-            return object
+        if args not in self.memo:
+            self.memo[args] = self.function(*args)
+        return self.memo[args]
 
 INTBITSET_OF_DELETED_RECORDS = search_unit(p='DELETED', f='980', m='a')
 
@@ -191,47 +190,31 @@ def create_recordid_list(rec_ids):
     return [row[0] for row in rec_ids]
 
 
-def create_record_tuple(ilist):
-    """Creates a tuple of record id from a list of id.
-       The result is expected to have ascending numerical order.
-    """
-    list_length = len(ilist)
-    if list_length:
-        rec_tuple = '('
-        for row in list[0:list_length-1]:
-            rec_tuple += str(row)
-            rec_tuple += ','
-        rec_tuple += str(list[list_length-1])
-        rec_tuple += ')'
-    else:
-        rec_tuple = '()'
-    return rec_tuple
-
-
 def last_updated_result(rank_method_code):
     """ return the last value of dictionary in rnkMETHODDATA table if it
         exists and initialize the value of last updated records by zero,
         otherwise an initial dictionary with zero as value for all recids
     """
     result = [{}, {}, {}]
-    query = """select relevance_data from rnkMETHOD, rnkMETHODDATA where
+    query = """SELECT relevance_data FROM rnkMETHOD, rnkMETHODDATA WHERE
                rnkMETHOD.id = rnkMETHODDATA.id_rnkMETHOD
-               and rnkMETHOD.Name = '%s'"""% rank_method_code
+               AND rnkMETHOD.Name = '%s'""" % rank_method_code
     rdict = run_sql(query)
     if rdict and rdict[0] and rdict[0][0]:
-        #has to be prepared for corrupted data!
+        # has to be prepared for corrupted data!
         try:
             dic = deserialize_via_marshal(rdict[0][0])
         except zlib.error:
             return [{}, {}, {}]
-        query = "select object_value from rnkCITATIONDATA where object_name='citationdict'"
+        query = """SELECT object_value FROM rnkCITATIONDATA
+                   WHERE object_name='citationdict'"""
         cit_compressed = run_sql(query)
         cit = []
         if cit_compressed and cit_compressed[0] and cit_compressed[0][0]:
             cit = deserialize_via_marshal(cit_compressed[0][0])
             if cit:
-                query = """select object_value from rnkCITATIONDATA
-                           where object_name='reversedict'"""
+                query = """SELECT object_value FROM rnkCITATIONDATA
+                           WHERE object_name='reversedict'"""
                 ref_compressed = run_sql(query)
                 if ref_compressed and ref_compressed[0] and ref_compressed[0][0]:
                     ref = deserialize_via_marshal(ref_compressed[0][0])
@@ -373,7 +356,7 @@ def get_citation_informations(recid_list, config):
                 d_references_report_numbers[recid] = reference_report_numbers
 
             references_s = get_fieldvalues(recid, p_reference_tag)
-            write_message(str(recid)+"'s "+str(p_reference_tag)+" values "+str(references_s), verbose=9)
+            write_message("%s's %s values %s" % (recid, p_reference_tag, references_s), verbose=9)
             if references_s:
                 d_references_s[recid] = references_s
 
@@ -385,10 +368,6 @@ def get_citation_informations(recid_list, config):
                 tagsvalues = {}  # we store the tags and their values here
                                  # like c->444 y->1999 p->"journal of foo",
                                  # v->20
-                tagsvalues["p"] = ""
-                tagsvalues["y"] = ""
-                tagsvalues["c"] = ""
-                tagsvalues["v"] = ""
                 tmp = get_fieldvalues(recid, publication_journal_tag)
                 if tmp:
                     tagsvalues["p"] = tmp[0]
@@ -406,24 +385,32 @@ def get_citation_informations(recid_list, config):
                     if hpos > 0:
                         pages = pages[:hpos]
                     tagsvalues["c"] = pages
-                # format the publ infostring according to the format
-                publ = ""
-                ok = 1
-                for i in range(0, len(publication_format_string)):
-                    current = publication_format_string[i]
-                    # these are supported
-                    if current in ("p", "c", "v", "y"):
-                        if tagsvalues[current]:
-                            # add the value in the string
-                            publ += tagsvalues[current]
-                        else:
-                            ok = 0
-                            break  # it was needed and not found
-                    else:
-                        publ += current  # just add the character in the format string
+
+                # check if we have the required data
+                ok = True
+                for c in publication_format_string:
+                    if c in ('p', 'v', 'y', 'c'):
+                        if c not in tagsvalues:
+                            ok = False
+
                 if ok:
-                    write_message("d_records_s (publication info) for "+str(recid)+" is "+publ, verbose=9)
-                    d_records_s[recid] = publ
+                    # format the publ infostring according to the format
+                    def replace(char, data):
+                        return tagsvalues.get(char, char)
+
+                    def format_journal(format_string, mappings):
+                        return ''.join(replace(c, mappings) for c in format_string)
+
+                    publ = format_journal(publication_format_string, tagsvalues)
+                    d_records_s[recid] = [publ]
+
+                    # Add codens
+                    for coden in get_kb_mappings('CODENS', value=tagsvalues['p']):
+                        tagsvalues['p'] = coden['key']
+                        d_records_s[recid].append(format_journal(publication_format_string, tagsvalues))
+
+                    write_message("d_records_s (publication info) for %s is %s" % (recid, d_records_s[recid]), verbose=9)
+
     else:
         mesg = "Warning: there are no records with tag values for "
         mesg += p_reference_number_tag+" or "+p_reference_tag+". Nothing to do."
@@ -460,6 +447,9 @@ def prepare_self_citations_cache(updated_records_list, references_dict):
         to_update.update(references_dict.get(recid, set()))
 
     for index, recid in enumerate(to_update):
+        if index % 10 == 0:
+            task_sleep_now_if_required()
+
         if index % 1000 == 0:
             mesg = "Self cite done %d of %d" % (index, len(to_update))
             write_message(mesg)
@@ -490,6 +480,9 @@ def get_self_citations(updated_records_list, citations_dict, references_dict,
         to_update.update(references_dict.get(recid, set()))
 
     for index, recid in enumerate(to_update):
+        if index % 10 == 0:
+            task_sleep_now_if_required()
+
         if index % 1000 == 0:
             mesg = "Self cite done %d of %d" % (index, len(to_update))
             write_message(mesg)
@@ -532,7 +525,7 @@ def get_author_citations(updated_redic_list, citedbydict,
             register_exception(prefix="attribute "+t+" missing in config", alert_admin=True)
             return initial_author_dict
 
-    #parse the tags
+    # Parse the tags
     mainauthortag = tagify(parse_tag(tagvals['first_author']))
     coauthortag = tagify(parse_tag(tagvals['additional_author']))
     extauthortag = tagify(parse_tag(tagvals['alternative_author_name']))
@@ -546,7 +539,10 @@ def get_author_citations(updated_redic_list, citedbydict,
         i = 0  # just a counter for debug
         write_message("Checking records referred to in new records")
         for u in updated_redic_list:
-            if (i % 1000 == 0):
+            if i % 10 == 0:
+                task_sleep_now_if_required()
+
+            if i % 1000 == 0:
                 mesg = "Author ref done %s of %s records" % (i, len(updated_redic_list))
                 write_message(mesg)
                 task_update_progress(mesg)
@@ -577,7 +573,8 @@ def get_author_citations(updated_redic_list, citedbydict,
         write_message(mesg)
         task_update_progress(mesg)
 
-        #go through the dictionary again: all keys but search only if new records are cited
+        # Go through the dictionary again: all keys but search only
+        # if new records are cited
         write_message("Checking authors in new records")
         i = 0
         for k in citedbydict.keys():
@@ -687,11 +684,14 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     done = 0
     numrecs = len(d_references_report_numbers)
     for thisrecid, refnumbers in d_references_report_numbers.iteritems():
+        if done % 10 == 0:
+            task_sleep_now_if_required()
+
         if done % 1000 == 0:
             mesg = "done %s of %s" % (done, numrecs)
             write_message(mesg)
             task_update_progress("d_references_report_numbers " + mesg)
-            task_sleep_now_if_required()
+
         done += 1
 
         for refnumber in refnumbers:
@@ -703,18 +703,19 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
                 p = standardize_report_number(p)
                 # Search for "hep-th/5644654 or such" in existing records
                 rec_ids = list(get_recids_matching_query(p, f))
+                write_message("These match searching %s in %s: %s" % (p, f, rec_ids), verbose=9)
                 if rec_ids and rec_ids[0]:
-                    write_citer_cited(thisrecid, rec_ids[0])
+                    # write_citer_cited(thisrecid, rec_ids[0])
                     remove_from_missing(p)
                     if rec_ids[0] not in result:
                         result[rec_ids[0]] = 0
                     # Citation list should have rec_ids[0] but check anyway
                     if rec_ids[0] not in citation_list:
                         citation_list[rec_ids[0]] = []
-                    #append unless this key already has the item
+                    # Append unless this key already has the item
                     if not thisrecid in citation_list[rec_ids[0]]:
                         citation_list[rec_ids[0]].append(thisrecid)
-                        #and update result
+                        # And update result
                         result[rec_ids[0]] += 1
 
                     if thisrecid not in reference_list:
@@ -753,27 +754,26 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     done = 0
     numrecs = len(d_references_s)
     for thisrecid, refss in d_references_s.iteritems():
+        if done % 10 == 0:
+            task_sleep_now_if_required()
+
         if done % 1000 == 0:
             mesg = "done " + str(done) + " of " + str(numrecs)
             write_message(mesg)
             task_update_progress("d_references_s " + mesg)
-            task_sleep_now_if_required()
 
         done += 1
 
         for refs in refss:
             if refs:
                 p = refs
+                f = 'journal'
                 # remove the latter page number if it is like 67-74
                 matches = re.compile("(.*)(-\d+$)").findall(p)
                 if matches and matches[0]:
                     p = matches[0][0]
-                rec_id = None
-                try:
-                    rec_ids = list(search_unit(p, 'journal') - INTBITSET_OF_DELETED_RECORDS)
-                except:
-                    rec_ids = None
-                write_message("These match searching %s in journal: %s" % (p, rec_id), verbose=9)
+                rec_ids = list(search_unit(p, f) - INTBITSET_OF_DELETED_RECORDS)
+                write_message("These match searching %s in %s: %s" % (p, f, rec_ids), verbose=9)
                 if rec_ids and rec_ids[0]:
                     # the refered publication is in our collection, remove
                     # from missing
@@ -807,10 +807,14 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     write_message("Phase 3: d_reports_numbers")
     # Search for stuff like CERN-TH-4859/87 in list of refs
     for thisrecid, reportcodes in d_reports_numbers.iteritems():
+        if done % 10 == 0:
+            task_sleep_now_if_required()
+
         if done % 1000 == 0:
             mesg = "done %s of %s" % (done, numrecs)
             write_message(mesg)
             task_update_progress("d_reports_numbers %s" % mesg)
+
         done += 1
 
         for reportcode in reportcodes:
@@ -843,24 +847,33 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     write_message(mesg)
     task_update_progress(mesg)
 
-    #find this record's pubinfo in other records' bibliography
+    # Find this record's pubinfo in other records' bibliography
     write_message("Phase 4: d_records_s")
     done = 0
     numrecs = len(d_records_s)
     t4 = os.times()[4]
-    for thisrecid, recs in d_records_s.iteritems():
+    for thisrecid, rec_journals in d_records_s.iteritems():
+        if done % 10 == 0:
+            task_sleep_now_if_required()
+
         if done % 1000 == 0:
             mesg = "done %s of %s" % (done, numrecs)
             write_message(mesg)
             task_update_progress("d_records_s %s" % mesg)
+            task_sleep_now_if_required()
+
         done += 1
-        p = recs.replace("\"", "")
-        #search the publication string like Phys. Lett., B 482 (2000) 417 in 999C5s
-        rec_ids = list(search_unit(f=pubreftag, p=p, m='a') - INTBITSET_OF_DELETED_RECORDS)
-        write_message("These records match " + p + " in " + pubreftag + " : " + str(rec_ids), verbose=9)
-        if rec_ids:
+
+        for journal in rec_journals:
+            journal = journal.replace("\"", "")
+            # Search the publication string like
+            # Phys. Lett., B 482 (2000) 417 in 999C5s
+            rec_ids = search_unit(p=journal, f=pubreftag, m='a') \
+                                                - INTBITSET_OF_DELETED_RECORDS
+            write_message("These records match %s in %s: %s" \
+                                % (journal, pubreftag, rec_ids), verbose=9)
             for rec_id in rec_ids:
-                #normal checks
+                # normal checks
                 if thisrecid not in result:
                     result[thisrecid] = 0
                 if thisrecid not in citation_list:
@@ -878,9 +891,9 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     write_message(mesg)
     task_update_progress(mesg)
 
-    write_message("Phase 5: reverse lists")
+    write_message("Phase 5: remove empty lists from dicts")
 
-    #remove empty lists in citation and reference
+    # Remove empty lists in citation and reference
     keys = citation_list.keys()
     for k in keys:
         if not citation_list[k]:
@@ -892,7 +905,7 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
             del reference_list[k]
 
     write_message("Phase 6: self-citations")
-    #get the initial self citation dict
+    # Get the initial self citation dict
     selfdic = get_cit_dict("selfcitdict")
     if not task_get_option("self-citations"):
         write_message("Self cite processing disabled." \
@@ -901,11 +914,11 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
         write_message("self cite enabled")
         selfdic = get_self_citations(updated_rec_list, citation_list,
                                                reference_list, selfdic, config)
-    #selfdic consists of
-    #key k -> list of values [v1,v2,..]
-    #where k is a record with author A and k cites v1,v2.. and A appears in v1,v2..
+    # selfdic consists of
+    # key k -> list of values [v1,v2,..]
+    # where k is a record with author A and k cites v1,v2.. and A appears in v1,v2..
 
-    #create a reverse "x cited by y" self cit dict
+    # create a reverse "x cited by y" self cit dict
     selfcitedbydic = {}
     for k, vlist in selfdic.iteritems():
         for v in vlist:
@@ -913,7 +926,7 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
 
     write_message("Getting author citations")
 
-    #get author citations for records in updated_rec_list
+    # get author citations for records in updated_rec_list
     initial_author_dict = get_initial_author_dict()
     authorcitdic = initial_author_dict
     acit = task_get_option("author-citations")
@@ -932,7 +945,7 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
         prepare_self_citations_cache(updated_rec_list, reference_list)
 
     if task_get_task_param('verbose') >= 3:
-        #print only X first to prevent flood
+        # print only X first to prevent flood
         tmpdict = {}
         tmp = citation_list.keys()[0:10]
         for t in tmp:
@@ -991,18 +1004,16 @@ def insert_cit_ref_list_intodb(citation_dic, reference_dic, selfcbdic,
 
     for a in authorcitdic.keys():
         lserarr = serialize_via_marshal(authorcitdic[a])
-        #author name: replace " with something else
+        # author name: replace " with something else
         a.replace('"', '\'')
         a = unicode(a, 'utf-8')
         try:
-            ablob = run_sql("select hitlist from rnkAUTHORDATA where aterm = %s", (a,))
+            ablob = run_sql("SELECT hitlist FROM rnkAUTHORDATA WHERE aterm = %s", (a,))
             if not (ablob):
-                #print "insert into rnkAUTHORDATA(aterm,hitlist) values (%s,%s)" , (a,lserarr)
-                run_sql("insert into rnkAUTHORDATA(aterm,hitlist) values (%s,%s)",
+                run_sql("INSERT INTO rnkAUTHORDATA(aterm,hitlist) VALUES (%s,%s)",
                          (a, lserarr))
             else:
-                #print "UPDATE rnkAUTHORDATA SET hitlist  = %s where aterm=%s""" , (lserarr,a)
-                run_sql("UPDATE rnkAUTHORDATA SET hitlist  = %s where aterm=%s",
+                run_sql("UPDATE rnkAUTHORDATA SET hitlist  = %s WHERE aterm=%s",
                         (lserarr, a))
         except:
             register_exception(prefix="could not read/write rnkAUTHORDATA aterm=%s hitlist=%s" % (a, lserarr), alert_admin=True)
@@ -1013,15 +1024,15 @@ def insert_into_cit_db(dic, name):
     ndate = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     try:
         s = serialize_via_marshal(dic)
-        write_message("size of "+name+" "+str(len(s)))
-        #check that this column really exists
-        testres = run_sql("select object_name from rnkCITATIONDATA where object_name = %s",
+        write_message("size of %s %s" % (name, len(s)))
+        # check that this column really exists
+        testres = run_sql("SELECT object_name FROM rnkCITATIONDATA WHERE object_name = %s",
                        (name,))
         if testres:
             run_sql("UPDATE rnkCITATIONDATA SET object_value = %s where object_name = %s",
                     (s, name))
         else:
-            #there was no entry for name, let's force..
+            # there was no entry for name, let's force..
             run_sql("INSERT INTO rnkCITATIONDATA(object_name,object_value) values (%s,%s)",
                      (name, s))
         run_sql("UPDATE rnkCITATIONDATA SET last_updated = %s where object_name = %s",
@@ -1034,7 +1045,7 @@ def get_cit_dict(name):
     """get a named citation dict from the db"""
     cdict = {}
     try:
-        cdict = run_sql("select object_value from rnkCITATIONDATA where object_name = %s",
+        cdict = run_sql("SELECT object_value FROM rnkCITATIONDATA WHERE object_name = %s",
                        (name,))
         if cdict and cdict[0] and cdict[0][0]:
             dict_from_db = deserialize_via_marshal(cdict[0][0])
@@ -1043,14 +1054,14 @@ def get_cit_dict(name):
             return {}
     except:
         register_exception(prefix="could not read "+name+" from db", alert_admin=True)
-    return dict
+        return {}
 
 
 def get_initial_author_dict():
     """read author->citedinlist dict from the db"""
     adict = {}
     try:
-        ah = run_sql("select aterm,hitlist from rnkAUTHORDATA")
+        ah = run_sql("SELECT aterm,hitlist FROM rnkAUTHORDATA")
         for (a, h) in ah:
             adict[a] = deserialize_via_marshal(h)
         return adict
@@ -1065,13 +1076,17 @@ def insert_into_missing(recid, report):
     report.replace('"', '\'')
     try:
         srecid = str(recid)
-        wasalready = run_sql("select id_bibrec from rnkCITATIONDATAEXT where id_bibrec = %s and extcitepubinfo = %s",
+        wasalready = run_sql("""SELECT id_bibrec
+                                FROM rnkCITATIONDATAEXT
+                                WHERE id_bibrec = %s
+                                AND extcitepubinfo = %s""",
                               (srecid, report))
         if not wasalready:
-            run_sql("insert into rnkCITATIONDATAEXT(id_bibrec, extcitepubinfo) values (%s,%s)",
+            run_sql("""INSERT INTO rnkCITATIONDATAEXT(id_bibrec, extcitepubinfo)
+                       VALUES (%s,%s)""",
                    (srecid, report))
     except:
-        #we should complain but it can result to million lines of warnings so just pass..
+        # we should complain but it can result to million lines of warnings so just pass..
         pass
 
 
@@ -1080,9 +1095,10 @@ def remove_from_missing(report):
        in the case ref got in our library collection"""
     report.replace('"', '\'')
     try:
-        run_sql("delete from rnkCITATIONDATAEXT where extcitepubinfo= %s", (report,))
+        run_sql("""DELETE FROM rnkCITATIONDATAEXT
+                   WHERE extcitepubinfo = %s""", (report,))
     except:
-        #we should complain but it can result to million lines of warnings so just pass..
+        # we should complain but it can result to million lines of warnings so just pass..
         pass
 
 
@@ -1106,7 +1122,7 @@ def write_citer_cited(citer, cited):
     sciter = str(citer)
     scited = str(cited)
     try:
-        run_sql("insert into tmpcit(citer, cited) values (%s,%s)", (sciter, scited))
+        run_sql("INSERT INTO tmpcit(citer, cited) VALUES (%s,%s)", (sciter, scited))
     except:
         pass
 
