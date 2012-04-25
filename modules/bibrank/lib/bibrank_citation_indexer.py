@@ -24,8 +24,7 @@ import time
 import sys
 import os
 import zlib
-from ConfigParser import NoOptionError, NoSectionError
-
+from itertools import islice
 
 if sys.hexversion < 0x2040000:
     # pylint: disable=W0622
@@ -58,13 +57,13 @@ class memoise:
 INTBITSET_OF_DELETED_RECORDS = search_unit(p='DELETED', f='980', m='a')
 
 
-@memoise
+#@memoise
 def get_recids_matching_query(pvalue, fvalue, m='e'):
     """Return set of recIDs matching query for PVALUE and FVALUE."""
     return search_pattern(p=pvalue, f=fvalue, m=m) - INTBITSET_OF_DELETED_RECORDS
 
 
-def get_citation_weight(rank_method_code, config):
+def get_citation_weight(rank_method_code, config, chunk_size=5000):
     """return a dictionary which is used by bibrank daemon for generating
     the index of sorted research results by citation information
     """
@@ -85,36 +84,43 @@ def get_citation_weight(rank_method_code, config):
     except IndexError:
         write_message("Not running citation indexer since journal/reportnumber"
                       " indexes are not created yet.")
-        return {}
+        index_update_time = "0000-00-00 00:00:00"
+
     last_modified_records = get_last_modified_rec(last_update_time,
                                                   index_update_time)
-    #id option forces re-indexing a certain range even if there are no new recs
+    # id option forces re-indexing a certain range
+    # even if there are no new recs
     if last_modified_records or task_get_option("id"):
         if task_get_option("id"):
-            #construct a range of records to index
+            # construct a range of records to index
             taskid = task_get_option("id")
             first = taskid[0][0]
             last = taskid[0][1]
-            #make range, last+1 so that e.g. -i 1-2 really means [1,2] not [1]
+            # Make range, last+1 so that
+            # e.g. -i 1-2 really means [1,2] not [1]
             updated_recid_list = range(first, last+1)
         else:
             updated_recid_list = create_recordid_list(last_modified_records)
 
-        write_message("Last update "+str(last_update_time)+" records: "+ \
-                       str(len(last_modified_records))+" updates: "+ \
-                       str(len(updated_recid_list)))
+        write_message("Last update %s records: %s updates: %s" % \
+                                                (last_update_time,
+                                                 len(last_modified_records),
+                                                 len(updated_recid_list)))
 
-        result_intermediate = last_updated_result(rank_method_code)
-
-        # result_intermed should be warranted to exists!
+        # result_intermediate should be warranted to exists!
         # but if the user entered a "-R" (do all) option, we need to
         # make an empty start set
-        if task_get_option("quick") == "no":
-            result_intermediate = [{}, {}, {}]
-
-        citation_weight_dic_intermediate = result_intermediate[0]
-        citation_list_intermediate = result_intermediate[1]
-        reference_list_intermediate = result_intermediate[2]
+        quick = task_get_option("quick") != "no"
+        if quick:
+            cites_weight = last_updated_result(rank_method_code)
+            cites = get_cit_dict("citationdict")
+            refs = get_cit_dict("reversedict")
+            selfcites = get_cit_dict("selfcitdict")
+            selfrefs = get_cit_dict("selfcitedbydict")
+            authorcites = get_initial_author_dict()
+        else:
+            cites_weight, cites, refs = {}, {}, {}
+            selfcites, selfrefs, authorcites = {}, {}, {}
 
         # Enrich updated_recid_list so that it would contain also
         # records citing or referring to updated records, so that
@@ -125,37 +131,73 @@ def get_citation_weight(rank_method_code, config):
         updated_recid_list_set = intbitset(updated_recid_list)
         for somerecid in updated_recid_list:
             # add both citers and citees:
-            updated_recid_list_set |= intbitset(citation_list_intermediate.get(somerecid, []))
-            updated_recid_list_set |= intbitset(reference_list_intermediate.get(somerecid, []))
-        updated_recid_list = list(updated_recid_list_set)
+            updated_recid_list_set |= intbitset(cites.get(somerecid, []))
+            updated_recid_list_set |= intbitset(refs.get(somerecid, []))
 
-        # call the procedure that does the hard work by reading fields of
-        # citations and references in the updated_recid's (but nothing else)!
-        if task_get_task_param('verbose') >= 9:
-            write_message("Entering get_citation_informations")
-        citation_informations = get_citation_informations(updated_recid_list,
-                                                          config)
-        # write_message("citation_informations: "+str(citation_informations))
-        # create_analysis_tables() #temporary..
-                                  #test how much faster in-mem indexing is
-        write_message("Entering ref_analyzer", verbose=9)
-        # call the analyser that uses the citation_informations to really
-        # search x-cites-y in the coll..
-        dic = ref_analyzer(citation_informations,
-                           citation_weight_dic_intermediate,
-                           citation_list_intermediate,
-                           reference_list_intermediate,
-                           config,
-                           updated_recid_list)
-                    # dic is docid-numberofreferences like {1: 2, 2: 0, 3: 1}
-        # write_message("Docid-number of known references "+str(dic))
+        # Split records to process into chunks so that we do not
+        # fill up too much memory
+        updated_recid_iter = iter(updated_recid_list_set)
+
+        while True:
+            task_sleep_now_if_required()
+            chunk = list(islice(updated_recid_iter, chunk_size))
+            if not chunk:
+                break
+            write_message("Processing chunk #%s to #%s" % (chunk[0], chunk[-1]))
+            cites_weight, cites, refs, selfcites, selfrefs, authorcites \
+                        = process_chunk(chunk,
+                                        config,
+                                        cites_weight,
+                                        cites,
+                                        refs,
+                                        selfcites,
+                                        selfrefs,
+                                        authorcites)
+
+            if quick:
+                # Store partial result as it is just an update and not
+                # a creation from scratch
+                insert_cit_ref_list_intodb(cites,
+                                           refs,
+                                           selfcites,
+                                           selfrefs,
+                                           authorcites)
+
         end_time = time.time()
-        write_message("Total time of get_citation_weight(): %.2f sec" % (end_time - begin_time))
+        write_message("Total time of get_citation_weight(): %.2f sec" % \
+                                                      (end_time - begin_time))
         task_update_progress("citation analysis done")
     else:
-        dic = {}
-        write_message("No new records added since last time this rank method was executed")
-    return dic, index_update_time
+        cites_weight = {}
+        write_message("No new records added since last time this " \
+                      "rank method was executed")
+
+    return cites_weight, index_update_time
+
+
+def process_chunk(recids, config, cites_weight, cites,
+                                refs, selfcites, selfrefs, authorcites):
+    # call the procedure that does the hard work by reading fields of
+    # citations and references in the updated_recid's (but nothing else)!
+    write_message("Entering get_citation_informations", verbose=9)
+    citation_informations = get_citation_informations(recids, config)
+    # write_message("citation_informations: "+str(citation_informations))
+    # create_analysis_tables() #temporary..
+                              #test how much faster in-mem indexing is
+    write_message("Entering ref_analyzer", verbose=9)
+    # call the analyser that uses the citation_informations to really
+    # search x-cites-y in the coll..
+    return ref_analyzer(citation_informations,
+                       cites_weight,
+                       cites,
+                       refs,
+                       selfcites,
+                       selfrefs,
+                       authorcites,
+                       config,
+                       recids)
+    # dic is docid-numberofreferences like {1: 2, 2: 0, 3: 1}
+    # write_message("Docid-number of known references "+str(dic))
 
 
 def get_bibrankmethod_lastupdate(rank_method_code):
@@ -163,9 +205,14 @@ def get_bibrankmethod_lastupdate(rank_method_code):
     """
     query = "SELECT last_updated FROM rnkMETHOD WHERE name = %s"
     last_update_time = run_sql(query, [rank_method_code])
-    r = last_update_time[0][0]
+    try:
+        r = last_update_time[0][0]
+    except IndexError:
+        r = None
+
     if r is None:
-        return "0000-00-00 00:00:00"
+        r = "0000-00-00 00:00:00"
+
     return r
 
 
@@ -195,31 +242,31 @@ def last_updated_result(rank_method_code):
         exists and initialize the value of last updated records by zero,
         otherwise an initial dictionary with zero as value for all recids
     """
-    result = [{}, {}, {}]
     query = """SELECT relevance_data FROM rnkMETHOD, rnkMETHODDATA WHERE
                rnkMETHOD.id = rnkMETHODDATA.id_rnkMETHOD
                AND rnkMETHOD.Name = '%s'""" % rank_method_code
-    rdict = run_sql(query)
-    if rdict and rdict[0] and rdict[0][0]:
+    try:
+        rdict = run_sql(query)[0][0]
+    except IndexError:
+        rdict = None
+
+    dic = {}
+    if rdict:
         # has to be prepared for corrupted data!
         try:
-            dic = deserialize_via_marshal(rdict[0][0])
+            dic = deserialize_via_marshal(rdict)
         except zlib.error:
-            return [{}, {}, {}]
-        query = """SELECT object_value FROM rnkCITATIONDATA
-                   WHERE object_name='citationdict'"""
-        cit_compressed = run_sql(query)
-        cit = []
-        if cit_compressed and cit_compressed[0] and cit_compressed[0][0]:
-            cit = deserialize_via_marshal(cit_compressed[0][0])
-            if cit:
-                query = """SELECT object_value FROM rnkCITATIONDATA
-                           WHERE object_name='reversedict'"""
-                ref_compressed = run_sql(query)
-                if ref_compressed and ref_compressed[0] and ref_compressed[0][0]:
-                    ref = deserialize_via_marshal(ref_compressed[0][0])
-                    result = (dic, cit, ref)
-    return result
+            pass
+    return dic
+
+
+def format_journal(format_string, mappings):
+    """format the publ infostring according to the format"""
+
+    def replace(char, data):
+        return data.get(char, char)
+
+    return ''.join(replace(c, mappings) for c in format_string)
 
 
 def get_citation_informations(recid_list, config):
@@ -239,45 +286,13 @@ def get_citation_informations(recid_list, config):
     d_references_report_numbers = {}  # dict of recid -> ['astro-ph/xyz']
     d_references_s = {}  # dict of recid -> list_of_the_entries_of_this_recs_bibliography
     d_records_s = {}  # dict of recid -> this_records_publication_info
-    citation_informations = []
 
-    write_message("config function "+config.get("rank_method", "function"), verbose=9)
-    function = ""
-    try:
-        function = config.get("rank_method", "function")
-    except (NoOptionError, NoSectionError):
-        register_exception(prefix="cfg section [rank_method] has no attribute called function", alert_admin=True)
-        # we cannot continue
-        return [{}, {}, {}, {}]
-    record_pri_number_tag = ""
-    try:
-        record_pri_number_tag = config.get(function, "primary_report_number")
-    except (NoOptionError, NoSectionError):
-        register_exception(prefix="cfg section "+function+" has no attribute primary_report_number", alert_admin=True)
-        return [{}, {}, {}, {}]
-    record_add_number_tag = ""
-    try:
-        record_add_number_tag = config.get(config.get("rank_method", "function"),
-                                       "additional_report_number")
-    except (NoOptionError, NoSectionError):
-        register_exception(prefix="config error. cfg section "+function+" has no attribute additional_report_number", alert_admin=True)
-        return [{}, {}, {}, {}]
-
-    reference_number_tag = ""
-    try:
-        reference_number_tag = config.get(config.get("rank_method", "function"),
-                                      "reference_via_report_number")
-    except (NoOptionError, NoSectionError):
-        register_exception(prefix="config error. cfg section "+function+" has no attribute reference_via_report_number", alert_admin=True)
-        return [{}, {}, {}, {}]
-
-    reference_tag = ""
-    try:
-        reference_tag = config.get(config.get("rank_method", "function"),
-                               "reference_via_pubinfo")
-    except (NoOptionError, NoSectionError):
-        register_exception(prefix="config error. cfg section "+function+" has no attribute reference_via_pubinfo", alert_admin=True)
-        return [{}, {}, {}, {}]
+    function = config.get("rank_method", "function")
+    write_message("config function %s" % function, verbose=9)
+    record_pri_number_tag = config.get(function, "primary_report_number")
+    record_add_number_tag = config.get(function, "additional_report_number")
+    reference_number_tag = config.get(function, "reference_via_report_number")
+    reference_tag = config.get(function, "reference_via_pubinfo")
 
     p_record_pri_number_tag = tagify(parse_tag(record_pri_number_tag))
     # 037a: contains (often) the "hep-ph/0501084" tag of THIS record
@@ -293,18 +308,16 @@ def get_citation_informations(recid_list, config):
     publication_journal_tag = ""
     publication_volume_tag = ""
     publication_format_string = "p v (y) c"
-    try:
-        tag = config.get(function, "pubinfo_journal_page")
-        publication_pages_tag = tagify(parse_tag(tag))
-        tag = config.get(function, "pubinfo_journal_year")
-        publication_year_tag = tagify(parse_tag(tag))
-        tag = config.get(function, "pubinfo_journal_title")
-        publication_journal_tag = tagify(parse_tag(tag))
-        tag = config.get(function, "pubinfo_journal_volume")
-        publication_volume_tag = tagify(parse_tag(tag))
-        publication_format_string = config.get(function, "pubinfo_journal_format")
-    except (NoOptionError, NoSectionError):
-        register_exception(prefix="config error. cfg section "+function+" is missing some values", alert_admin=True)
+
+    tag = config.get(function, "pubinfo_journal_page")
+    publication_pages_tag = tagify(parse_tag(tag))
+    tag = config.get(function, "pubinfo_journal_year")
+    publication_year_tag = tagify(parse_tag(tag))
+    tag = config.get(function, "pubinfo_journal_title")
+    publication_journal_tag = tagify(parse_tag(tag))
+    tag = config.get(function, "pubinfo_journal_volume")
+    publication_volume_tag = tagify(parse_tag(tag))
+    publication_format_string = config.get(function, "pubinfo_journal_format")
 
     #print values for tags for debugging
     if task_get_task_param('verbose') >= 9:
@@ -313,8 +326,6 @@ def get_citation_informations(recid_list, config):
         write_message("p_reference_tag %s" % p_reference_tag)
         write_message("publication_journal_tag %s" % publication_journal_tag)
         write_message("publication_format_string is %s" % publication_format_string)
-    done = 0  # for status reporting
-    numrecs = len(recid_list)
 
     # perform quick check to see if there are some records with
     # reference tags, because otherwise get.cit.inf would be slow even
@@ -323,15 +334,18 @@ def get_citation_informations(recid_list, config):
                (p_reference_tag,)) or \
        run_sql("SELECT value FROM bib%sx WHERE tag=%%s LIMIT 1" % p_reference_number_tag[0:2],
                (p_reference_number_tag,)):
+
+        done = 0  # for status reporting
         for recid in recid_list:
             if done % 10 == 0:
                 task_sleep_now_if_required()
                 # in fact we can sleep any time here
 
             if done % 1000 == 0:
-                mesg = "get cit.inf done %s of %s" % (done, numrecs)
+                mesg = "get cit.inf done %s of %s" % (done, len(recid_list))
                 write_message(mesg)
                 task_update_progress(mesg)
+
             done += 1
 
             if recid in INTBITSET_OF_DELETED_RECORDS:
@@ -343,9 +357,12 @@ def get_citation_informations(recid_list, config):
                 # get_fieldvalues() below would return old values)
                 continue
 
-            pri_report_numbers = get_fieldvalues(recid, p_record_pri_number_tag)
-            add_report_numbers = get_fieldvalues(recid, p_record_add_number_tag)
-            reference_report_numbers = get_fieldvalues(recid, p_reference_number_tag)
+            pri_report_numbers = get_fieldvalues(recid,
+                                                 p_record_pri_number_tag)
+            add_report_numbers = get_fieldvalues(recid,
+                                                 p_record_add_number_tag)
+            reference_report_numbers = get_fieldvalues(recid,
+                                                       p_reference_number_tag)
             references_s = get_fieldvalues(recid, p_reference_tag)
 
             l_report_numbers = pri_report_numbers
@@ -356,7 +373,8 @@ def get_citation_informations(recid_list, config):
                 d_references_report_numbers[recid] = reference_report_numbers
 
             references_s = get_fieldvalues(recid, p_reference_tag)
-            write_message("%s's %s values %s" % (recid, p_reference_tag, references_s), verbose=9)
+            msg = "%s's %s values %s" % (recid, p_reference_tag, references_s)
+            write_message(msg, verbose=9)
             if references_s:
                 d_references_s[recid] = references_s
 
@@ -394,40 +412,37 @@ def get_citation_informations(recid_list, config):
                             ok = False
 
                 if ok:
-                    # format the publ infostring according to the format
-                    def replace(char, data):
-                        return tagsvalues.get(char, char)
-
-                    def format_journal(format_string, mappings):
-                        return ''.join(replace(c, mappings) for c in format_string)
-
-                    publ = format_journal(publication_format_string, tagsvalues)
+                    publ = format_journal(publication_format_string,
+                                          tagsvalues)
                     d_records_s[recid] = [publ]
 
                     # Add codens
-                    for coden in get_kb_mappings('CODENS', value=tagsvalues['p']):
+                    for coden in get_kb_mappings('CODENS',
+                                                 value=tagsvalues['p']):
                         tagsvalues['p'] = coden['key']
-                        d_records_s[recid].append(format_journal(publication_format_string, tagsvalues))
+                        c = format_journal(publication_format_string,
+                                           tagsvalues)
+                        d_records_s[recid].append(c)
 
-                    write_message("d_records_s (publication info) for %s is %s" % (recid, d_records_s[recid]), verbose=9)
+                    write_message("d_records_s (publication info) for " \
+                                  "%s is %s" % (recid, d_records_s[recid]),
+                                  verbose=9)
 
     else:
-        mesg = "Warning: there are no records with tag values for "
-        mesg += p_reference_number_tag+" or "+p_reference_tag+". Nothing to do."
+        mesg = "Warning: there are no records with tag values for " \
+               "%s or %s. Nothing to do." % \
+                                    (p_reference_number_tag, p_reference_tag)
         write_message(mesg)
 
     mesg = "get cit.inf done fully"
     write_message(mesg)
     task_update_progress(mesg)
 
-    citation_informations.append(d_reports_numbers)
-    citation_informations.append(d_references_report_numbers)
-    citation_informations.append(d_references_s)
-    citation_informations.append(d_records_s)
     end_time = os.times()[4]
-    write_message("Execution time for generating citation info from record: %.2f sec" % \
-                  (end_time - begin_time))
-    return citation_informations
+    write_message("Execution time for generating citation info "
+                  "from record: %.2f sec" % (end_time - begin_time))
+    return d_reports_numbers, d_references_report_numbers, \
+           d_references_s, d_records_s,
 
 
 def prepare_self_citations_cache(updated_records_list, references_dict):
@@ -459,16 +474,17 @@ def prepare_self_citations_cache(updated_records_list, references_dict):
 
 
 def get_self_citations(updated_records_list, citations_dict, references_dict,
-                                                     initial_self_dict, config):
+                       initial_selfcites, initial_selfrefs, config):
     """Check which items have been cited by one of the authors of the
-       citing item: go through id's in new_record_list, use citationdic to get citations,
-       update "selfcites". Selfcites is originally initial_selfcitdict. Return selfcites.
+       citing item: go through id's in new_record_list, use citationdic
+       to get citations, update "selfcites". Selfcites is originally
+       initial_selfcitdict. Return selfcites.
     """
     from invenio.bibrank_selfcites_indexer import compute_self_citations, \
                                                   get_authors_tags
     tags = get_authors_tags()
-    selfcites = initial_self_dict
-    selfcitedbydic = get_cit_dict("selfcitdict")
+    selfcites = initial_selfcites
+    selfcitedbydic = initial_selfrefs
 
     to_update = set()
     for recid in updated_records_list:
@@ -622,59 +638,40 @@ def standardize_report_number(report_number):
                   re.I | re.U)
 
 
-def ref_analyzer(citation_informations, initialresult, initial_citationlist,
-                 initial_referencelist, config, updated_rec_list):
+def ref_analyzer(citation_informations, citations_weight, citations,
+                 references, selfcites, selfrefs, authorcites,
+                 config, updated_recids):
     """Analyze the citation informations and calculate the citation weight
        and cited by list dictionary.
     """
-    function = ""
-    try:
-        function = config.get("rank_method", "function")
-    except:
-        register_exception(prefix="cfg section [rank_method] has no attr function", alert_admin=True)
-        return {}
+    function = config.get("rank_method", "function")
+    pubrefntag = config.get(function, "reference_via_report_number")
+    pubreftag = config.get(function, "reference_via_pubinfo")
 
-    pubrefntag = ""
-    try:
-        pubrefntag = config.get(function, "reference_via_report_number")
-    except:
-        register_exception(prefix="cfg section "+function+" has no attr reference_via_report_number", alert_admin=True)
-        return {}
+    # pubrefntag is often 999C5r, pubreftag 999C5s
+    write_message("pubrefntag %s" % pubrefntag, verbose=9)
+    write_message("pubreftag %s" % pubreftag, verbose=9)
 
-    pubreftag = ""
-    try:
-        pubreftag = config.get(function, "reference_via_pubinfo")
-    except:
-        register_exception(prefix="cfg section "+function+" has no attr reference_via_pubinfo", alert_admin=True)
-        return {}
-
-    #pubrefntag is often 999C5r, pubreftag 999C5s
-    if task_get_task_param('verbose') >= 9:
-        write_message("pubrefntag " + pubrefntag)
-        write_message("pubreftag " + pubreftag)
-
-    citation_list = initial_citationlist
-    reference_list = initial_referencelist
-    result = initialresult
     # dict of recid -> institute_give_publ_id
-    d_reports_numbers = citation_informations[0]
+    records_reports_numbers = citation_informations[0]
     # dict of recid -> ['astro-ph/xyz'..]
-    d_references_report_numbers = citation_informations[1]
+    references_report_numbers = citation_informations[1]
     # dict of recid -> publication_infos_in_its_bibliography
-    d_references_s = citation_informations[2]
+    references_journals = citation_informations[2]
     # dict of recid -> its publication inf
-    d_records_s = citation_informations[3]
+    records_journals = citation_informations[3]
+
     t1 = os.times()[4]
 
     write_message("Phase 0: temporarily remove changed records from " \
                   "citation dictionaries; they will be filled later")
-    for somerecid in updated_rec_list:
+    for somerecid in updated_recids:
         try:
-            del citation_list[somerecid]
+            del citations[somerecid]
         except KeyError:
             pass
         try:
-            del reference_list[somerecid]
+            del references[somerecid]
         except KeyError:
             pass
 
@@ -682,66 +679,52 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     # d_references_report_numbers: e.g 8 -> ([astro-ph/9889],[hep-ph/768])
     # meaning: rec 8 contains these in bibliography
     done = 0
-    numrecs = len(d_references_report_numbers)
-    for thisrecid, refnumbers in d_references_report_numbers.iteritems():
+    for thisrecid, refnumbers in references_report_numbers.iteritems():
         if done % 10 == 0:
             task_sleep_now_if_required()
 
         if done % 1000 == 0:
-            mesg = "done %s of %s" % (done, numrecs)
+            mesg = "done %s of %s" % (done, len(references_report_numbers))
             write_message(mesg)
             task_update_progress("d_references_report_numbers " + mesg)
 
         done += 1
 
-        for refnumber in refnumbers:
-            if refnumber:
-                p = refnumber
-                f = 'reportnumber'
-                # Sanitise p
-                p.replace("\n", '')
-                p = standardize_report_number(p)
-                # Search for "hep-th/5644654 or such" in existing records
-                rec_ids = list(get_recids_matching_query(p, f))
-                write_message("These match searching %s in %s: %s" % (p, f, rec_ids), verbose=9)
-                if rec_ids and rec_ids[0]:
-                    # write_citer_cited(thisrecid, rec_ids[0])
-                    remove_from_missing(p)
-                    if rec_ids[0] not in result:
-                        result[rec_ids[0]] = 0
-                    # Citation list should have rec_ids[0] but check anyway
-                    if rec_ids[0] not in citation_list:
-                        citation_list[rec_ids[0]] = []
-                    # Append unless this key already has the item
-                    if not thisrecid in citation_list[rec_ids[0]]:
-                        citation_list[rec_ids[0]].append(thisrecid)
-                        # And update result
-                        result[rec_ids[0]] += 1
+        for refnumber in (r for r in refnumbers if r):
+            p = refnumber
+            f = 'reportnumber'
 
-                    if thisrecid not in reference_list:
-                        reference_list[thisrecid] = []
-                    if not rec_ids[0] in reference_list[thisrecid]:
-                        reference_list[thisrecid].append(rec_ids[0])
-                else:
-                    # the reference we wanted was not found among our records.
-                    # put the reference in the "missing".. however, it will look
-                    # bad.. gfhgf/1254312, so  get the corresponding 999C5s (full ref) too
-                    # This should really be done in the next loop d_references_s
-                    # but the 999C5s fields are not yet normalized
+            p = standardize_report_number(p)
+            # Search for "hep-th/5644654 or such" in existing records
+            recids = get_recids_matching_query(p, f)
+            write_message("These match searching %s in %s: %s" % \
+                                                    (p, f, recids), verbose=9)
 
-                    # rectext = print_record(thisrecid, format='hm', ot=pubreftag[:-1])
-                    rectext = ""  # print_record() call disabled to speed things up
-                    lines = rectext.split("\n")
-                    rpart = p  # to be used..
-                    for l in lines:
-                        if l.find(p) > 0:  # the gfhgf/1254312 was found.. get the s-part of it
-                            st = l.find('$s')
-                            if st > 0:
-                                end = l.find('$', st)
-                                if end == st:
-                                    end = len(l)
-                                rpart = l[st+2:end]
-                    insert_into_missing(thisrecid, rpart)
+            if recids:
+                # the refered publication is in our collection, remove
+                # from missing
+                remove_from_missing(p)
+            else:
+                # it was not found so add in missing
+                insert_into_missing(thisrecid, p)
+
+            # TODO: if we match more than one record
+            # either duplicate record or something else
+            # Maybe we should alert admins selectively
+            if len(recids) == 1:
+                recid = list(recids)[0]
+
+                remove_from_missing(p)
+
+                if recid not in citations_weight:
+                    citations_weight[recid] = 0
+
+                # Append unless this key already has the item
+                if thisrecid not in citations.setdefault(recid, []):
+                    citations[recid].append(thisrecid)
+                    citations_weight[recid] += 1
+                if recid not in references.setdefault(thisrecid, []):
+                    references[thisrecid].append(recid)
 
     mesg = "done fully"
     write_message(mesg)
@@ -752,96 +735,88 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     #try to find references based on 999C5s, like Phys.Rev.Lett. 53 (1986) 2285
     write_message("Phase 2: d_references_s (journals)")
     done = 0
-    numrecs = len(d_references_s)
-    for thisrecid, refss in d_references_s.iteritems():
+    for thisrecid, refss in references_journals.iteritems():
         if done % 10 == 0:
             task_sleep_now_if_required()
 
         if done % 1000 == 0:
-            mesg = "done " + str(done) + " of " + str(numrecs)
+            mesg = "done %s of %s" % (done, len(references_journals))
             write_message(mesg)
             task_update_progress("d_references_s " + mesg)
 
         done += 1
 
-        for refs in refss:
-            if refs:
-                p = refs
-                f = 'journal'
-                # remove the latter page number if it is like 67-74
-                matches = re.compile("(.*)(-\d+$)").findall(p)
-                if matches and matches[0]:
-                    p = matches[0][0]
-                rec_ids = list(search_unit(p, f) - INTBITSET_OF_DELETED_RECORDS)
-                write_message("These match searching %s in %s: %s" % (p, f, rec_ids), verbose=9)
-                if rec_ids and rec_ids[0]:
-                    # the refered publication is in our collection, remove
-                    # from missing
-                    remove_from_missing(p)
-                else:
-                    # it was not found so add in missing
-                    insert_into_missing(thisrecid, p)
-                # check citation and reference for this..
-                if rec_ids and rec_ids[0]:
-                    # the above should always hold
-                    if rec_ids[0] not in result:
-                        result[rec_ids[0]] = 0
-                    if rec_ids[0] not in citation_list:
-                        citation_list[rec_ids[0]] = []
-                    if thisrecid not in citation_list[rec_ids[0]]:
-                        citation_list[rec_ids[0]].append(thisrecid)  # append actual list
-                        result[rec_ids[0]] += 1  # add count for this..
+        for refs in (r for r in refss if r):
+            p = refs
+            f = 'journal'
 
-                    # update reference_list accordingly
-                    if thisrecid not in reference_list:
-                        reference_list[thisrecid] = []
-                    if rec_ids[0] not in reference_list[thisrecid]:
-                        reference_list[thisrecid].append(rec_ids[0])
+            recids = list(search_unit(p, f) - INTBITSET_OF_DELETED_RECORDS)
+            write_message("These match searching %s in %s: %s" \
+                                             % (p, f, recids), verbose=9)
+            if recids:
+                # the refered publication is in our collection, remove
+                # from missing
+                remove_from_missing(p)
+            else:
+                # it was not found so add in missing
+                insert_into_missing(thisrecid, p)
+
+            # check citation and reference for this..
+            if len(recids) == 1:
+                recid = list(recids)[0]
+                # the above should always hold
+
+                if recid not in citations_weight:
+                    citations_weight[recid] = 0
+
+                if thisrecid not in citations.setdefault(recid, []):
+                    citations[recid].append(thisrecid)
+                    citations_weight[recid] += 1
+                if recid not in references.setdefault(thisrecid, []):
+                    references[thisrecid].append(recid)
+
     mesg = "done fully"
     write_message(mesg)
     task_update_progress(mesg)
 
     t3 = os.times()[4]
     done = 0
-    numrecs = len(d_reports_numbers)
     write_message("Phase 3: d_reports_numbers")
     # Search for stuff like CERN-TH-4859/87 in list of refs
-    for thisrecid, reportcodes in d_reports_numbers.iteritems():
+    for thisrecid, reportcodes in records_reports_numbers.iteritems():
         if done % 10 == 0:
             task_sleep_now_if_required()
 
         if done % 1000 == 0:
-            mesg = "done %s of %s" % (done, numrecs)
+            mesg = "done %s of %s" % (done, len(records_reports_numbers))
             write_message(mesg)
             task_update_progress("d_reports_numbers %s" % mesg)
 
         done += 1
 
-        for reportcode in reportcodes:
-            if reportcode:
+        for reportcode in (r for r in reportcodes if r):
+            if reportcode.startswith('arXiv'):
                 std_reportcode = standardize_report_number(reportcode)
-                report_pattern = r'^' + re.escape(std_reportcode) \
-                                                 + r'( *\[[a-zA-Z.-]*\])?'
-                rec_ids = get_recids_matching_query(report_pattern,
-                                                    pubrefntag,
-                                                    'r')
+                report_pattern = r'^%s( *\[[a-zA-Z.-]*\])?' % \
+                                                re.escape(std_reportcode)
+                recids = get_recids_matching_query(report_pattern,
+                                                   pubrefntag,
+                                                   'r')
+            else:
+                recids = get_recids_matching_query(reportcode,
+                                                   pubrefntag,
+                                                   'e')
+            for recid in recids:
+                # normal checks..
+                if thisrecid not in citations_weight:
+                    citations_weight[thisrecid] = 0
 
-                if rec_ids:
-                    for recid in rec_ids:
-                        # normal checks..
-                        if thisrecid not in citation_list:
-                            citation_list[thisrecid] = []
-                        if recid not in reference_list:
-                            reference_list[recid] = []
-                        if thisrecid not in result:
-                            result[thisrecid] = 0
-
-                        # normal updates
-                        if recid not in citation_list[thisrecid]:
-                            result[thisrecid] += 1
-                            citation_list[thisrecid].append(recid)
-                        if thisrecid not in reference_list[recid]:
-                            reference_list[recid].append(thisrecid)
+                # normal updates
+                if recid not in citations.setdefault(thisrecid, []):
+                    citations_weight[thisrecid] += 1
+                    citations[thisrecid].append(recid)
+                if thisrecid not in references.setdefault(recid, []):
+                    references[recid].append(thisrecid)
 
     mesg = "done fully"
     write_message(mesg)
@@ -850,17 +825,15 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     # Find this record's pubinfo in other records' bibliography
     write_message("Phase 4: d_records_s")
     done = 0
-    numrecs = len(d_records_s)
     t4 = os.times()[4]
-    for thisrecid, rec_journals in d_records_s.iteritems():
+    for thisrecid, rec_journals in records_journals.iteritems():
         if done % 10 == 0:
             task_sleep_now_if_required()
 
         if done % 1000 == 0:
-            mesg = "done %s of %s" % (done, numrecs)
+            mesg = "done %s of %s" % (done, len(records_journals))
             write_message(mesg)
             task_update_progress("d_records_s %s" % mesg)
-            task_sleep_now_if_required()
 
         done += 1
 
@@ -868,24 +841,21 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
             journal = journal.replace("\"", "")
             # Search the publication string like
             # Phys. Lett., B 482 (2000) 417 in 999C5s
-            rec_ids = search_unit(p=journal, f=pubreftag, m='a') \
+            recids = search_unit(p=journal, f=pubreftag, m='a') \
                                                 - INTBITSET_OF_DELETED_RECORDS
             write_message("These records match %s in %s: %s" \
-                                % (journal, pubreftag, rec_ids), verbose=9)
-            for rec_id in rec_ids:
-                # normal checks
-                if thisrecid not in result:
-                    result[thisrecid] = 0
-                if thisrecid not in citation_list:
-                    citation_list[thisrecid] = []
-                if rec_id not in reference_list:
-                    reference_list[rec_id] = []
+                                   % (journal, pubreftag, recids), verbose=9)
 
-                if not rec_id in citation_list[thisrecid]:
-                    result[thisrecid] += 1
-                    citation_list[thisrecid].append(rec_id)
-                if not thisrecid in reference_list[rec_id]:
-                    reference_list[rec_id].append(thisrecid)
+            for recid in recids:
+                # normal checks
+                if thisrecid not in citations_weight:
+                    citations_weight[thisrecid] = 0
+
+                if recid not in citations.setdefault(thisrecid, []):
+                    citations[thisrecid].append(recid)
+                    citations_weight[thisrecid] += 1
+                if thisrecid not in references.setdefault(recid, []):
+                    references[recid].append(thisrecid)
 
     mesg = "done fully"
     write_message(mesg)
@@ -894,104 +864,89 @@ def ref_analyzer(citation_informations, initialresult, initial_citationlist,
     write_message("Phase 5: remove empty lists from dicts")
 
     # Remove empty lists in citation and reference
-    keys = citation_list.keys()
+    keys = citations.keys()
     for k in keys:
-        if not citation_list[k]:
-            del citation_list[k]
+        if not citations[k]:
+            del citations[k]
 
-    keys = reference_list.keys()
+    keys = references.keys()
     for k in keys:
-        if not reference_list[k]:
-            del reference_list[k]
+        if not references[k]:
+            del references[k]
 
     write_message("Phase 6: self-citations")
     # Get the initial self citation dict
-    selfdic = get_cit_dict("selfcitdict")
     if not task_get_option("self-citations"):
         write_message("Self cite processing disabled." \
                       " Use --self-citations option to enable it.")
     else:
         write_message("self cite enabled")
-        selfdic = get_self_citations(updated_rec_list, citation_list,
-                                               reference_list, selfdic, config)
+        selfcites = get_self_citations(updated_recids,
+                                     citations,
+                                     references,
+                                     selfcites,
+                                     selfrefs,
+                                     config)
     # selfdic consists of
     # key k -> list of values [v1,v2,..]
     # where k is a record with author A and k cites v1,v2.. and A appears in v1,v2..
 
     # create a reverse "x cited by y" self cit dict
-    selfcitedbydic = {}
-    for k, vlist in selfdic.iteritems():
+    selfrefs = {}
+    for k, vlist in selfcites.iteritems():
         for v in vlist:
-            selfcitedbydic.setdefault(v, set()).add(k)
+            selfrefs.setdefault(v, set()).add(k)
 
     write_message("Getting author citations")
 
-    # get author citations for records in updated_rec_list
-    initial_author_dict = get_initial_author_dict()
-    authorcitdic = initial_author_dict
+    # Get author citations for records in updated_rec_list
     acit = task_get_option("author-citations")
     if not acit:
         print "Author cites disabled. Use -A option to enable it."
     else:
         write_message("author citations enabled")
-        authorcitdic = get_author_citations(updated_rec_list, citation_list,
-                                        initial_author_dict, config)
+        authorcites = get_author_citations(updated_recids, citations,
+                                            authorcites, config)
 
     write_message("Phase 7: fill self-citations table")
     if not task_get_option("db-self-citations"):
         write_message("Self cite caching disabled." \
                       " Use --db-self-citations option to enable it.")
     else:
-        prepare_self_citations_cache(updated_rec_list, reference_list)
+        prepare_self_citations_cache(updated_recids, references)
 
     if task_get_task_param('verbose') >= 3:
         # print only X first to prevent flood
-        tmpdict = {}
-        tmp = citation_list.keys()[0:10]
-        for t in tmp:
-            tmpdict[t] = citation_list[t]
+        tmpdict = dict(islice(citations.iteritems(), 10))
         write_message("citation_list (x is cited by y): %s" % tmpdict)
-        write_message("size: %s" % len(citation_list.keys()))
-        tmp = reference_list.keys()[0:10]
-        tmpdict = {}
-        for t in tmp:
-            tmpdict[t] = reference_list[t]
+        write_message("size: %s" % len(citations))
+        tmpdict = dict(islice(references.iteritems(), 10))
         write_message("reference_list (x cites y): %s" % tmpdict)
-        write_message("size: %s" % len(reference_list.keys()))
-        tmp = selfcitedbydic.keys()[0:10]
-        tmpdict = {}
-        for t in tmp:
-            tmpdict[t] = selfcitedbydic[t]
-        mesg = "selfcitedbydic (x is cited by y and one of the authors of x same as y's):"
-        mesg += str(tmpdict)
-        write_message(mesg)
-        write_message("size: %s" % len(selfcitedbydic.keys()))
-        tmp = selfdic.keys()[0:100]
-        tmpdict = {}
-        for t in tmp:
-            tmpdict[t] = selfdic[t]
-        mesg = "selfdic (x cites y and one of the authors of x same as y's): "+str(tmpdict)
-        write_message(mesg)
-        write_message("size: %s" % len(selfdic.keys()))
-        tmp = authorcitdic.keys()[0:10]
-        tmpdict = {}
-        for t in tmp:
-            tmpdict[t] = authorcitdic[t]
-        write_message("authorcitdic (author is cited in recs): "+str(tmpdict))
-        write_message("size: %s" % len(authorcitdic.keys()))
-    insert_cit_ref_list_intodb(citation_list, reference_list,
-                               selfcitedbydic, selfdic, authorcitdic)
+        write_message("size: %s" % len(references))
+        tmpdict = dict(islice(selfcites.iteritems(), 10))
+        write_message("selfcitedbydic (x is cited by y and one of the " \
+                      "authors of x same as y's): %s" % tmpdict)
+        write_message("size: %s" % len(selfcites))
+        tmpdict = dict(islice(selfrefs.iteritems(), 10))
+        write_message("selfdic (x cites y and one of the authors of x " \
+                      "same as y's): %s" % tmpdict)
+        write_message("size: %s" % len(selfrefs))
+        tmpdict = dict(islice(authorcites.iteritems(), 10))
+        write_message("authorcitdic (author is cited in recs): %s" % tmpdict)
+        write_message("size: %s" % len(authorcites))
 
     t5 = os.times()[4]
 
-    write_message("Execution time for analyzing the citation information generating the dictionary:")
+    write_message("Execution time for analyzing the citation information " \
+                  "generating the dictionary:")
     write_message("... checking ref number: %.2f sec" % (t2-t1))
     write_message("... checking ref ypvt: %.2f sec" % (t3-t2))
     write_message("... checking rec number: %.2f sec" % (t4-t3))
     write_message("... checking rec ypvt: %.2f sec" % (t5-t4))
     write_message("... total time of ref_analyze: %.2f sec" % (t5-t1))
 
-    return result
+    return citations_weight, citations, references, selfcites, \
+                                                        selfrefs, authorcites
 
 
 def insert_cit_ref_list_intodb(citation_dic, reference_dic, selfcbdic,
@@ -1094,12 +1049,8 @@ def remove_from_missing(report):
     """remove the recid-ref -pairs from the "missing" table for report x: prob
        in the case ref got in our library collection"""
     report.replace('"', '\'')
-    try:
-        run_sql("""DELETE FROM rnkCITATIONDATAEXT
-                   WHERE extcitepubinfo = %s""", (report,))
-    except:
-        # we should complain but it can result to million lines of warnings so just pass..
-        pass
+    run_sql("""DELETE FROM rnkCITATIONDATAEXT
+               WHERE extcitepubinfo = %s""", (report,))
 
 
 def create_analysis_tables():
