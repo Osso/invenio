@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 ##
 ## This file is part of Invenio.
-## Copyright (C) 2011 CERN.
+## Copyright (C) 2011, 2012 CERN.
 ##
 ## Invenio is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -57,13 +57,8 @@ import invenio.bibauthorid_webapi as webapi
 import invenio.bibauthorid_config as bconfig
 
 from invenio.bibauthorid_frontinterface import get_bibrefrec_name_string
-from invenio.bibauthorid_frontinterface import update_personID_names_string_set
-
-from pprint import pformat
-
 
 TEMPLATE = load('bibauthorid')
-
 
 class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
     """
@@ -766,7 +761,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                                  'confirmed_ns': _('Papers of this Person'),
                                  'repealed_ns': _('Papers _not_ of this Person'),
                                  'review_ns': _('Papers in need of review'),
-                                 'tickets_ns': _('Tickes you created about this person'),
+                                 'tickets_ns': _('Tickets you created about this person'),
                                  'data_ns': _('Additional Data for this Person')}
             buttons_verbiage_dict = {'mass_buttons': {'no_doc_string': _('Sorry, there are currently no documents to be found in this category.'),
                                                   'b_confirm': _('Yes, those papers are by this person.'),
@@ -834,7 +829,6 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         '''
         session = get_session(req)
         personinfo = {}
-        records = []
 
         try:
             personinfo = session["personinfo"]
@@ -855,15 +849,15 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         all_papers = webapi.get_papers_by_person_id(self.person_id,
                                                     ext_out=True)
 
-        for paper in all_papers:
-            records.append({'recid': paper[0],
-                            'bibref': paper[1],
-                            'flag': paper[2],
-                            'authorname': paper[3],
-                            'authoraffiliation': paper[4],
-                            'paperdate': paper[5],
-                            'rt_status': paper[6],
-                            'paperexperiment': paper[7]})
+        records = [{'recid': paper[0],
+                    'bibref': paper[1],
+                    'flag': paper[2],
+                    'authorname': paper[3],
+                    'authoraffiliation': paper[4],
+                    'paperdate': paper[5],
+                    'rt_status': paper[6],
+                    'paperexperiment': paper[7]}
+                    for paper in all_papers]
 
         rejected_papers = [row for row in records if row['flag'] < -1]
         rest_of_papers = [row for row in records if row['flag'] >= -1]
@@ -1034,6 +1028,11 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         pinfo = session["personinfo"]
         ticket = pinfo["ticket"]
 
+        if 'arxiv_name' in pinfo:
+            arxiv_name = [pinfo['arxiv_name']]
+        else:
+            arxiv_name = None
+
         if 'ln' in pinfo:
             ln = pinfo["ln"]
         else:
@@ -1115,8 +1114,14 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                     continue # we already assessed those bibrefs.
 
                 fctptr = webapi.get_possible_bibrefs_from_pid_bibrec
-                bibrec_refs = fctptr(pid, [recid])
-                person_name = webapi.get_most_frequent_name_from_pid(pid)
+                bibrec_refs = fctptr(pid, [recid], additional_names=arxiv_name)
+                person_name = webapi.get_most_frequent_name_from_pid(pid, allow_none=True)
+
+                if not person_name:
+                    if arxiv_name:
+                        person_name = ''.join(arxiv_name)
+                    else:
+                        person_name = " "
 
                 for brr in bibrec_refs:
                     if len(brr[1]) == 1:
@@ -1136,13 +1141,13 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                             except IndexError:
                                 continue # No bibrefs on record--discard
 
-                            if not pid in bibrefs_to_confirm:
-                                bibrefs_to_confirm[pid] = {
-                                    'person_name': person_name,
-                                    'canonical_id': "TBA",
-                                    'bibrecs': {brr[0]: brr[1]}}
-                            else:
-                                bibrefs_to_confirm[pid]['bibrecs'][brr[0]] = brr[1]
+                        if not pid in bibrefs_to_confirm:
+                            bibrefs_to_confirm[pid] = {
+                                'person_name': person_name,
+                                'canonical_id': "TBA",
+                                'bibrecs': {brr[0]: brr[1]}}
+                        else:
+                            bibrefs_to_confirm[pid]['bibrecs'][brr[0]] = brr[1]
 
             if bibrefs_to_confirm or bibrefs_auto_assigned:
                 pinfo["bibref_check_required"] = True
@@ -1351,12 +1356,9 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         if "user_email" in pinfo:
             userinfo['email'] = pinfo["user_email"]
 
-        pids_to_update = set()
         for t in ticket:
             t['execution_result'] = webapi.execute_action(t['action'], t['pid'], t['bibref'], uid,
-                                                          pids_to_update,
                                                           userinfo['uid-ip'], str(userinfo))
-        update_personID_names_string_set(pids_to_update)
         session.save()
 
 
@@ -1382,17 +1384,14 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         if "user_email" in pinfo:
             userinfo['email'] = pinfo["user_email"]
 
-        pids_to_update = set()
         for t in list(ticket):
             if t['status'] in ['granted', 'warning_granted']:
                 t['execution_result'] = webapi.execute_action(t['action'],
                                                     t['pid'], t['bibref'], uid,
-                                                    pids_to_update,
                                                     userinfo['uid-ip'], str(userinfo))
                 ok_tickets.append(t)
                 ticket.remove(t)
 
-        update_personID_names_string_set(pids_to_update)
 
         if ticket:
             webapi.create_request_ticket(userinfo, ticket)

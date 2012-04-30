@@ -592,7 +592,12 @@ def open_marc_file(path):
     except IOError, erro:
         write_message("Error: %s" % erro, verbose=1, stream=sys.stderr)
         write_message("Exiting.", sys.stderr)
-        task_update_status("ERROR")
+        if erro.errno == 2:
+            # No such file or directory
+            # Not scary
+            task_update_status("CERROR")
+        else:
+            task_update_status("ERROR")
         sys.exit(1)
     return marc
 
@@ -609,7 +614,7 @@ def xml_marc_to_records(xml_marc):
         write_message("Error: MARCXML file has wrong format: %s" % recs,
             verbose=1, stream=sys.stderr)
         write_message("Exiting.", sys.stderr)
-        task_update_status("ERROR")
+        task_update_status("CERROR")
         sys.exit(1)
     else:
         recs = map((lambda x:x[0]), recs)
@@ -2641,7 +2646,7 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
     write_message("Uploading BRT, MIT and BDA fields")
     if opt_mode != "holdingpen":
         for record in records:
-            record_id = retrieve_rec_id(record, opt_mode, pretend=pretend)
+            record_id = retrieve_rec_id(record, None, pretend=pretend)
             bibupload_post_phase(record,
                                  rec_id = record_id,
                                  mode = opt_mode,
@@ -2654,6 +2659,8 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
 
 def task_run_core():
     """ Reimplement to add the body of the task."""
+#    import rpdb2; rpdb2.start_embedded_debugger('password', fAllowRemote=True)
+
     error = 0
     write_message("Input file '%s', input mode '%s'." %
             (task_get_option('file_path'), task_get_option('mode')))

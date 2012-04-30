@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 ##
 ## This file is part of Invenio.
-## Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 CERN.
+## Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 CERN.
 ##
 ## Invenio is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -40,6 +40,7 @@ from invenio.config import \
      CFG_PREFIX, \
      CFG_BIBSCHED_REFRESHTIME, \
      CFG_BIBSCHED_LOG_PAGER, \
+     CFG_BIBSCHED_EDITOR, \
      CFG_BINDIR, \
      CFG_LOGDIR, \
      CFG_BIBSCHED_GC_TASKS_OLDER_THAN, \
@@ -53,15 +54,30 @@ from invenio.textutils import wrap_text_in_a_box
 from invenio.errorlib import register_exception, register_emergency
 from invenio.shellutils import run_shell_command
 
-CFG_VALID_STATUS = ('WAITING', 'SCHEDULED', 'RUNNING', 'CONTINUING', '% DELETED', 'ABOUT TO STOP', 'ABOUT TO SLEEP', 'STOPPED', 'SLEEPING', 'KILLED')
+CFG_VALID_STATUS = ('WAITING', 'SCHEDULED', 'RUNNING', 'CONTINUING',
+                    '% DELETED', 'ABOUT TO STOP', 'ABOUT TO SLEEP', 'STOPPED',
+                    'SLEEPING', 'KILLED', 'NOW STOP', 'ERRORS REPORTED')
+
+
+class RecoverableError(StandardError):
+    pass
+
+
+def get_pager():
+    """
+    Return the first available pager.
+    """
+    for pager in os.environ.get('PAGER', ''), CFG_BIBSCHED_LOG_PAGER, '/usr/bin/less', '/bin/more':
+        if os.path.exists(pager):
+            return pager
 
 
 def get_editor():
     """
     Return the first available editor.
     """
-    for editor in os.environ.get('EDITOR'), '/usr/bin/vim', '/usr/bin/emacs', '/usr/bin/vi', '/usr/bin/nano':
-        if editor and os.path.exists(editor):
+    for editor in os.environ.get('EDITOR', ''), CFG_BIBSCHED_EDITOR, '/usr/bin/vim', '/usr/bin/emacs', '/usr/bin/vi', '/usr/bin/nano':
+        if os.path.exists(editor):
             return editor
 
 shift_re = re.compile("([-\+]{0,1})([\d]+)([dhms])")
@@ -308,7 +324,7 @@ class Manager:
             elif chr in (ord("s"), ord("S")):
                 self.sleep()
             elif chr in (ord("k"), ord("K")):
-                if status in ('ERROR', 'DONE WITH ERRORS'):
+                if status in ('ERROR', 'DONE WITH ERRORS', 'ERRORS REPORTED'):
                     self.acknowledge()
                 elif status is not None:
                     self.kill()
@@ -357,7 +373,7 @@ class Manager:
         else:
             logname = os.path.join(CFG_LOGDIR, 'bibsched_task_%d.log' % task_id)
         if os.path.exists(logname):
-            pager = CFG_BIBSCHED_LOG_PAGER or os.environ.get('PAGER', '/bin/more')
+            pager = get_pager()
             if os.path.exists(pager):
                 self.curses.endwin()
                 os.system('%s %s' % (pager, logname))
@@ -365,6 +381,8 @@ class Manager:
                 self.old_stdout.flush()
                 raw_input()
                 self.curses.panel.update_panels()
+            else:
+                self._display_message_box("No pager was found")
 
     def edit_motd(self):
         """Add, delete or change the motd message that will be shown when the
@@ -409,7 +427,7 @@ class Manager:
         msg += ' sleeptime: %s\n\n' % self.currentrow[4]
         msg += '    status: %s\n\n' % self.currentrow[5]
         msg += '  progress: %s\n\n' % self.currentrow[6]
-        arguments = marshal.loads(self.currentrow[8])
+        arguments = marshal.loads(self.currentrow[7])
         if type(arguments) is dict:
             # FIXME: REMOVE AFTER MAJOR RELEASE 1.0
             msg += '   options : %s\n\n' % arguments
@@ -572,13 +590,16 @@ class Manager:
         status = self.currentrow[5]
         #if self.count_processes('RUNNING') + self.count_processes('CONTINUING') >= 1:
             #self.display_in_footer("a process is already running!")
-        if status in ("SCHEDULED", "WAITING"):
-            run_sql("UPDATE schTASK SET status='SCHEDULED', host=%s WHERE id=%s", (self.hostname, task_id))
+        if status == "WAITING":
             if process in self.helper_modules:
-                program = os.path.join(CFG_BINDIR, process)
-                COMMAND = "%s %s > /dev/null 2> /dev/null &" % (program, str(task_id))
-                os.system(COMMAND)
-                Log("manually running task #%d (%s)" % (task_id, process))
+                if run_sql("UPDATE schTASK SET status='SCHEDULED', host=%s WHERE id=%s and status='WAITING'", (self.hostname, task_id)):
+                    program = os.path.join(CFG_BINDIR, process)
+                    COMMAND = "%s %s > /dev/null 2> /dev/null &" % (program, str(task_id))
+                    os.system(COMMAND)
+                    Log("manually running task #%d (%s)" % (task_id, process))
+                else:
+                    ## Process already running (typing too quickly on the keyboard?)
+                    pass
             else:
                 self.display_in_footer("Process %s is not in the list of allowed processes." % process)
         else:
@@ -587,7 +608,7 @@ class Manager:
     def acknowledge(self):
         task_id = self.currentrow[0]
         status = self.currentrow[5]
-        if status in ('ERROR', 'DONE WITH ERRORS'):
+        if status in ('ERROR', 'DONE WITH ERRORS', 'ERRORS REPORTED'):
             bibsched_set_status(task_id, 'ACK ' + status, status)
             self.display_in_footer("Acknowledged error")
 
@@ -619,16 +640,16 @@ class Manager:
         status = self.currentrow[5]
         if status in ('RUNNING', 'CONTINUING', 'ABOUT TO SLEEP', 'SLEEPING'):
             if status == 'SLEEPING':
+                bibsched_set_status(task_id, 'NOW STOP', 'SLEEPING')
                 bibsched_send_signal(process, task_id, signal.SIGCONT)
                 count = 10
-                while bibsched_get_status(task_id) == 'SLEEPING':
+                while bibsched_get_status(task_id) == 'NOW STOP':
                     if count <= 0:
-                        bibsched_set_status(task_id, 'ERROR', 'SLEEPING')
+                        bibsched_set_status(task_id, 'ERROR', 'NOW STOP')
                         self.display_in_footer("It seems impossible to wakeup this task.")
                         return
                     time.sleep(CFG_BIBSCHED_REFRESHTIME)
                     count -= 1
-                bibsched_set_status(task_id, 'ABOUT TO STOP', 'CONTINUING')
             else:
                 bibsched_set_status(task_id, 'ABOUT TO STOP', status)
             self.display_in_footer("STOP signal sent to task #%s" % task_id)
@@ -819,7 +840,7 @@ class Manager:
         else:
             self.display_in_footer(self.footer_select_mode, print_time_p=1)
             footer2 = ""
-            if self.item_status.find("DONE") > -1 or self.item_status in ("ERROR", "STOPPED", "KILLED"):
+            if self.item_status.find("DONE") > -1 or self.item_status in ("ERROR", "STOPPED", "KILLED", "ERRORS REPORTED"):
                 footer2 += self.footer_stopped_item
             elif self.item_status in ("RUNNING", "CONTINUING", "ABOUT TO STOP", "ABOUT TO SLEEP"):
                 footer2 += self.footer_running_item
@@ -951,17 +972,19 @@ class BibSched:
         min_task_id = None
         min_proc = None
         min_status = None
+        min_sequenceid = None
         to_stop = []
         ## For all the lower priority tasks...
-        for (this_task_id, this_proc, this_priority, this_status) in task_set:
+        for (this_task_id, this_proc, this_priority, this_status, this_sequenceid) in task_set:
             if not self.is_task_safe_to_execute(this_proc, proc):
-                to_stop.append((this_task_id, this_proc, this_priority, this_status))
+                to_stop.append((this_task_id, this_proc, this_priority, this_status, this_sequenceid))
             elif (min_prio is None or this_priority < min_prio) and this_status != 'SLEEPING':
                 ## We don't put to sleep already sleeping task :-)
                 min_prio = this_priority
                 min_task_id = this_task_id
                 min_proc = this_proc
                 min_status = this_status
+                min_sequenceid = this_sequenceid
 
         if len(task_set) < CFG_BIBSCHED_MAX_NUMBER_CONCURRENT_TASKS and not to_stop:
             ## All the task are safe and there are enough resources
@@ -970,7 +993,7 @@ class BibSched:
             if to_stop:
                 return to_stop, []
             elif min_task_id:
-                return [], [(min_task_id, min_proc, min_prio, min_status)]
+                return [], [(min_task_id, min_proc, min_prio, min_status, min_sequenceid)]
             else:
                 return [], []
 
@@ -998,7 +1021,7 @@ class BibSched:
         #Log("task_id: %s, proc: %s, runtime: %s, status: %s, priority: %s" % (task_id, proc, runtime, status, priority))
 
         if (task_id, proc, runtime, status, priority, host, sequenceid) in self.node_relevant_waiting_tasks:
-#        elif task_id in self.task_status['WAITING'] or task_id in self.task_status['SLEEPING']:
+            #elif task_id in self.task_status['WAITING'] or task_id in self.task_status['SLEEPING']:
             #Log("Trying to run %s" % task_id)
 
             if priority < -10:
@@ -1017,9 +1040,17 @@ class BibSched:
                     #Log("Cannot run because task_id: %s, proc: %s is the queue and incompatible" % (other_task_id, other_proc))
                     return False
 
+            if sequenceid:
+                max_priority = run_sql("SELECT MAX(priority) FROM schTASK WHERE status='WAITING' AND sequenceid=%s", (sequenceid, ))[0][0]
+                if run_sql("UPDATE schTASK SET priority=%s WHERE status='WAITING' AND sequenceid=%s", (max_priority, sequenceid)):
+                    Log("Raised all waiting tasks with sequenceid %s to the max priority %s" % (sequenceid, max_priority))
+                    ## Some priorities where raised
+                    return False
+
             for other_task_id, other_proc, other_dummy, other_status, other_sequenceid in higher + lower:
-                if sequenceid == other_sequenceid and task_id > other_task_id:
-                    Log('Same sequence id processes.')
+                if sequenceid is not None and \
+                    sequenceid == other_sequenceid and task_id > other_task_id:
+                    Log('Task %s need to run after task %s since they have the same sequence id: %s' % (task_id, other_task_id, sequenceid))
                     ## If there is a task with same sequence number then do not run the current task
                     return False
 
@@ -1087,22 +1118,40 @@ class BibSched:
                 ## It's not still safe to run the task.
                 ## We first need to stop task that should be stopped
                 ## and to put to sleep task that should be put to sleep
-                for (other_task_id, other_proc, other_priority, other_status) in tasks_to_stop:
+                for (other_task_id, other_proc, other_priority, other_status, other_sequenceid) in tasks_to_stop:
                     Log("Send STOP signal to #%d (%s) which was in status %s" % (other_task_id, other_proc, other_status))
                     bibsched_set_status(other_task_id, 'ABOUT TO STOP', other_status)
-                for (other_task_id, other_proc, other_priority, other_status) in tasks_to_sleep:
+                for (other_task_id, other_proc, other_priority, other_status, other_sequenceid) in tasks_to_sleep:
                     Log("Send SLEEP signal to #%d (%s) which was in status %s" % (other_task_id, other_proc, other_status))
                     bibsched_set_status(other_task_id, 'ABOUT TO SLEEP', other_status)
                 time.sleep(CFG_BIBSCHED_REFRESHTIME)
                 return True
 
     def watch_loop(self):
+        def check_errors():
+            sql = "SELECT count(id) FROM schTASK WHERE status='ERROR'" \
+                  " OR status='DONE WITH ERRORS' OR STATUS='CERROR'"
+            if run_sql(sql)[0][0] > 0:
+                errors = run_sql("SELECT id,proc,status FROM schTASK" \
+                          " WHERE status='ERROR' " \
+                          "OR status='DONE WITH ERRORS'" \
+                          "OR status='CERROR'")
+                msg_errors = ["    #%s %s -> %s" % row for row in errors]
+                msg = 'BibTask with ERRORS:\n%s' % "\n".join(msg_errors)
+                err_types = set(e[2] for e in errors if e[2])
+                if 'ERROR' in err_types or 'DONE WITH ERRORS' in err_types:
+                    raise StandardError(msg)
+                else:
+                    raise RecoverableError(msg)
+
         def calculate_rows():
             """Return all the node_relevant_active_tasks to work on."""
-            if run_sql("SELECT count(id) FROM schTASK WHERE status='ERROR' OR status='DONE WITH ERRORS'")[0][0] > 0:
-                errors = run_sql("SELECT id,proc,status FROM schTASK WHERE status='ERROR' OR status='DONE WITH ERRORS'")
-                errors = ["    #%s %s -> %s" % row for row in errors]
-                raise StandardError('BibTask with ERRORS:\n%s' % "\n".join(errors))
+            try:
+                check_errors()
+            except RecoverableError, msg:
+                register_emergency('Light emergency from %s: BibTask failed: %s' % (CFG_SITE_URL, msg))
+                run_sql("UPDATE schTASK set status='ERRORS REPORTED' where status='CERROR'")
+
             max_bibupload_priority = run_sql("SELECT max(priority) FROM schTASK WHERE status='WAITING' AND proc='bibupload' AND runtime<=NOW()")
             if max_bibupload_priority:
                 run_sql("UPDATE schTASK SET priority=%s WHERE status='WAITING' AND proc='bibupload' AND runtime<=NOW()", ( max_bibupload_priority[0][0], ))
@@ -1251,7 +1300,7 @@ def server_pid(ping_the_process=True, check_is_really_bibsched=True):
             return None
 
     if check_is_really_bibsched:
-        output = run_shell_command("ps p %s o args=", (str(pid),))[1]
+        output = run_shell_command("ps p %s -o args=", (str(pid),))[1]
         if not 'bibsched' in output:
             warning("pidfile %s found referring to pid %s which does not correspond to bibsched: cmdline is %s" % (pidfile, pid, output))
             return None

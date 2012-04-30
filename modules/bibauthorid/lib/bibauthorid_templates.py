@@ -542,24 +542,24 @@ class Template:
             rec_info = format_record(paper['recid'], "ha")
             rec_info = str(idx + 1) + '.  ' + rec_info
             h("    <td>%s</td>" % (rec_info))
-            h("    <td>%s</td>" % (paper['authorname'].encode("utf-8")))
+            h("    <td>%s</td>" % (paper['authorname']))
             aff = ""
 
             if paper['authoraffiliation']:
-                aff = paper['authoraffiliation'].encode("utf-8")
+                aff = paper['authoraffiliation']
             else:
                 aff = "Not assigned"
 
             h("    <td>%s</td>" % (aff))
 
             if paper['paperdate']:
-                pdate = paper['paperdate'].encode("utf-8")
+                pdate = paper['paperdate']
             else:
                 pdate = 'N.A.'
             h("    <td>%s</td>" % pdate)
 
             if paper['paperexperiment']:
-                pdate = paper['paperexperiment'].encode("utf-8")
+                pdate = paper['paperexperiment']
             else:
                 pdate = 'N.A.'
             h("    <td>%s</td>" % pdate)
@@ -770,7 +770,7 @@ class Template:
         @type rest_of_papers: list
         @param review_needed: list of papers that need a review (choose name)
         @type review_needed:list
-        @param rt_tickets: list of tickes for this Person
+        @param rt_tickets: list of tickets for this Person
         @type rt_tickets: list
         @param open_rt_tickets: list of open request tickets
         @type open_rt_tickets: list
@@ -961,10 +961,10 @@ class Template:
         html = []
         h = html.append
         h('<form id="review" action="/person/action" method="post">')
-        h('<p><strong>' + self._('We could not reliably determine the name of the author on the records below to automatically perform an assignment.')
+        h('<p><strong>' + self._("Make sure we match the right names!")
           + '</strong></p>')
-        h('<p>' + self._('Please select an author for the records in question.') + '<br/>')
-        h(self._('Boxes not selected will be ignored in the process.'))
+        h('<p>' + self._('Please select an author on each of the records that will be assigned.') + '<br/>')
+        h(self._('Papers without a name selected will be ignored in the process.'))
         h('</p>')
 
         for person in bibrefs_to_confirm:
@@ -984,7 +984,7 @@ class Template:
 
                 h(self._("Paper title: ") + fv)
                 h('<select name="bibrecgroup%s">' % (recid))
-                h('<option value="" selected>-- Ignore --</option>')
+                h('<option value="" selected>-- Choose author name --</option>')
 
                 for bibref in bibrefs_to_confirm[person]["bibrecs"][recid]:
                     h('<option value="%s||%s">%s</option>'
@@ -1123,7 +1123,7 @@ class Template:
             h('<img src="%s/img/aid_warning_granted.png" '
               'alt="%s" width="30" height="30" />'
               % (CFG_SITE_URL, self._("Confirmation needed to continue")))
-            h(self._('The result of this request will be visible immediately but we need your confirmation to do so for this paper have been manually claimed before'))
+            h(self._('The result of this request will be visible immediately but we need your confirmation to do so for this paper has been manually claimed before'))
             h('</span><br />')
             h('<span style="margin-left:25px; vertical-align:middle;">')
             h('<img src="%s/img/aid_denied.png" '
@@ -1494,6 +1494,8 @@ class Template:
                             + self._('Recent Papers') +
                             '</a></em>')
                             % (pid))
+            else:
+                h("</em>")
 
             if search_ticket:
                 link = "%s/person/action?confirm=True&pid=%s" % (CFG_SITE_URL, pid)
@@ -1645,9 +1647,9 @@ class Template:
         '''
         plist = "<br><br>"
         if paps:
-            plist = plist + "We have got and automatically claimed for You the following papers from arXiv.org: <br>"
+            plist = plist + "We have got and we are about to automatically claim for You the following papers from arXiv.org: <br>"
             for p in paps:
-                plist = plist + "  "+str(p)+"<br>"
+                plist = plist + "  " + str(p) + "<br>"
         else:
             plist = "We have got no papers from arXiv.org which we could claim automatically for You. <br>"
         return plist

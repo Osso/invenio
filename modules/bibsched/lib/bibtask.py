@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 ##
 ## This file is part of Invenio.
-## Copyright (C) 2007, 2008, 2009, 2010, 2011 CERN.
+## Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012 CERN.
 ##
 ## Invenio is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License as
@@ -56,6 +56,7 @@ import datetime
 import traceback
 import logging
 import logging.handlers
+import random
 
 from invenio.dbquery import run_sql, _db_login
 from invenio.access_control_engine import acc_authorize_action
@@ -67,7 +68,7 @@ from invenio.access_control_config import CFG_EXTERNAL_AUTH_USING_SSO, \
     CFG_EXTERNAL_AUTHENTICATION
 from invenio.webuser import get_user_preferences, get_email
 from invenio.bibtask_config import CFG_BIBTASK_VALID_TASKS, \
-    CFG_BIBTASK_DEFAULT_TASK_SETTINGS
+    CFG_BIBTASK_DEFAULT_TASK_SETTINGS, CFG_BIBTASK_FIXEDTIMETASKS
 from invenio.dateutils import parse_runtime_limit
 from invenio.shellutils import escape_shell_arg
 
@@ -87,7 +88,10 @@ _TASK_PARAMS = {
         'priority': 0,
         'runtime_limit': None,
         'profile': [],
+        'post-process': [],
         'sequence-id':None,
+        'stop_queue_on_error': False,
+        'fixed_time': False,
         }
 
 # Global _OPTIONS dictionary.
@@ -173,6 +177,51 @@ def task_low_level_submission(name, user, *argv):
                 special_name = opt[1]
         return special_name
 
+    def get_runtime(argv):
+        """Try to get the runtime by analysing the arguments."""
+        runtime = time.strftime("%Y-%m-%d %H:%M:%S")
+        argv = list(argv)
+        while True:
+            try:
+                opts, args = getopt.gnu_getopt(argv, 't:', ['runtime='])
+            except getopt.GetoptError, err:
+                ## We remove one by one all the non recognized parameters
+                if len(err.opt) > 1:
+                    argv = [arg for arg in argv if arg != '--%s' % err.opt and not arg.startswith('--%s=' % err.opt)]
+                else:
+                    argv = [arg for arg in argv if not arg.startswith('-%s' % err.opt)]
+            else:
+                break
+        for opt in opts:
+            if opt[0] in ('-t', '--runtime'):
+                try:
+                    runtime = get_datetime(opt[1])
+                except ValueError:
+                    pass
+        return runtime
+
+    def get_sleeptime(argv):
+        """Try to get the runtime by analysing the arguments."""
+        sleeptime = ""
+        argv = list(argv)
+        while True:
+            try:
+                opts, args = getopt.gnu_getopt(argv, 's:', ['sleeptime='])
+            except getopt.GetoptError, err:
+                ## We remove one by one all the non recognized parameters
+                if len(err.opt) > 1:
+                    argv = [arg for arg in argv if arg != '--%s' % err.opt and not arg.startswith('--%s=' % err.opt)]
+                else:
+                    argv = [arg for arg in argv if not arg.startswith('-%s' % err.opt)]
+            else:
+                break
+        for opt in opts:
+            if opt[0] in ('-s', '--sleeptime'):
+                try:
+                    sleeptime = opt[1]
+                except ValueError:
+                    pass
+        return sleeptime
 
     task_id = None
     try:
@@ -187,6 +236,8 @@ def task_low_level_submission(name, user, *argv):
         argv = new_argv
         priority = get_priority(argv)
         special_name = get_special_name(argv)
+        runtime = get_runtime(argv)
+        sleeptime = get_sleeptime(argv)
         argv = tuple([os.path.join(CFG_BINDIR, name)] + list(argv))
 
         if special_name:
@@ -197,8 +248,8 @@ def task_low_level_submission(name, user, *argv):
         ## submit task:
         task_id = run_sql("""INSERT INTO schTASK (proc,user,
             runtime,sleeptime,status,progress,arguments,priority)
-            VALUES (%s,%s,NOW(),'','WAITING',%s,%s,%s)""",
-            (name, user, verbose_argv, marshal.dumps(argv), priority))
+            VALUES (%s,%s,%s,%s,'WAITING',%s,%s,%s)""",
+            (name, user, runtime, sleeptime, verbose_argv, marshal.dumps(argv), priority))
 
     except Exception:
         register_exception(alert_admin=True)
@@ -206,6 +257,32 @@ def task_low_level_submission(name, user, *argv):
             run_sql("""DELETE FROM schTASK WHERE id=%s""", (task_id, ))
         raise
     return task_id
+
+
+def bibtask_allocate_sequenceid(curdir=None):
+    """
+    Returns an almost unique number to be used a task sequence ID.
+
+    In WebSubmit functions, set C{curdir} to the curdir (!) to read
+    the shared sequence ID for all functions of this submission (reading
+    "access number").
+
+    @param curdir: in WebSubmit functions (ONLY) the value retrieved
+                   from the curdir parameter of the function
+    @return: an integer for the sequence ID. 0 is returned if the
+             sequence ID could not be allocated
+    @rtype: int
+    """
+    if curdir:
+        try:
+            fd = file(os.path.join(curdir, 'access'), "r")
+            access = fd.readline().strip()
+            fd.close()
+            return access.replace("_", "")[-9:]
+        except:
+            return 0
+    else:
+        return random.randrange(1, 4294967296)
 
 
 def setup_loggers(task_id=None):
@@ -282,6 +359,8 @@ def task_init(
         "profile" : [],
         "post-process": [],
         "sequence-id": None,
+        "stop_queue_on_error": False,
+        "fixed_time": False,
     }
     to_be_submitted = True
     if len(sys.argv) == 2 and sys.argv[1].isdigit():
@@ -308,13 +387,11 @@ def task_init(
                 help_specific_usage, version, specific_params,
                 task_submit_elaborate_specific_parameter_fnc,
                 task_submit_check_options_fnc)
-        except SystemExit:
-            raise
-        except Exception, e:
-            register_exception(alert_admin=True)
-            write_message("Error in parsing the parameters: %s." % e, sys.stderr)
-            write_message("Exiting.", sys.stderr)
+        except (SystemExit, Exception), err:
             if not to_be_submitted:
+                register_exception(alert_admin=True)
+                write_message("Error in parsing the parameters: %s." % err, sys.stderr)
+                write_message("Exiting.", sys.stderr)
                 task_update_status("ERROR")
             raise
 
@@ -423,8 +500,11 @@ def _task_build_params(
                 "name=",
                 "limit=",
                 "profile=",
-                "post-process="
-                "sequence-id="
+                "post-process=",
+                "sequence-id=",
+                "stop-on-error",
+                "continue-on-error",
+                "fixed-time",
             ] + long_params)
     except getopt.GetoptError, err:
         _usage(1, err, help_specific_usage=help_specific_usage, description=description)
@@ -455,8 +535,14 @@ def _task_build_params(
                 _TASK_PARAMS["profile"] += opt[1].split(',')
             elif opt[0] in ("--post-process", ):
                 _TASK_PARAMS["post-process"] += [opt[1]];
-            elif opt[0] in ("-S","--sequence-id"):
+            elif opt[0] in ("-I","--sequence-id"):
                 _TASK_PARAMS["sequence-id"] = opt[1]
+            elif opt[0] in ("--stop-on-error", ):
+                _TASK_PARAMS["stop_queue_on_error"] = True
+            elif opt[0] in ("--continue-on-error", ):
+                _TASK_PARAMS["stop_queue_on_error"] = False
+            elif opt[0] in ("--fixed-time", ):
+                _TASK_PARAMS["fixed_time"] = True
             elif not callable(task_submit_elaborate_specific_parameter_fnc) or \
                 not task_submit_elaborate_specific_parameter_fnc(opt[0],
                     opt[1], opts, args):
@@ -547,19 +633,22 @@ def write_message(msg, stream=sys.stdout, verbose=1):
         logging.debug(msg)
 
 _RE_SHIFT = re.compile("([-\+]{0,1})([\d]+)([dhms])")
-def get_datetime(var, format_string="%Y-%m-%d %H:%M:%S"):
+def get_datetime(var, format_string="%Y-%m-%d %H:%M:%S", now=None):
     """Returns a date string according to the format string.
        It can handle normal date strings and shifts with respect
        to now."""
-    date = time.time()
-    factors = {"d":24*3600, "h":3600, "m":60, "s":1}
+    date = now or datetime.datetime.now()
+
+    factors = {"d": 24 * 3600, "h": 3600, "m": 60, "s": 1}
     m = _RE_SHIFT.match(var)
     if m:
         sign = m.groups()[0] == "-" and -1 or 1
         factor = factors[m.groups()[2]]
         value = float(m.groups()[1])
-        date = time.localtime(date + sign * factor * value)
-        date = time.strftime(format_string, date)
+        delta = sign * factor * value
+        while delta > 0 and date < datetime.datetime.now():
+            date = date + datetime.timedelta(seconds=delta)
+        date = date.strftime(format_string)
     else:
         date = time.strptime(var, format_string)
         date = time.strftime(format_string, date)
@@ -578,17 +667,26 @@ def task_sleep_now_if_required(can_stop_too=False):
         signal.signal(signal.SIGTSTP, _task_sig_dumb)
         os.kill(os.getpid(), signal.SIGSTOP)
         time.sleep(1)
-        task_update_status("CONTINUING")
-        write_message("... continuing...")
+        if task_read_status() == 'NOW STOP':
+            if can_stop_too:
+                write_message("stopped")
+                task_update_status("STOPPED")
+                sys.exit(0)
+            else:
+                write_message("stopping as soon as possible...")
+                task_update_status('ABOUT TO STOP')
+        else:
+            write_message("... continuing...")
+            task_update_status("CONTINUING")
         signal.signal(signal.SIGTSTP, _task_sig_sleep)
     elif status == 'ABOUT TO STOP' and can_stop_too:
         write_message("stopped")
         task_update_status("STOPPED")
         sys.exit(0)
-    runtime_limit = task_get_option("limit")
-    if runtime_limit is not None:
-        if not (runtime_limit[0] <= time.time() <= runtime_limit[1]):
-            if can_stop_too:
+    if can_stop_too:
+        runtime_limit = task_get_option("limit")
+        if runtime_limit is not None:
+            if not (runtime_limit[0] <= time.time() <= runtime_limit[1]):
                 write_message("stopped (outside runtime limit)")
                 task_update_status("STOPPED")
                 sys.exit(0)
@@ -786,14 +884,23 @@ def _task_run(task_run_fnc):
             pass
         except:
             register_exception(alert_admin=True)
-            task_update_status("ERROR")
+            if task_get_task_param('stop_queue_on_error'):
+                task_update_status("ERROR")
+            else:
+                task_update_status("CERROR")
     finally:
         task_status = task_read_status()
         if sleeptime:
             argv = _task_get_options(_TASK_PARAMS['task_id'], _TASK_PARAMS['task_name'])
             verbose_argv = 'Will execute: %s' % ' '.join([escape_shell_arg(str(arg)) for arg in argv])
 
-            new_runtime = get_datetime(sleeptime)
+            # Here we check if the task can shift away of has to be run at
+            # a fixed time
+            old_runtime = run_sql("SELECT runtime FROM schTASK WHERE id=%s", (_TASK_PARAMS['task_id'], ))[0][0]
+            if not task_get_task_param('fixed_time') or _TASK_PARAMS['task_name'] not in CFG_BIBTASK_FIXEDTIMETASKS:
+                old_runtime = None
+            new_runtime = get_datetime(sleeptime, now=old_runtime)
+
             ## The task is a daemon. We resubmit it
             if task_status == 'DONE':
                 ## It has finished in a good way. We recycle the database row
@@ -847,6 +954,7 @@ def _usage(exitcode=1, msg="", help_specific_usage="", description=""):
     sys.stderr.write("  -s, --sleeptime=SLEEP\tSleeping frequency after"
         " which to repeat the task.\n"
         "\t\t\tExamples: 30m, 2h, 1d. [default=no]\n")
+    sys.stderr.write("  --fixed-time\t\tAvoid drifting of execution time when using --sleeptime\n")
     sys.stderr.write("  -I, --sequence-id=SEQUENCE-ID\tSequence Id of the current process\n")
     sys.stderr.write("  -L  --limit=LIMIT\tTime limit when it is"
         " allowed to execute the task.\n"
@@ -859,7 +967,9 @@ def _usage(exitcode=1, msg="", help_specific_usage="", description=""):
     sys.stderr.write("  -V, --version\t\tPrint version information.\n")
     sys.stderr.write("  -v, --verbose=LEVEL\tVerbose level (0=min,"
         " 1=default, 9=max).\n")
-    sys.stderr.write("      --profile=STATS\tPrint profile information. STATS is a comma-separated\n\t\t\tlist of desired output stats (calls, cumulative,\n\t\t\tfile, line, module, name, nfl, pcalls, stdname, time).\n")
+    sys.stderr.write("  --profile=STATS\tPrint profile information. STATS is a comma-separated\n\t\t\tlist of desired output stats (calls, cumulative,\n\t\t\tfile, line, module, name, nfl, pcalls, stdname, time).\n")
+    sys.stderr.write("  --stop-on-error\tIn case of unrecoverable error stop the bibsched queue.\n")
+    sys.stderr.write("  --continue-on-error\tIn case of unrecoverable error don't stop the bibsched queue.\n")
     sys.stderr.write("  --post-process=BIB_TASKLET_NAME[parameters]\tPostprocesses the specified\n\t\t\tbibtasklet with the given parameters between square\n\t\t\tbrackets.\n")
     sys.stderr.write("\t\t\tExample:--post-process \"bst_send_email[fromaddr=\n\t\t\t'foo@xxx.com', toaddr='bar@xxx.com', subject='hello',\n\t\t\tcontent='help']\"\n")
     if description:

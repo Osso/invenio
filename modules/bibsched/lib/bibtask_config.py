@@ -30,7 +30,7 @@ CFG_BIBTASK_VALID_TASKS = ("bibindex", "bibupload", "bibreformat",
                            "oaiharvest", "oairepositoryupdater", "inveniogc",
                            "webstatadmin", "bibclassify", "bibexport",
                            "dbdump", "batchuploader", "bibauthorid", 'bibencode',
-                           "bibtasklet", "refextract")
+                           "bibtasklet", "refextract", "bibsort")
 
 # Tasks that should be run as standalone task
 CFG_BIBTASK_MONOTASKS = ("bibupload", "dbdump", "inveniogc")
@@ -57,6 +57,7 @@ CFG_BIBTASK_DEFAULT_TASK_SETTINGS = {
     'oaiharvest': {
         'repository': None,
         'dates': None,
+        'fixed_time': True
     },
     'oairepositoryupdater': {
         'no_upload': 0,
@@ -70,6 +71,7 @@ CFG_BIBTASK_DEFAULT_TASK_SETTINGS = {
         'stage_to_start_from': 1,
         'pretend': False,
         'force': False,
+        'stop_queue_on_error': True,
     },
     'bibindex': {
         'cmd': 'add',

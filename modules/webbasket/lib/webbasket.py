@@ -51,6 +51,7 @@ from invenio.urlutils import get_referer
 from invenio.webuser import isGuestUser, collect_user_info
 from invenio.search_engine import \
      record_exists, \
+     get_merged_recid, \
      check_user_can_view_record, \
      print_records_prologue, \
      print_records_epilogue
@@ -67,7 +68,7 @@ from invenio.websearch_external_collections_config import CFG_EXTERNAL_COLLECTIO
 from invenio.websearch_external_collections_getter import HTTPAsyncPageGetter, async_download
 from invenio.errorlib import register_exception
 from invenio.search_engine import search_unit
-from invenio.htmlutils import remove_html_markup
+from invenio.htmlutils import remove_html_markup, unescape
 
 ########################################
 ### Display public baskets and notes ###
@@ -452,6 +453,7 @@ def perform_request_save_public_note(uid,
                                      recid=0,
                                      note_title="",
                                      note_body="",
+                                     date_creation="",
                                      editor_type='textarea',
                                      ln=CFG_SITE_LANG,
                                      reply_to=None):
@@ -495,7 +497,7 @@ def perform_request_save_public_note(uid,
                 # reply to a comment is made with a browser that does not
                 # support CKEditor.
                 note_body = note_body.replace('\n', '').replace('\r', '').replace('<br />', '\n')
-            if not(db.save_note(uid, bskid, recid, note_title, note_body, reply_to)):
+            if not(db.save_note(uid, bskid, recid, note_title, note_body, date_creation, reply_to)):
                 # TODO: The note could not be saved. DB problem?
                 pass
             else:
@@ -750,7 +752,7 @@ def perform_request_display(uid,
     if selected_basket_info:
         if selected_recid:
             (bskid, basket_name, last_update, dummy, nb_items, dummy, share_rights) = selected_basket_info
-            (content, bsk_warnings) = __display_basket_single_item(bskid,
+            (content, bsk_warnings) = __display_basket_single_item(uid, bskid,
                                                                    basket_name,
                                                                    selected_recid,
                                                                    last_update,
@@ -774,7 +776,7 @@ def perform_request_display(uid,
             else:
                 nb_subscribers = None
 
-            (content, bsk_warnings) = __display_basket(bskid,
+            (content, bsk_warnings) = __display_basket(uid, bskid,
                                                        basket_name,
                                                        last_update,
                                                        nb_items,
@@ -819,7 +821,7 @@ def perform_request_display(uid,
     else:
         return (body, None, None)
 
-def __display_basket(bskid,
+def __display_basket(uid, bskid,
                      basket_name,
                      last_update,
                      nb_items,
@@ -861,6 +863,28 @@ def __display_basket(bskid,
         colid = collection_id and collection_id or collection_id == 0 and -1 or 0
         val = ""
         nb_total_notes += nb_notes
+
+        # check if the current recid has been deleted and has been merged,
+        # in that case obtain the recid of the new record and redirect to it
+        merged_recid = get_merged_recid(recid)
+        record_status = record_exists(recid)
+        if record_status == -1 and merged_recid: # the record has been deleted and has been merged
+            # keep notes about the deleted record to store them in the merged record
+            deleted_record_notes = db.get_notes(bskid, recid)
+            # remove the deleted record recid from the basket bskid
+            db.delete_item(bskid, recid)
+            recid = get_merged_recid(recid)
+            # add the merged record recid in the basket bskid
+            db.add_to_basket(uid, [recid], 0, bskid)
+            # save the notes in the merged record recid
+            for note in deleted_record_notes:
+                note_title = note[2]
+                note_body = note[3]
+                date_creation= note[4]
+                reply_to = note[-1]
+                db.save_note(uid, bskid, recid, note_title, note_body, date_creation, reply_to)
+            int_val = ""
+
         if recid < 0:
             if ext_val:
                 val = decompress(ext_val)
@@ -918,7 +942,7 @@ def __display_basket(bskid,
             body +=  rec[4]
     return (body, warnings)
 
-def __display_basket_single_item(bskid,
+def __display_basket_single_item(uid, bskid,
                                  basket_name,
                                  recid,
                                  last_update,
@@ -963,7 +987,7 @@ def __display_basket_single_item(bskid,
             nb_subscribers = db.count_public_basket_subscribers(bskid)
         else:
             nb_subscribers = None
-        (content, bsk_warnings) = __display_basket(bskid,
+        (content, bsk_warnings) = __display_basket(uid, bskid,
                                                    basket_name,
                                                    last_update,
                                                    nb_items,
@@ -1165,7 +1189,8 @@ def perform_request_search(uid,
                 value       = external_info_per_basket[4]
                 xml_record  = decompress(value)
                 personal_external_items_xml_records[recid] = xml_record
-                text = remove_html_markup(xml_record)
+                text = remove_html_markup(xml_record, remove_escaped_chars_p=False)
+                text = unescape(text)
                 #text = text.replace('\n', '')
                 result = pattern.search(text)
                 if result:
@@ -1245,7 +1270,8 @@ def perform_request_search(uid,
                 value       = external_info_per_basket[6]
                 xml_record  = decompress(value)
                 group_external_items_xml_records[recid] = xml_record
-                text = remove_html_markup(xml_record)
+                text = remove_html_markup(xml_record, remove_escaped_chars_p=False)
+                text = unescape(text)
                 #text = text.replace('\n', '')
                 result = pattern.search(text)
                 if result:
@@ -1329,7 +1355,8 @@ def perform_request_search(uid,
                 value       = external_info_per_basket[4]
                 xml_record  = decompress(value)
                 public_external_items_xml_records[recid] = xml_record
-                text = remove_html_markup(xml_record)
+                text = remove_html_markup(xml_record, remove_escaped_chars_p=False)
+                text = unescape(text)
                 #text = text.replace('\n', '')
                 result = pattern.search(text)
                 if result:
@@ -1411,7 +1438,8 @@ def perform_request_search(uid,
                 value       = external_info_per_basket[4]
                 xml_record  = decompress(value)
                 all_public_external_items_xml_records[recid] = xml_record
-                text = remove_html_markup(xml_record)
+                text = remove_html_markup(xml_record, remove_escaped_chars_p=False)
+                text = unescape(text)
                 #text = text.replace('\n', '')
                 result = pattern.search(text)
                 if result:
@@ -1563,6 +1591,7 @@ def perform_request_save_note(uid,
                               note_title="",
                               note_body="",
                               editor_type='textarea',
+                              date_creation="",
                               ln=CFG_SITE_LANG,
                               reply_to=None):
     """ Save a given comment if able to.
@@ -1608,7 +1637,7 @@ def perform_request_save_note(uid,
                 # reply to a comment is made with a browser that does not
                 # support CKEditor.
                 note_body = note_body.replace('\n', '').replace('\r', '').replace('<br />', '\n')
-            if not(db.save_note(uid, bskid, recid, note_title, note_body, reply_to)):
+            if not(db.save_note(uid, bskid, recid, note_title, note_body, date_creation, reply_to)):
                 # TODO: The note could not be saved. DB problem?
                 pass
             else:
@@ -1689,6 +1718,7 @@ def perform_request_add(uid,
                         es_desc='',
                         es_url='',
                         note_body='',
+                        date_creation='',
                         editor_type='',
                         b='',
                         successful_add=False,
@@ -1897,7 +1927,7 @@ def perform_request_add(uid,
                         else:
                             note_title = ''
                         for recid in added_items:
-                            if not(db.save_note(uid, bskid, recid, note_title, note_body, reply_to=None)):
+                            if not(db.save_note(uid, bskid, recid, note_title, note_body, date_creation, reply_to=None)):
                                 # TODO: The note could not be saved. DB problem?
                                 pass
                     if colid > 0:

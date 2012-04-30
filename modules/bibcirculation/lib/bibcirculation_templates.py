@@ -72,7 +72,7 @@ _MENU_ = """
 <!--
      <li class="hassubmenu">
          <a href="#">Borrowers</a>
-         <ul class="subsubmenu" style="width:16.5em;">
+         <ul class="subsubmenu">
           <li><a href = "%(url)s/admin/bibcirculation/bibcirculationadmin.py/borrower_search">Search...</a></li>
           <li><a href = "%(url)s/admin/bibcirculation/bibcirculationadmin.py/borrower_notification">Notify</a></li>
           <li><a href = "%(url)s/admin/bibcirculation/bibcirculationadmin.py/add_new_borrower_step1">Add new borrower</a></li>
@@ -86,7 +86,7 @@ _MENU_ = """
 <!--
      <li class="hassubmenu">
          <a href="#">Items</a>
-        <ul class="subsubmenu" style="width:16.5em;">
+        <ul class="subsubmenu">
           <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/item_search">Search...</a></li>
           <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/new_item">Add new item</a></li>
           <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/add_new_copy_step1">Add new copy</a></li>
@@ -98,7 +98,7 @@ _MENU_ = """
 
     <li class="hassubmenu">
          <a href="#">Lists</a>
-        <ul class="subsubmenu" style="width:17.5em;">
+        <ul class="subsubmenu">
           <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/all_loans">Last loans</a></li>
           <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/all_expired_loans">Overdue loans</a></li>
           <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/get_pending_requests">Items on shelf with holds</a></li>
@@ -113,7 +113,7 @@ _MENU_ = """
 <!--
      <li class="hassubmenu">
          <a href="#">Loans</a>
-         <ul class="subsubmenu" style="width:16.5em;">
+         <ul class="subsubmenu">
          <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/loan_on_desk_step1">On library desk</a></li>
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/loan_return">Return book</a></li>
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/all_loans">List of all loans</a></li>
@@ -123,7 +123,7 @@ _MENU_ = """
 
      <li class="hassubmenu">
          <a href="#">Requests</a>
-         <ul class="subsubmenu" style="width:16.5em;">
+         <ul class="subsubmenu">
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/get_pending_requests">List of pending requests</a></li>
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/all_requests">List of hold requests</a></li>
              <li><a href="#"># - Stats</a></li>
@@ -133,7 +133,7 @@ _MENU_ = """
 
     <li class="hassubmenu">
          <a href="#">Libraries</a>
-         <ul class="subsubmenu" style="width:16.5em;">
+         <ul class="subsubmenu">
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/search_library_step1">Search...</a></li>
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/add_new_library_step1">Add new library</a></li>
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/update_library_info_step1">Update info</a></li>
@@ -142,7 +142,7 @@ _MENU_ = """
 
     <li class="hassubmenu">
          <a href="#">Vendors</a>
-        <ul class="subsubmenu" style="width:16.5em;">
+        <ul class="subsubmenu">
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/search_vendor_step1">Search...</a></li>
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/add_new_vendor_step1">Add new vendor</a></li>
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/update_vendor_info_step1">Update info</a></li>
@@ -151,7 +151,7 @@ _MENU_ = """
 
     <li class="hassubmenu">
          <a href="#">Acquisitions</a>
-        <ul class="subsubmenu" style="width:16.5em;">
+        <ul class="subsubmenu">
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/ordered_books">List of ordered books</a></li>
              <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/new_book_step1">Order new book</a></li>
         </ul>
@@ -159,7 +159,7 @@ _MENU_ = """
 
     <li class="hassubmenu">
          <a href="#">ILL</a>
-        <ul class="subsubmenu" style="width:17.5em;">
+        <ul class="subsubmenu">
             <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/ill_search">Search...</a></li>
             <!--<li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/list_ill_request">All requests</a></li>-->
             <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/list_ill_request?status=new">New</a></li>
@@ -173,12 +173,14 @@ _MENU_ = """
 
     <li class="hassubmenu">
          <a href="#">Help</a>
-        <ul class="subsubmenu" style="width:16.5em;">
+        <ul class="subsubmenu">
           <li><a href="%(url)s/help/admin/bibcirculation-admin-guide" target="_blank">Admin guide</a></li>
              <!-- <li><a href="%(url)s/admin/bibcirculation/bibcirculationadmin.py/help_contactsupport">Contact Support</a></li> -->
         </ul>
     </li>
+    </ul>
     <div class="clear"></div>
+    </div>
     </map>
     </div>
 
@@ -10430,10 +10432,10 @@ class Template:
                        _("Address"), address,
                        _("Mailbox"), mailbox,
                        _("ILL request details"),
-                       _("Period of interest - From"), _("period_of_interest_from"),
-                       _("jsCal3"), _("period_of_interest_from"), _("jsCal3"),
-                       _("Period of interest - To"), _("period_of_interest_to"),
-                       _("jsCal4"), _("period_of_interest_to"), _("jsCal4"),
+                       _("Period of interest - From"), "period_of_interest_from",
+                       "jsCal3", "period_of_interest_from", "jsCal3",
+                       _("Period of interest - To"), "period_of_interest_to",
+                       "jsCal4", "period_of_interest_to", "jsCal4",
                        _("Additional comments"),
                        _("Borrower wants only this edition?"))
 
@@ -11007,9 +11009,9 @@ class Template:
              <br />
              <br />
              </div>
-             """ % (_("ILL request details"), _("Period of interest - From"), _("period_of_interest_from"),
-                    _("jsCal1"), _("period_of_interest_from"), _("jsCal1"),
-                    _("Period of interest - To"), _("period_of_interest_to"), _("jsCal2"), _("period_of_interest_to"), _("jsCal2"),
+             """ % (_("ILL request details"), _("Period of interest - From"), "period_of_interest_from",
+                    "jsCal1", "period_of_interest_from", "jsCal1",
+                    _("Period of interest - To"), "period_of_interest_to", "jsCal2", "period_of_interest_to", "jsCal2",
                     _("Additional comments"),
                     _("I accept the %s of the service in particular the return of books in due time." % (conditions_link)),
                     _("I want this edition only."),
@@ -15934,10 +15936,10 @@ class Template:
              <br />
              </div>
              """ % (_("ILL request details"), _("Period of interest - From"),
-                    _("period_of_interest_from"),
-                    _("jsCal1"), _("period_of_interest_from"), _("jsCal1"),
-                    _("Period of interest - To"), _("period_of_interest_to"),
-                    _("jsCal2"), _("period_of_interest_to"), _("jsCal2"),
+                    "period_of_interest_from",
+                    "jsCal1", "period_of_interest_from", "jsCal1",
+                    _("Period of interest - To"), "period_of_interest_to",
+                    "jsCal2", "period_of_interest_to", "jsCal2",
                     _("Additional comments"),
                     _("Borrower accepts the %s of the service in particular the return of books in due time." % (conditions_link)),
                     _("Borrower wants this edition only."),
@@ -16604,7 +16606,7 @@ class Template:
             </tr>
         </table>
 
-        """ % (CFG_SITE_URL,_("the beginning"),CFG_SITE_URL,_("now"))
+        """ % (CFG_SITE_URL, "the beginning", CFG_SITE_URL, "now")
 
         out += """
         <br />
