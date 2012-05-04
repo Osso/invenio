@@ -234,8 +234,9 @@ def bibupload(record, opt_tag=None, opt_mode=None,
 
         error = record_add_field(record, '005', controlfield_value=now.strftime("%Y%m%d%H%M%S.0"))
         if error is None:
-            write_message("   Failed: Error during adding to 005 controlfield to record",verbose=1,stream=sys.stderr)
-            return (1, int(rec_id))
+            msg = "   Failed: Error during adding to 005 controlfield to record"
+            write_message(msg, verbose=1,stream=sys.stderr)
+            return (1, int(rec_id), msg)
         else:
             error=None
 
@@ -292,8 +293,9 @@ def bibupload(record, opt_tag=None, opt_mode=None,
             write_message("  Deleted the existing 005 tag.", verbose=2)
         error = record_add_field(record, '005', controlfield_value=now.strftime("%Y%m%d%H%M%S.0"))
         if error is None:
-            write_message("   Failed: Error during adding to 005 controlfield to record",verbose=1,stream=sys.stderr)
-            return (1, int(rec_id))
+            msg = "   Failed: Error during adding to 005 controlfield to record"
+            write_message(msg, verbose=1, stream=sys.stderr)
+            return (1, int(rec_id), msg)
         else:
             error=None
             write_message("   -Added tag 005: DONE. "+ str(record_get_field_value(record,'005','','')), verbose=2)
@@ -744,7 +746,6 @@ def find_record_from_oaiid(oaiid):
 
 def extract_tag_from_record(record, tag_number):
     """ Extract the tag_number for record."""
-    # first step verify if the record is not already in the database
     if record:
         return record.get(tag_number, None)
     return None
@@ -1731,7 +1732,8 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
 
         ## Let's pre-download all the URLs to see if, in case of mode 'correct' or 'append'
         ## we can avoid creating a new revision.
-        for docname, (doctype, newname, restriction, version, urls) in docs.items():
+
+        for docname, (doctype, newname, restriction, version, urls, more_infos, bibdoc_tmpid, bibdoc_tmpver) in docs.items():
             downloaded_urls = []
             try:
                 bibdoc = bibrecdocs.get_bibdoc(docname)
@@ -1770,17 +1772,18 @@ def elaborate_fft_tags(record, rec_id, mode, pretend=False,
                 ## that are being uploaded are different)
                 ## we can simply remove the urls but keep the other information
                 write_message("No need to add a new revision for docname %s for recid %s" % (docname, rec_id), verbose=2)
-                docs[docname] = (doctype, newname, restriction, version, [('', format, description, comment, flags) for (dummy, format, description, comment, flags) in downloaded_urls])
+                docs[docname] = (doctype, newname, restriction, version, [('', format, description, comment, flags) for (dummy, format, description, comment, flags) in downloaded_urls], more_infos, bibdoc_tmpid, bibdoc_tmpver)
                 for downloaded_url, dummy, dummy, dummy, dummy in downloaded_urls:
                     ## Let's free up some space :-)
                     if downloaded_url and os.path.exists(downloaded_url):
                         os.remove(downloaded_url)
             else:
                 if downloaded_urls or mode != 'append':
-                    docs[docname] = (doctype, newname, restriction, version, downloaded_urls)
+                    docs[docname] = (doctype, newname, restriction, version, downloaded_urls, more_infos, bibdoc_tmpid, bibdoc_tmpver)
                 else:
                     ## In case we are in append mode and there are no urls to append
                     ## we discard the whole FFT
+                    ## WARNING! we can ommit new MoreInfo.
                     del docs[docname]
 
         if mode == 'replace': # First we erase previous bibdocs
@@ -2564,7 +2567,7 @@ def post_results_to_callback_url(results, callback_url):
 
 def bibupload_records(records, opt_mode = None, opt_tag = None,
                       opt_stage_to_start_from = 1, opt_notimechange = 0,
-                      pretend = False):
+                      pretend = False, results_for_callback = {'results': []}):
     """perform the task of uploading a set of records
     returns list of (error_code, recid) tuples for separate records
     """
@@ -2578,6 +2581,8 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
     results = []
     # The first phase -> assigning meaning to temporary identifiers
 
+    callback_url = task_get_option('callback_url')
+
     for record in records:
         record_id = record_extract_oai_id(record)
         task_sleep_now_if_required(can_stop_too=True)
@@ -2587,6 +2592,12 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
             insert_record_into_holding_pen(record, record_id)
         else:
             write_message("Inserting into main database", verbose=3)
+            if type(record) == str:
+                print "\n\nRecord is string" + record + "recid: " + str(record_id) + "\n\n"
+
+            if type(record) == list:
+                print "\n\nRecord is list" + str(record) + "recid: " + str(record_id) + "\n\n"
+
             error = bibupload(
                 record,
                 opt_tag = opt_tag,
@@ -2613,6 +2624,15 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
                 else:
                     write_message("Record could not have been parsed",
                                   stream=sys.stderr)
+                if callback_url:
+                    results_for_callback['results'].append({'recid': error[1], 'success': False, 'error_message': error[2]})
+            elif error[0] == 0:
+                if callback_url:
+                    from invenio.search_engine import print_record
+                    results_for_callback['results'].append({'recid': error[1], 'success': True, "marcxml": print_record(error[1], 'xm'), 'url': "%s/%s/%s" % (CFG_SITE_URL, CFG_SITE_RECORD, error[1])})
+            else:
+                if callback_url:
+                    results_for_callback['results'].append({'recid': error[1], 'success': False, 'error_message': error[2]})
 
             # stat us a global variable
             task_update_progress("Done %d out of %d." % \
@@ -2626,7 +2646,7 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
     write_message("Uploading BRT, MIT and BDA fields")
     if opt_mode != "holdingpen":
         for record in records:
-            record_id = retrieve_rec_id(record, opt_mode, pretend=pretend)
+            record_id = retrieve_rec_id(record, None, pretend=pretend)
             bibupload_post_phase(record,
                                  rec_id = record_id,
                                  mode = opt_mode,
@@ -2639,6 +2659,8 @@ def bibupload_records(records, opt_mode = None, opt_tag = None,
 
 def task_run_core():
     """ Reimplement to add the body of the task."""
+#    import rpdb2; rpdb2.start_embedded_debugger('password', fAllowRemote=True)
+
     error = 0
     write_message("Input file '%s', input mode '%s'." %
             (task_get_option('file_path'), task_get_option('mode')))
@@ -2653,17 +2675,20 @@ def task_run_core():
         task_sleep_now_if_required(can_stop_too=True)
         write_message("Entering records loop", verbose=3)
 
+        results_for_callback = {'results': []}
+
         if recs is not None:
             # We proceed each record by record
-
             bibupload_records(records = recs, opt_mode = task_get_option('mode'),
                               opt_tag=task_get_option('tag'),
                               opt_stage_to_start_from=task_get_option('stage_to_start_from'),
                               opt_notimechange=task_get_option('notimechange'),
-                              pretend=task_get_option('pretend'))
+                              pretend=task_get_option('pretend'),
+                              results_for_callback = results_for_callback)
         else:
             write_message("   Error bibupload failed: No record found",
                         verbose=1, stream=sys.stderr)
+
         callback_url = task_get_option("callback_url")
         if callback_url:
             post_results_to_callback_url(results_for_callback, callback_url)

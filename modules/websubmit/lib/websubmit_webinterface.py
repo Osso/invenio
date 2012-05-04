@@ -76,11 +76,13 @@ webstyle_templates = invenio.template.load('webstyle')
 websearch_templates = invenio.template.load('websearch')
 bibdocfile_templates = invenio.template.load('bibdocfile')
 
-try:
-    from invenio.fckeditor_invenio_connector import FCKeditorConnectorInvenio
-    fckeditor_available = True
-except ImportError, e:
-    fckeditor_available = False
+#TODO: Piotr: In the case of errors after merge, uncomment these lines
+#try:
+#    from invenio.fckeditor_invenio_connector import FCKeditorConnectorInvenio
+#    fckeditor_available = True
+#except ImportError, e:
+#    fckeditor_available = False
+
 
 from invenio.websubmit_managedocfiles import \
      create_file_upload_interface, \

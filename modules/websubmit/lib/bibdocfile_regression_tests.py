@@ -409,14 +409,9 @@ TEST_SUITE = make_test_suite(BibRecDocsTest, \
                              BibDocsTest, \
                              BibDocFilesTest, \
                              MoreInfoTest, \
-<<<<<<< HEAD
-                             BibDocRelationTest, \
                              CheckBibDocAuthorizationTest, \
-                             BibDocFileURLTest)
-=======
-                             BibRelationTest, \
-                             CheckBibDocAuthorization)
->>>>>>> BibDocFile: Possibility of uploadinf FFR tags, modifications to BibRelation, unit tests
+                             BibDocFileURLTest, \
+                             BibRelationTest)
 
 if __name__ == "__main__":
     run_test_suite(TEST_SUITE, warn_user=True)

@@ -39,7 +39,7 @@ class Template:
                )
 
     def tmpl_display_bibdoc(self, bibdoc, version="", ln=CFG_SITE_LANG,
-                            display_hidden=True, recid=0, docname=""):
+                            display_hidden=True, recid=0, docname="", status=""):
         """
         Returns an HTML representation of the this document.
 
@@ -87,7 +87,8 @@ class Template:
                 versions = versions,
                 imageurl = imageurl,
                 docname = docname,
-                recid = recid
+                recid = recid,
+                status = status
                 )
         else:
             return ""
@@ -138,7 +139,7 @@ class Template:
                         fulltype['content'].append(
                             self.tmpl_display_bibdoc(bibdoc, version,
                                                      ln=ln, display_hidden=display_hidden,
-                                                     recid=bibrecdocs.id, docname=bibrecdocs.get_docname(bibdoc.id)))
+                                                     recid=bibrecdocs.id, docname=bibrecdocs.get_docname(bibdoc.id), status = bibdoc.status))
                 fulltypes.append(fulltype)
 
             if verbose >= 9:

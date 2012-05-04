@@ -113,8 +113,8 @@ from invenio.config import CFG_SITE_LANG, CFG_SITE_URL, \
     CFG_WEBSUBMIT_STORAGEDIR, \
     CFG_BIBDOCFILE_USE_XSENDFILE, \
     CFG_BIBDOCFILE_MD5_CHECK_PROBABILITY, \
-    CFG_SITE_RECORD, CFG_PYLIBDIR, \
-    CFG_BIBUPLOAD_FFT_ALLOWED_EXTERNAL_URLS
+    CFG_BIBUPLOAD_FFT_ALLOWED_EXTERNAL_URLS, \
+    CFG_SITE_RECORD, CFG_PYLIBDIR
 
 from invenio.websubmit_config import CFG_WEBSUBMIT_ICON_SUBFORMAT_RE, \
     CFG_WEBSUBMIT_DEFAULT_ICON_SUBFORMAT
@@ -261,7 +261,6 @@ def _val_or_null(val, eq_name = None, q_str = None, q_args = None):
         if q_args != None:
             q_args.append(str(val))
         return res
->>>>>>> BibDocFile: Possibility of uploadinf FFR tags, modifications to BibRelation, unit tests
 
 def _sql_generate_conjunctive_where(to_process):
     """Generating WHERE clause of a SQL statement, consisting of conjunction
@@ -770,6 +769,7 @@ class BibRecDocs(object):
             if doc.doctype == doctype:
                 res[docname] = doc
         return res
+
 
     def list_bibdocs(self, doctype=None):
         """
@@ -1460,10 +1460,6 @@ class BibRecDocs(object):
             docnames.add(docname)
 
 
-class BibVersion(object):
-    """This class represents a particular version of a document"""
-    pass
-
 class BibDoc(object):
     """
     This class represents one document (i.e. a set of files with different
@@ -1545,7 +1541,6 @@ class BibDoc(object):
         self.md5s = None
         self.related_files = []
         self.human_readable = human_readable
-
         self.cd = initial_data["cd"] # creation date
         self.md = initial_data["md"] # modification date
         self.td = initial_data["td"] # text extraction date # should be moved from here !!!!
@@ -2809,7 +2804,18 @@ class BibDocFile(object):
         out += '%s:%s:%s:%s:etag=%s\n' % (self.recid, self.docid, self.version, self.format, self.etag)
         return out
 
-   def is_restricted(self, user_info):
+    def is_identical_to(self, path):
+        """
+        @path: the path of another file on disk.
+        @return: True if L{path} is contains bitwise the same content.
+        """
+        if os.path.getsize(path) != self.size:
+            return False
+        if calculate_md5(path) != self.checksum:
+            return False
+        return filecmp.cmp(self.get_full_path(), path)
+
+    def is_restricted(self, user_info):
         """Returns restriction state. (see acc_authorize_action return values)"""
         if self.status not in ('', 'DELETED'):
             return check_bibdoc_authorization(user_info, status=self.status)
