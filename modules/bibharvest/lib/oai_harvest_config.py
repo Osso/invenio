@@ -109,3 +109,12 @@ CFG_OAI_POSSIBLE_POSTMODES = [\
             'value': "oai", \
             'input' : "text"}] \
          ]]
+
+class InvenioOAIHarvestWarning(Exception):
+    """A generic warning for OAIHarvest."""
+    def __init__(self, message):
+        """Initialisation."""
+        self.message = message
+    def __str__(self):
+        """String representation."""
+        return repr(self.message)
