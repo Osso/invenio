@@ -196,6 +196,11 @@ def run_sql(sql, param=None, n=0, with_desc=False, with_dict=False):
         # FIXME: now reconnect is always forced, we may perhaps want to ping() first?
         try:
             db = _db_login(relogin=1)
+
+            from invenio.errorlib import register_exception
+            register_exception(prefix='SQL Query failed, retrying: %s' % sql,
+                               alert_admin=True)
+
             cur = db.cursor()
             gc.disable()
             rc = cur.execute(sql, param)
