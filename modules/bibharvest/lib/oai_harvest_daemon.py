@@ -1373,9 +1373,11 @@ def call_fulltext(active_file, extracted_file, harvested_identifier_list,
         #write_message("a record in the list of records of an article(initial and figures)")
         updated_xml.append("<record>")
         updated_xml.append(record_xml)
-
-        
-        if "tag=\"003\"" in record_xml:
+        write_message("#$@$@#$")
+        write_message(record_xml)
+        write_message("#$@$@#$")
+        #if "<author>tag=\"003\"" in record_xml:
+        if "<author>" in record_xml:
             identifier = harvested_identifier_list[i]
             if identifier not in downloaded_files:
                 downloaded_files[identifier] = {}
