@@ -1235,10 +1235,7 @@ class BibSched(object):
                 msg_errors = ["    #%s %s -> %s" % row for row in errors]
                 msg = 'BibTask with ERRORS:\n%s' % "\n".join(msg_errors)
                 err_types = set(e[2] for e in errors if e[2])
-                if 'ERROR' in err_types or 'DONE WITH ERRORS' in err_types:
-                    raise StandardError(msg)
-                else:
-                    raise RecoverableError(msg)
+                raise RecoverableError(msg)
 
         def calculate_rows():
             """Return all the node_relevant_active_tasks to work on."""
@@ -1246,7 +1243,7 @@ class BibSched(object):
                 check_errors()
             except RecoverableError, msg:
                 register_emergency('Light emergency from %s: BibTask failed: %s' % (CFG_SITE_URL, msg))
-                run_sql("UPDATE schTASK SET status='ERRORS REPORTED' WHERE status='CERROR'")
+                run_sql("UPDATE schTASK set status='ERRORS REPORTED' where status='CERROR' or status='ERROR' or status='DONE WITH ERRORS'")
 
             max_bibupload_priority = run_sql(
                         """SELECT MAX(priority)
