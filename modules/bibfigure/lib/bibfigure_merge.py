@@ -21,7 +21,7 @@ from invenio.bibfigure_utils import levenshtein, \
 					iterative, \
 					LCS, \
 					strip_control_characters
-									
+
 # TODO: An extractor outputs an image and the other outputs 2 images(half images that
 # together create one image)
 
@@ -35,7 +35,7 @@ def merging_articles(file_xml, file_json, id_fulltext, extracted):
 
     @return: code={0-latex and pdf figures extracted, 1-latex figures not present, 2-pdf figures not present or latex&pdf figures not present},
      		 message - any error messages, the vector of all figures and the first caption for testing purposes as: (exitcode, err_msg)
-    """    
+    """
 
 	(code, message, list_of_figures_from_latex, list_of_figures_from_pdf) = getFigureVectors(file_xml, file_json)
 	(tuples, to_avoid_tuples, updated_list_latex, updated_list_pdf) = doMatching(list_of_figures_from_latex, list_of_figures_from_pdf)
@@ -63,21 +63,21 @@ def merging_articles(file_xml, file_json, id_fulltext, extracted):
 	#first_caption = figures[0].caption
 	first_caption = ""
 	marc_path = create_MARCXML(figures, id_fulltext, code, extracted, True)
-	
+
 	return (code, message, figures, first_caption, marc_path)
 
 
 def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):
 	"""
 	Function that creates a file MARCXML from the vector of figures
-	
+
 	@param figures: the list of all figures
 	@param id_fulltext: the id of the fulltext
-	@param code: The code for Latex, PDF or both 
+	@param code: The code for Latex, PDF or both
 	@param extracted: where the file will be generated
 	@param write_file: it's True when the user wants to write the data into file
-	
-	@return: the path to the MARCXML file 
+
+	@return: the path to the MARCXML file
 	"""
 	both_doc = 0
 	no_latex = 1
@@ -137,7 +137,7 @@ def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):
 						if i==0:
 							dict["figures"][item]["page_scale"]=figure.get_location(i).page_scale
 				dict["figures"]["text_references"] = text_references
-				
+
 				d = cPickle.dumps(dict)
 				info = base64.encodestring(d)
 				list.append('	<subfield code="m">' + info + '</subfield>')
@@ -159,18 +159,18 @@ def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):
 def create_MARCXML(figures, id, write_file=True):
 	"""
 	Function that creates a file MARCXML from the vector of figures
-	
+
 	@param figures: the list of all figures
 	@param id: the id of the arXiv source where the file will be generated
 	@param write_file: it's True when the user wants to write the data into file
-	
-	@return: the path to the MARCXML file 
+
+	@return: the path to the MARCXML file
 	"""
 	list = []
 	list.append('<?xml version="1.0" encoding="UTF-8"?>')
 	list.append('<collection>')
 	list.append('<record>')
-	
+
 	for figure in figures:
 		for i in range(len(figure.files)):
 			list.append('  <datafield tag="FFT" ind1=" " ind2=" ">')
@@ -184,8 +184,8 @@ def create_MARCXML(figures, id, write_file=True):
 				for j in range(len(figure.files)):
 					filenames.append(figure.files[j].filetype)
 				list.append('    <subfield code="f">' + ';'.join(filenames) + '</subfield>')
-			
-			
+
+
 			#here insert the TMP id and the version
 			list.append('    <subfield code="n">' + figure.identifier + '</subfield>')
 			if i == 0:
@@ -211,20 +211,20 @@ def create_MARCXML(figures, id, write_file=True):
 def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figures_from_pdf):
 	"""
 	Function that merges the lists of figures, taking in account tuples and to avoid tuples
-	
+
 	@param tuples: the index of figures that are the same
 	@param to_avoid_tuples: the index of figures that we should remove, is an "arrow" concept
 	@param list_of_figures_from_latex: the list of all figures that come from latex extractor
 	@param list_of_figures_from_pdf: the list of all figures that come from pdf extractor
-	
-	@return: the list of figures after merging process 
+
+	@return: the list of figures after merging process
 	"""
 	outputVector = []
 
 	for a_tuple in tuples:
 		index_figure_latex = a_tuple[0]
 		index_figure_pdf = a_tuple[1]
-		
+
 		figure_pdf = list_of_figures_from_pdf[index_figure_pdf]
 		id = figure_pdf.identifier
 		s_d = figure_pdf.source_document
@@ -234,12 +234,12 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 		l = figure_pdf.location
 		c_l = figure_pdf.caption_location
 		a_i = figure_pdf.annotated_image
-		
+
 		figure_latex = list_of_figures_from_latex[index_figure_latex]
 		for index, a_file in enumerate(figure_latex.files):
 			if index != 0:
 				f.append(a_file)
-		
+
 		s = figure_latex.status
 		t_r = figure_latex.text_references
 
@@ -249,14 +249,14 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 	index_latex_figures = [a_tuple[0] for a_tuple in tuples]
 	index_avoid_latex_figures = [a_tuple[0] for a_tuple in to_avoid_tuples]
 	for index, figure in enumerate(list_of_figures_from_latex):
-		if index not in index_latex_figures and index not in index_avoid_latex_figures:  
+		if index not in index_latex_figures and index not in index_avoid_latex_figures:
 				id = figure.identifier
 				c = figure.caption
 				f = figure.files
 				s = figure.status
 				t_r = figure.text_references
-				outputVector.append(Figure(identifier=id, caption=c, files=f, status=s, text_references=t_r))		
-	
+				outputVector.append(Figure(identifier=id, caption=c, files=f, status=s, text_references=t_r))
+
 	index_pdf_figures = [a_tuple[1] for a_tuple in tuples]
 	index_avoid_pdf_figures = [a_tuple[1] for a_tuple in to_avoid_tuples]
 	for index, figure in enumerate(list_of_figures_from_pdf):
@@ -277,13 +277,13 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figures_from_pdf):
 	"""
 	Function that merges the lists of figures, taking in account tuples and to avoid tuples
-	
+
 	@param tuples: the index of figures that are the same
 	@param to_avoid_tuples: the index of figures that we should remove, is an "arrow" concept
 	@param list_of_figures_from_latex: the list of all figures that come from latex extractor
 	@param list_of_figures_from_pdf: the list of all figures that come from pdf extractor
-	
-	@return: the list of figures after merging process 
+
+	@return: the list of figures after merging process
 	"""
 	outputVector = []
 	clone_list_latex = list_of_figures_from_latex[:]
@@ -292,7 +292,7 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 	for a_tuple in tuples:
 		index_figure_latex = a_tuple[0]
 		index_figure_pdf = a_tuple[1]
-		
+
 		figure_pdf = list_of_figures_from_pdf[index_figure_pdf]
 		id = figure_pdf.identifier
 		s_d = figure_pdf.source_document
@@ -302,11 +302,11 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 		l = figure_pdf.location
 		c_l = figure_pdf.caption_location
 		a_i = figure_pdf.annotated_image
-		
+
 		figure_latex = list_of_figures_from_latex[index_figure_latex]
 		for a_file in figure_latex.files:
 			f.append(a_file)
-		
+
 		s = figure_latex.status
 		t_r = figure_latex.text_references
 
@@ -315,11 +315,11 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 		# delete the figures in the vectors
 		clone_list_pdf.remove(figure_pdf)
 		clone_list_latex.remove(figure_latex)
-		
+
 	for a_tuple in to_avoid_tuples:
 		index_figure_latex = a_tuple[0]
 		index_figure_pdf = a_tuple[1]
-		
+
 		figure_pdf = list_of_figures_from_pdf[index_figure_pdf]
 		figure_latex = list_of_figures_from_latex[index_figure_latex]
 		if(figure_pdf in clone_list_pdf):
@@ -327,7 +327,7 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 			clone_list_pdf.remove(list_of_figures_from_pdf[index_figure_pdf])
 		if(figure_latex in clone_list_latex):
 			clone_list_latex.remove(list_of_figures_from_latex[index_figure_latex])
-		
+
 	for figure in clone_list_pdf:
 		id = figure.identifier
 		s_d = figure.source_document
@@ -338,7 +338,7 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 		c_l = figure.caption_location
 		a_i = figure.annotated_image
 		outputVector.append(Figure(identifier=id, source_document=s_d, caption=c, caption_file=c_f, files=f, location=l, caption_location=c_l, annotated_image=a_i))
-		
+
 	for figure in clone_list_latex:
 		id = figure.identifier
 		c = figure.caption
@@ -351,17 +351,17 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 
 '''
 # TODO: when having a pdf and a latex, the caption from the pdf is taken. So if the caption of the pdf is empty,
-# it should take actually the caption of the latex source 
+# it should take actually the caption of the latex source
 def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figures_from_pdf):
 	"""
 	Function that merges the lists of figures, taking in account tuples and to avoid tuples
-	
+
 	@param tuples: the index of figures that are the same
 	@param to_avoid_tuples: the index of figures that we should remove, is an "arrow" concept
 	@param list_of_figures_from_latex: the list of all figures that come from latex extractor
 	@param list_of_figures_from_pdf: the list of all figures that come from pdf extractor
-	
-	@return: the list of figures after merging process 
+
+	@return: the list of figures after merging process
 	"""
 	outputVector = []
 	clone_list_latex = list_of_figures_from_latex[:]
@@ -370,7 +370,7 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 	for a_tuple in tuples:
 		index_figure_latex = a_tuple[0]
 		index_figure_pdf = a_tuple[1]
-		
+
 		figure_pdf = list_of_figures_from_pdf[index_figure_pdf]
 		identifier = figure_pdf.identifier
 		sourceDocument = figure_pdf.sourceDocument
@@ -380,11 +380,11 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 		location = figure_pdf.location
 		captionLocation = figure_pdf.captionLocation
 		annotatedImage = figure_pdf.annotatedImage
-		
+
 		figure_latex = list_of_figures_from_latex[index_figure_latex]
 		for a_file in figure_latex.files:
 			files.append(a_file)
-		
+
 		status = figure_latex.status
 		text_references = figure_latex.text_references
 
@@ -393,11 +393,11 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 		# delete the figures in the vectors
 		clone_list_pdf.remove(figure_pdf)
 		clone_list_latex.remove(figure_latex)
-		
+
 	for a_tuple in to_avoid_tuples:
 		index_figure_latex = a_tuple[0]
 		index_figure_pdf = a_tuple[1]
-		
+
 		figure_pdf = list_of_figures_from_pdf[index_figure_pdf]
 		figure_latex = list_of_figures_from_latex[index_figure_latex]
 		if(figure_pdf in clone_list_pdf):
@@ -405,7 +405,7 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 			clone_list_pdf.remove(list_of_figures_from_pdf[index_figure_pdf])
 		if(figure_latex in clone_list_latex):
 			clone_list_latex.remove(list_of_figures_from_latex[index_figure_latex])
-		
+
 	for figure in clone_list_pdf:
 		status = text_references = None
 		identifier = figure.identifier
@@ -417,7 +417,7 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 		captionLocation = figure.captionLocation
 		annotatedImage = figure.annotatedImage
 		outputVector.append(Figure(identifier, sourceDocument, caption, captionFile, files, location, captionLocation, annotatedImage, status, text_references))
-		
+
 	for figure in clone_list_latex:
 		sourceDocument = captionFile = location = captionLocation = annotatedImage = None
 		identifier = figure.identifier
@@ -438,28 +438,28 @@ def doMatching(list_latex, list_pdf):
 	Function that compares all the figures in the list pdf with those in the list latex (levenshtein distance)
 	If are identical, create a tuple (index, index)
 	The comparison is made by the image caption
-	
+
 	@param list_latex: the list with all figures fom latex source
 	@param list_pdf: the list with all figures from pdf source
-	
+
 	@return: the matching tuples and the tuples to avoid
 	"""
 	#tuples, updated_list_latex, updated_list_pdf = similarity(list_latex, list_pdf)
 	distances, updated_list_latex, updated_list_pdf = similarity(list_latex, list_pdf)
 	tuples = []
 	to_avoid_tuples = []
-	
+
 	list_of_index_list = []
 	for i in range(len(list_pdf)):
 		index_list = [distance[i] for distance in distances]
 		list_of_index_list.append(index_list)
-	
+
 	for i in range(len(list_of_index_list)):
 		if len(list_of_index_list[i]) != 0:
 			min_value = min(list_of_index_list[i])
 			index_min_value = list_of_index_list[i].index( min_value )
 			tuples.append((index_min_value, i))
-	
+
 	write_message("!!!!!!!11")
 	write_message( tuples )
 	write_message("!!!!!!!11")
@@ -486,11 +486,11 @@ def doMatching(list_latex, list_pdf):
 						if(i>j):
 							argument = tuple_i[0], tuple_i[1]
 							to_avoid_tuples.append(argument)
-					
+
 	# example
 	# before tuples was: (1,1), (1,2), (2,3), (4,5), we delete the touple (1,2)
 	# tuples : (1,1), (2,3), (4,5)
-	# to_avoid_tuples: (1,2)				
+	# to_avoid_tuples: (1,2)
 	write_message(to_avoid_tuples)
 	for a_tuple in to_avoid_tuples:
 		tuples.remove(a_tuple)
@@ -503,10 +503,10 @@ def doMatching(list_latex, list_pdf):
 	Function that compares all the figures in the list pdf with those in the list latex (levenshtein distance)
 	If are identical, create a tuple (index, index)
 	The comparison is made by the image caption
-	
+
 	@param list_latex: the list with all figures fom latex source
 	@param list_pdf: the list with all figures from pdf source
-	
+
 	@return: the matching tuples and the tuples to avoid
 	"""
 	tuples, updated_list_latex, updated_list_pdf = similarity(list_latex, list_pdf)
@@ -533,28 +533,28 @@ def doMatching(list_latex, list_pdf):
 						if(i>j):
 							argument = tuple_i[0], tuple_i[1]
 							to_avoid_tuples.append(argument)
-	
+
 	# example
 	# before tuples was: (1,1), (1,2), (2,3), (4,5), we delete the touple (1,2)
 	# tuples : (1,1), (2,3), (4,5)
-	# to_avoid_tuples: (1,2)				
+	# to_avoid_tuples: (1,2)
 	for a_tuple in to_avoid_tuples:
 		tuples.remove(a_tuple)
-	
+
 	return (tuples, to_avoid_tuples, updated_list_latex, updated_list_pdf)
 '''
 def similarity(list_latex, list_pdf):
 	"""
 	The function that takes two lists of figures and detects the matches between them
-	
+
 	@param list_latex: the list of latex figures
 	@param list_pdf: the list of pdf figures
-	
+
 	@return: the matching tuples
 	"""
 	caption_list_latex = [figure.caption for figure in list_latex]
 	caption_list_pdf = [figure.caption for figure in list_pdf]
-	
+
 	for index, caption in enumerate(caption_list_latex):
 		# transform all latex simbols in unicode
 		caption = translate_latex2unicode(caption)
@@ -565,7 +565,7 @@ def similarity(list_latex, list_pdf):
 		#ur UNICODE RAW
 		caption = re.sub(ur'^[\d]+ ', '', caption)
 		caption_list_latex[index] = caption
-		
+
 	# Transformations (special characters and newlines)
 	for index, caption in enumerate(caption_list_pdf):
 		# remove all spaces and new lines and tabs from the beginning, then if a line contains \n, replace with space
@@ -613,7 +613,7 @@ def similarity(list_latex, list_pdf):
 				if(n != 0):
 					index_max_elem_list.append(k)
 				n=1
-		
+
 		min_distance = 100000
 		# the list we use in representing the levenshtein distance
 		index_min_elem_list = []
@@ -635,17 +635,17 @@ def similarity(list_latex, list_pdf):
 				if(n != 0):
 					index_min_elem_list.append(k)
 				n=1
-		
-		
+
+
 		dictionary[i] = index_min_elem_list
 		print dictionary
-		
+
 		dictionary2[i] = index_max_elem_list
 		print dictionary2
-		
+
 		dictionary3[i] = index_min_direct_comparison
 		print dictionary3
-	
+
 	tuples = []
 	for i in range(len(dictionary)):
 		for j in range(len(dictionary.values()[i])):
@@ -661,18 +661,18 @@ def similarity(list_latex, list_pdf):
 def similarity_between_caption1_and_caption2(caption1, caption2, list1, list2):
 	"""
 	Function that takes two lists and two captions and returns if the caption 1 is matching caption 2
-	
+
 	@param caption1: caption from pdf source
 	@param caption2: caption from latex source
 	@param list1: list of pdf figures
 	@param list2: list of latex figures
-	
+
 	@return: 0 if caption1 matches caption2, -1 else
 	"""
 
 	caption_list1 = [element.caption for element in list1]
 	caption_list2 = [element.caption for element in list2]
-	
+
 	# Transformations (special characters and newlines)
 	for index, caption in enumerate(caption_list1):
 		# remove all spaces and new lines and tabs from the beginning, then if a line contains \n, replace with space
@@ -691,7 +691,7 @@ def similarity_between_caption1_and_caption2(caption1, caption2, list1, list2):
 		#ur UNICODE RAW
 		caption = re.sub(ur'^[\d]+ ', '', caption)
 		caption_list2[index] = caption
-	print caption_list2	
+	print caption_list2
 
 	# Long common subsequence
 	# Levenshtein distance
@@ -727,8 +727,8 @@ def similarity_between_caption1_and_caption2(caption1, caption2, list1, list2):
 			if len(lcss[k]) == max_distance:
 				if(n != 0):
 					index_max_elem_list.append(k)
-				n=1	
-		
+				n=1
+
 		min_distance = 100000
 		index_min_elem_list = []
 		index_min_direct_comparison = []
@@ -753,10 +753,10 @@ def similarity_between_caption1_and_caption2(caption1, caption2, list1, list2):
 
 		dictionary2[i] = index_max_elem_list
 		print dictionary2
-		
+
 		dictionary3[i] = index_min_direct_comparison
 		print dictionary3
-	
+
 	for caption in caption_list1:
 		if caption == caption1:
 			index_caption1 = caption_list1.index(caption)
@@ -772,9 +772,9 @@ def similarity_between_caption1_and_caption2(caption1, caption2, list1, list2):
 def getFiles(directory):
 	"""
 	Function that gets all the files from a directory and sorts them
-	
+
 	@param directory: the directory
-	
+
 	@return: the files
 	"""
 	listing = os.listdir(directory)
@@ -785,10 +785,10 @@ def getFigureVectors(file_xml, file_json):
 	"""
 	Function that receives two files, inserts the information in a class Figure and outputs the list of figures
 	from json and xml
-	
+
 	@param file_xml: the file xml
 	@param file_json: the file json
-	
+
 	@return: code, message, list of figures from pdf and from latex
 	If code is 0, there are no errors, else code is 1
 	The error is found in the message
@@ -813,8 +813,8 @@ def getFigureVectors(file_xml, file_json):
 		now = datetime.datetime.now()
 		message = "[" + str(now) + "]: " + "the file " + file_xml + " does not exist\n"
 		list_of_figures_from_latex = []
-	
-	
+
+
 	if os.path.exists(file_json):
 		json_to_string = output_string(file_json)
 		list_of_figures_from_pdf = parse_json(json_to_string)
@@ -824,17 +824,7 @@ def getFigureVectors(file_xml, file_json):
 		now = datetime.datetime.now()
 		message = "[" + str(now) + "]: " + "the file " + file_json + " does not exist\n"
 		list_of_figures_from_pdf = []
-	
-		
+
+
 	return (code, message, list_of_figures_from_latex, list_of_figures_from_pdf)
 
-def main():
-	if len(sys.argv) != 3:
-		print 'Error on command line parameters. Usage: bibfigure_merge <file1> <file2>'
-	else:
-		file1 = sys.argv[1]
-		file2 = sys.argv[2]
-		merging_articles(file1, file2)
-	
-if __name__== "__main__":
-	main()
