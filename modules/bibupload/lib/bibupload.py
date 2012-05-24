@@ -388,7 +388,7 @@ def bibupload(record, opt_tag=None, opt_mode=None,
             write_message("   -Stage COMPLETED", verbose=2)
         else:
             write_message("   -Stage NOT NEEDED", verbose=2)
-        
+
 	# Update of the BibFmt
         write_message("Stage 3: Start (Update bibfmt).", verbose=2)
         if opt_stage_to_start_from <= 3:

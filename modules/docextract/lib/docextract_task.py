@@ -25,7 +25,8 @@ import traceback
 from invenio.bibtask import task_init, task_set_option, \
                             task_get_option, write_message, \
                             task_sleep_now_if_required, \
-                            task_update_progress
+                            task_update_progress, \
+                            task_has_option
 from invenio.dbquery import run_sql
 
 
@@ -87,8 +88,9 @@ def fetch_concerned_records(name):
         records = run_sql(sql, (last_date.isoformat(), last_id))
     else:
         recids = task_get_option('recids')
-        for collection in task_get_option('collections'):
-            recids.add(get_collection_reclist(collection))
+        if task_has_option('collections'):
+            for collection in task_get_option('collections'):
+                recids.add(get_collection_reclist(collection))
         format_strings = ','.join(['%s'] * len(recids))
         records = run_sql("SELECT `id`, NULL FROM `bibrec` " \
             "WHERE `id` IN (%s) ORDER BY `id`" % format_strings,
