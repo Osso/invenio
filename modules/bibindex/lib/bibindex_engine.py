@@ -68,9 +68,15 @@ from invenio.htmlutils import remove_html_markup, get_links_in_html_page
 from invenio.textutils import wash_for_utf8, strip_accents, remove_control_characters
 from invenio.search_engine_utils import get_fieldvalues
 
+SOLR_AVAILABLE = False
+
 if CFG_SOLR_URL:
-    import solr
-    SOLR_CONNECTION = solr.SolrConnection(CFG_SOLR_URL)
+    try:
+        import solr
+        SOLR_AVAILABLE = True
+        SOLR_CONNECTION = solr.SolrConnection(CFG_SOLR_URL)
+    except ImportError:
+        pass
 
 if sys.hexversion < 0x2040000:
     # pylint: disable=W0622
@@ -310,7 +316,7 @@ def get_words_from_fulltext(url_direct_or_indirect, stemming_language=None):
             write_message("... will extract words from %s (docid: %s) %s" % (bibdoc.get_docname(), bibdoc.get_id(), perform_ocr and 'with OCR' or ''), verbose=2)
             if not bibdoc.has_text(require_up_to_date=True):
                 bibdoc.extract_text(perform_ocr=perform_ocr)
-            if CFG_SOLR_URL:
+            if SOLR_AVAILABLE:
                 # we are relying on Solr to provide full-text
                 # indexing, so dispatch text Solr and return nothing
                 # here:
@@ -349,7 +355,7 @@ def get_words_from_fulltext(url_direct_or_indirect, stemming_language=None):
                         tmptext = convert_file(tmpdoc, output_format='.txt')
                         text = open(tmptext).read()
                         os.remove(tmptext)
-                        if CFG_SOLR_URL:
+                        if SOLR_AVAILABLE:
                             # we are relying on Solr to provide full-text
                             # indexing, so dispatch text Solr and return nothing
                             # here:
