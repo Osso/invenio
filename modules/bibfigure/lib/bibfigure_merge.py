@@ -25,8 +25,8 @@ from invenio.bibfigure_utils import levenshtein, \
 # TODO: An extractor outputs an image and the other outputs 2 images(half images that
 # together create one image)
 
-
-def merging_articles(file_xml, file_json, id_fulltext, extracted):
+#def merging_articles(file_xml, file_json, id_fulltext, extracted):
+def merging_articles(file_xml, file_json):
 	"""
     Function that merges two files
 
@@ -45,7 +45,6 @@ def merging_articles(file_xml, file_json, id_fulltext, extracted):
 		for i in range(len(figure.files)):
 			write_message("Fig latex with path[%s]\n"%figure.files[i].path)
 
-
 	for figure in list_of_figures_from_pdf:
 		write_message("Fig pdf with caption[%s]\n"%figure.caption)
 		for i in range(len(figure.files)):
@@ -60,11 +59,12 @@ def merging_articles(file_xml, file_json, id_fulltext, extracted):
 
 	# list of figures after merging the lists from latex and pdf
 	figures = doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figures_from_pdf)
+	return code, figures
 	#first_caption = figures[0].caption
-	first_caption = ""
-	marc_path = create_MARCXML(figures, id_fulltext, code, extracted, True)
+	#first_caption = ""
+	#marc_path = create_MARCXML(figures, id_fulltext, code, extracted, True)
 
-	return (code, message, figures, first_caption, marc_path)
+	#return (code, message, figures, first_caption, marc_path)
 
 
 def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):

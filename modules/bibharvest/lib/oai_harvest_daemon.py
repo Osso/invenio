@@ -784,8 +784,8 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
         updated_xml.append(record_xml)
         updated_xml.append(u'</record>')
         final_output = ""
-        param1 = ""
-        param2 = ""
+        xml_path = ""
+        pdf_path = ""
 
         if 'latex' in plotextractor_types:
             # Run LaTeX plotextractor
@@ -827,15 +827,15 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
 
 
         if len(plotextracted_paths) == 2:
-            param1 = plotextracted_paths[0]
-            param2 = plotextracted_paths[1]
+            xml_path = plotextracted_paths[0]
+            pdf_path = plotextracted_paths[1]
         else:
             if("extracted.json" in plotextracted_paths[0]):
-                param1 = ""
-                param2 = plotextracted_paths[0]
+                xml_path = ""
+                pdf_path = plotextracted_paths[0]
             else:
-                param1 = plotextracted_paths[0]
-                param2 = ""
+                xml_path = plotextracted_paths[0]
+                pdf_path = ""
         # we have the first path of extracted file and we delete two tails so that the remaining path will be the identifier path
         extracted = os.path.split(os.path.split(plotextracted_paths[0])[0])[0]
         name_tail = os.path.split(os.path.split(os.path.split(plotextracted_paths[0])[0])[0])[1]
@@ -844,7 +844,9 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
         extracted = extracted + "/" + name_tail + "_merge"
         os.mkdir(extracted)
         os.chdir(current_path)
-        (code, message, outputVector,first_caption, marc_path) = merging_articles(param1, param2, identifier, extracted)
+        #(code, message, outputVector,first_caption, marc_path) = merging_articles(xml_path, pdf_path, identifier, extracted)
+        code, outputVector = merging_articles(xml_path, pdf_path)
+        marc_path = create_MARCXML(outputVector, identifier, code, extracted, write_file=True)
         write_message("%s\n"%first_caption)
         # make empty list
         plotextracted_paths=[]
@@ -874,282 +876,6 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
         return exitcode, "\n".join(all_err_msg)
     return exitcode, ""
 
-
-
-'''
-plot&pdf extractor
-
-def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
-                       downloaded_files, plotextractor_types, file_desc):
-    """
-    Function that generates proper MARCXML containing harvested plots for
-    each record.
-
-    @param active_file: path to the currently processed file
-    @param extracted_file: path to the file where the final results will be saved
-    @param harvested_identifier_list: list of OAI identifiers for this active_file
-    @param downloaded_files: dict of identifier -> dict mappings for downloaded material.
-    @param plotextractor_types: list of names of which plotextractor(s) to use (latex or pdf)
-        (pdf is currently ignored).
-
-    @return: exitcode and any error messages as: (exitcode, err_msg)
-    """
-    all_err_msg = []
-    exitcode = 0
-    flag = 0
-
-    #plotextracted_xml_path = ''
-    #plotextracted_pdf_path = ''
-    # Read in active file
-    recs_fd = open(active_file, 'r')
-    records = recs_fd.read()
-    recs_fd.close()
-
-    # Find all record
-    record_xmls = REGEXP_RECORD.findall(records)
-    updated_xml = ['<?xml version="1.0" encoding="UTF-8"?>']
-    updated_xml.append('<collection>')
-    i = 0
-    for record_xml in record_xmls:
-        flag += 1
-        current_exitcode = 0
-        identifier = harvested_identifier_list[i]
-        i += 1
-        if identifier not in downloaded_files:
-            downloaded_files[identifier] = {}
-
-        #write_message(downloaded_files)
-        updated_xml.append("<record>")
-        updated_xml.append(record_xml)
-        final_output = ""
-        if 'latex' in plotextractor_types:
-            # Run LaTeX plotextractor
-            if "tarball" not in downloaded_files[identifier]:
-                current_exitcode, err_msg, tarball, dummy = \
-                            plotextractor_harvest(identifier, active_file, selection=["tarball"])
-                if current_exitcode != 0:
-                    exitcode = current_exitcode
-                    all_err_msg.append(err_msg)
-                else:
-                    downloaded_files[identifier]["tarball"] = tarball
-            if current_exitcode == 0:
-                plotextracted_xml_path = process_single(downloaded_files[identifier]["tarball"])
-                if plotextracted_xml_path != None:
-                    # We store the path to the directory the tarball contents live
-                    downloaded_files[identifier]["tarball-extracted"] = os.path.split(plotextracted_xml_path)[0]
-                    # Read and grab MARCXML from plotextractor run
-
-                    plotsxml_fd = open(plotextracted_xml_path, 'r')
-                    plotextracted_xml = plotsxml_fd.read()
-                    plotsxml_fd.close()
-                    #if 'pdf' not in plotextractor_types:
-                    re_list = REGEXP_RECORD.findall(plotextracted_xml)
-                    if re_list != []:
-                        # Add final FFT info from LaTeX plotextractor to record.
-                        updated_xml.append(re_list[0])
-
-
-        if 'pdf' in plotextractor_types:
-            if "pdf" not in downloaded_files[identifier]:
-                current_exitcode, err_msg, dummy, pdf = \
-                            plotextractor_harvest(identifier, active_file, selection=["pdf"])
-                if current_exitcode != 0:
-                    exitcode = current_exitcode
-                    all_err_msg.append(err_msg)
-                else:
-                    downloaded_files[identifier]["pdf"] = pdf
-                    write_message("%s\n"%downloaded_files[identifier]["pdf"])
-            # run pdf extractor and get the path for the extracted.json file
-            if current_exitcode == 0:
-                (code, message, plotextracted_pdf_path, pdf_to_marcxml_path) = process_pdf(downloaded_files[identifier]["pdf"])
-                if str(code) != "0":
-                    # write message into the log file
-                    write_message("In pdf condition, write into the file")
-                    file_desc.write(message + "\n")
-                if plotextracted_pdf_path != None:
-                    downloaded_files[identifier]["pdf-extracted"] = os.path.split(plotextracted_pdf_path)[0]
-                    write_message("%s\n"%downloaded_files[identifier]["pdf-extracted"])
-                    #if 'latex' not in plotextractor_types:
-                    # transform to mark
-                    #(code, message, list_of_figures_from_pdf, list_of_figures_from_latex) = \
-                    #        getFigureVectors(plotextracted_pdf_path, '')
-                    #marc = create_MARCXML(list_of_figures_from_pdf, '', False)
-
-                    plotspdf_fd = codecs.open(pdf_to_marcxml_path, encoding="utf-8", mode="r")
-                    pdf_to_marcxml_content = plotspdf_fd.read()
-                    plotspdf_fd.close()
-
-                    re_list = REGEXP_RECORD.findall(pdf_to_marcxml_content)
-                    #write_message("!!![%s]\n\n"%re_list[0])
-
-                    #re_list = REGEXP_RECORD.findall(plotextracted_pdf_path)
-                    if re_list != []:
-                        # Add final FFT info from LaTeX plotextractor to record.
-                        updated_xml.append(re_list[0])
-
-        write_message(identifier)
-        write_message('---------------------------------------------------------------')
-
-        updated_xml.append("</record>")
-    updated_xml.append('</collection>')
-
-    # Write to file
-    file_fd = codecs.open(extracted_file, encoding="utf-8", mode="w")
-    #file_fd = open(extracted_file, 'w')
-    file_fd.write("\n".join(updated_xml))
-    file_fd.close()
-    if len(all_err_msg) > 0:
-        return exitcode, "\n".join(all_err_msg)
-    return exitcode, ""
-
-'''
-
-
-
-'''
-old version
-def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
-                       downloaded_files, plotextractor_types, file_desc):
-    """
-    Function that generates proper MARCXML containing harvested plots for
-    each record.
-
-    @param active_file: path to the currently processed file
-    @param extracted_file: path to the file where the final results will be saved
-    @param harvested_identifier_list: list of OAI identifiers for this active_file
-    @param downloaded_files: dict of identifier -> dict mappings for downloaded material.
-    @param plotextractor_types: list of names of which plotextractor(s) to use (latex or pdf)
-        (pdf is currently ignored).
-
-    @return: exitcode and any error messages as: (exitcode, err_msg)
-    """
-    all_err_msg = []
-    exitcode = 0
-    flag = 0
-
-    #plotextracted_xml_path = ''
-    #plotextracted_pdf_path = ''
-    # Read in active file
-    recs_fd = open(active_file, 'r')
-    records = recs_fd.read()
-    recs_fd.close()
-
-    # Find all record
-    record_xmls = REGEXP_RECORD.findall(records)
-    updated_xml = ['<?xml version="1.0" encoding="UTF-8"?>']
-    updated_xml.append('<collection>')
-    i = 0
-    for record_xml in record_xmls:
-        flag += 1
-        current_exitcode = 0
-        identifier = harvested_identifier_list[i]
-        i += 1
-        if identifier not in downloaded_files:
-            downloaded_files[identifier] = {}
-
-        #write_message(downloaded_files)
-        updated_xml.append("<record>")
-        updated_xml.append(record_xml)
-        final_output = ""
-        if 'latex' in plotextractor_types:
-            # Run LaTeX plotextractor
-            if "tarball" not in downloaded_files[identifier]:
-                current_exitcode, err_msg, tarball, dummy = \
-                            plotextractor_harvest(identifier, active_file, selection=["tarball"])
-                if current_exitcode != 0:
-                    exitcode = current_exitcode
-                    all_err_msg.append(err_msg)
-                else:
-                    downloaded_files[identifier]["tarball"] = tarball
-            if current_exitcode == 0:
-                plotextracted_xml_path = process_single(downloaded_files[identifier]["tarball"])
-                if plotextracted_xml_path != None:
-                    # We store the path to the directory the tarball contents live
-                    downloaded_files[identifier]["tarball-extracted"] = os.path.split(plotextracted_xml_path)[0]
-                    # Read and grab MARCXML from plotextractor run
-
-                    plotsxml_fd = open(plotextracted_xml_path, 'r')
-                    plotextracted_xml = plotsxml_fd.read()
-                    plotsxml_fd.close()
-                    #if 'pdf' not in plotextractor_types:
-                    re_list = REGEXP_RECORD.findall(plotextracted_xml)
-                    if re_list != []:
-                        # Add final FFT info from LaTeX plotextractor to record.
-                        updated_xml.append(re_list[0])
-
-
-        if 'pdf' in plotextractor_types:
-            if "pdf" not in downloaded_files[identifier]:
-                current_exitcode, err_msg, dummy, pdf = \
-                            plotextractor_harvest(identifier, active_file, selection=["pdf"])
-                if current_exitcode != 0:
-                    exitcode = current_exitcode
-                    all_err_msg.append(err_msg)
-                else:
-                    downloaded_files[identifier]["pdf"] = pdf
-                    write_message("%s\n"%downloaded_files[identifier]["pdf"])
-            # run pdf extractor and get the path for the extracted.json file
-            if current_exitcode == 0:
-                (code, message, plotextracted_pdf_path) = process_pdf(downloaded_files[identifier]["pdf"])
-                if str(code) != "0":
-                    # write message into the log file
-                    write_message("In pdf condition, write into the file")
-                    file_desc.write(message + "\n")
-                if plotextracted_pdf_path != None:
-                    downloaded_files[identifier]["pdf-extracted"] = os.path.split(plotextracted_pdf_path)[0]
-                    write_message("%s\n"%downloaded_files[identifier]["pdf-extracted"])
-                    if 'latex' not in plotextractor_types:
-                        # transform to mark
-                        (code, message, list_of_figures_from_pdf, list_of_figures_from_latex) = \
-                                getFigureVectors(plotextracted_pdf_path, '')
-                        marc = create_MARCXML(list_of_figures_from_pdf, '', False)
-                        re_list = REGEXP_RECORD.findall(marc)
-                        if re_list != []:
-                            # Add final FFT info from LaTeX plotextractor to record.
-                            updated_xml.append(re_list[0])
-        """
-        if 'latex' in plotextractor_types and 'pdf' in plotextractor_types:
-            write_message("here in both cases")
-            if(plotextracted_xml_path != None and plotextracted_pdf_path != None):
-                if(tarball != None):
-                    print "in tarball"
-                    (path, directory) = os.path.split(tarball)
-                elif(pdf != None):
-                    print "in pdf"
-                    (path, directory) = os.path.split(pdf)
-                    directory = directory[:-4]
-
-                (code, message, output, first_caption) = merging_articles(plotextracted_pdf_path, plotextracted_xml_path)
-                if(str(code) == '1'):
-                    write_message("write the info into the file")
-                    file_desc.write(message + "\n")
-                write_message(first_caption)
-
-                current_path = os.getcwd()
-                os.chdir(path)
-                os.mkdir(directory + "_merge")
-                new_path = path + "/" + directory + "_merge"
-                marc = create_MARCXML(output, new_path, 1)
-                os.chdir(current_path)
-
-                re_list = REGEXP_RECORD.findall(marc)
-                if re_list != []:
-                    updated_xml.append(re_list[0])
-        """
-        write_message(identifier)
-        write_message('---------------------------------------------------------------')
-
-        updated_xml.append("</record>")
-    updated_xml.append('</collection>')
-
-    # Write to file
-    file_fd = codecs.open(extracted_file, encoding="utf-8", mode="w")
-    file_fd.write("\n".join(updated_xml))
-    file_fd.close()
-    if len(all_err_msg) > 0:
-        return exitcode, "\n".join(all_err_msg)
-    return exitcode, ""
-'''
 def call_refextract(active_file, extracted_file, harvested_identifier_list,
                     downloaded_files, arguments):
     """
