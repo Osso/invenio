@@ -33,7 +33,7 @@ CFG_BIBTASK_VALID_TASKS = ("bibindex", "bibupload", "bibreformat",
                            "bibtasklet", "refextract", "bibsort", "selfcites")
 
 # Tasks that should be run as standalone task
-CFG_BIBTASK_MONOTASKS = ("bibupload", "dbdump", "inveniogc")
+CFG_BIBTASK_MONOTASKS = ("dbdump", "inveniogc")
 
 # Tasks that should be run during fixed times
 CFG_BIBTASK_FIXEDTIMETASKS = ("oaiharvest", )
