@@ -284,7 +284,8 @@ class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
                    'person',
                    'bibsword',
                    'ping',
-                   'author'
+                   'author',
+                   'textmining',
                ] + test_exports + openaire_exports
 
     def __init__(self):
@@ -321,6 +322,7 @@ class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
     #author = WebInterfaceAuthorPages()
     if CFG_INSPIRE_SITE:
         inspire = WebInterfaceInspirePages()
+    textmining = WebInterfaceDocExtract()
 
 # This creates the 'handler' function, which will be invoked directly
 # by mod_python.
