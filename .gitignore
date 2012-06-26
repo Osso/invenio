@@ -82,6 +82,7 @@ modules/webstat/bin/webstatadmin
 modules/webstyle/bin/webdoc
 modules/websubmit/bin/bibdocfile
 modules/websubmit/bin/inveniounoconv
+modules/webauthorprofile/bin/webauthorprofile
 tags
 config.status.lineno
 configure.lineno
