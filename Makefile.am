@@ -608,5 +608,6 @@ update-db-from-v1.0-to-v1.1: # update DB from v1.0 release series to v1.1 releas
 	echo "INSERT INTO sbmFUNDESC VALUES ('Set_RN_From_Sysno','rep_tags');" | ${prefix}/bin/dbexec
 	echo "INSERT INTO sbmFUNDESC VALUES ('Set_RN_From_Sysno','record_search_pattern');" | ${prefix}/bin/dbexec
 	echo "UPDATE externalcollection SET name='INSPIRE' where name='SPIRES HEP';" | ${prefix}/bin/dbexec
+	echo "ALTER TABLE bibfmt ADD INDEX `format_last_updated` (`format`, `last_updated`);" | ${prefix}/bin/dbexec
 
 CLEANFILES = *~ *.pyc *.tmp
