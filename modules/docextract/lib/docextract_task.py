@@ -32,12 +32,11 @@ from invenio.bibrecord import record_get_field_instances, \
                               field_get_subfield_values
 
 
-
-def task_run_core_wrapper(name, core_func):
+def task_run_core_wrapper(name, core_func, extra_vars):
     def fun():
         try:
-            return task_run_core(name, core_func)
-        except Exception, e:
+            return task_run_core(name, core_func, extra_vars)
+        except Exception:
             # Remove extra '\n'
             write_message(traceback.format_exc()[:-1])
             raise
