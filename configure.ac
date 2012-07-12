@@ -606,7 +606,6 @@ AC_CONFIG_FILES([config.nice  \
      modules/bibedit/Makefile \
      modules/bibedit/bin/Makefile \
      modules/bibedit/bin/bibedit \
-     modules/bibedit/bin/refextract \
      modules/bibedit/bin/xmlmarc2textmarc \
      modules/bibedit/bin/textmarc2xmlmarc \
      modules/bibedit/bin/xmlmarclint \
@@ -866,6 +865,15 @@ AC_CONFIG_FILES([config.nice  \
      modules/websubmit/lib/functions/Makefile \
      modules/websubmit/web/Makefile \
      modules/websubmit/web/admin/Makefile \
+     modules/docextract/Makefile \
+     modules/docextract/bin/Makefile \
+     modules/docextract/bin/docextract \
+     modules/docextract/bin/refextract \
+     modules/docextract/doc/Makefile \
+     modules/docextract/lib/Makefile \
+     modules/docextract/etc/Makefile \
+     modules/docextract/doc/admin/Makefile \
+     modules/docextract/doc/hacking/Makefile \
      ])
 
 ## Finally, write output files:
