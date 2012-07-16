@@ -38,6 +38,7 @@ try:
     from invenio.bibrank_citation_indexer import get_bibrankmethod_lastupdate
     from invenio.bibformat import format_record
     from invenio.bibformat_config import CFG_BIBFORMAT_USE_OLD_BIBFORMAT
+    from invenio.docextract_task import fetch_last_updated, store_last_updated
     from invenio.bibtask import task_init, write_message, task_set_option, \
             task_get_option, task_update_progress, task_has_option, \
             task_low_level_submission, task_sleep_now_if_required, \
@@ -45,9 +46,14 @@ try:
     import os
     import time
     import zlib
+    from datetime import datetime
 except ImportError, e:
     print "Error: %s" % e
     sys.exit(1)
+
+
+DATESTORE_KEY = "bibreformat_%s"
+
 
 ### run the bibreformat task bibsched scheduled
 ###
@@ -65,8 +71,11 @@ def bibreformat_task(fmt, sql, sql_queries, cds_query, process_format, process, 
     @param recids: a list of record IDs to reformat
     @return: None
     """
+    write_message("Processing format %s" % fmt)
+
     t1 = os.times()[4]
 
+    start_date = datetime.now()
 
 ### Query the database
 ###
@@ -163,6 +172,11 @@ def bibreformat_task(fmt, sql, sql_queries, cds_query, process_format, process, 
         tbibformat += tbibformat_2
         tbibupload += tbibupload_2
 
+### Store last run time
+    if task_has_option("last"):
+        write_message("storing run date to %s" % start_date)
+        store_last_updated(0, start_date, DATESTORE_KEY % fmt)
+
 ### Final statistics
 
     t2 = os.times()[4]
@@ -216,20 +230,7 @@ def without_fmt(sql):
     @param sql: a dictionary with sql queries to pick from
     @return: a list of record ID without pre-created format cache
     """
-
-    rec_ids_with_cache = []
-    all_rec_ids = []
-
-    q1 = sql['q1']
-    q2 = sql['q2']
-
-    ## get complete recID list
-    all_rec_ids = intbitset(run_sql(q1))
-
-    ## get complete recID list of formatted records
-    rec_ids_with_cache = intbitset(run_sql(q2))
-
-    return all_rec_ids - rec_ids_with_cache
+    return intbitset(run_sql(sql['missing']))
 
 
 ### Bibreformat all selected records (using new python bibformat)
@@ -412,15 +413,25 @@ def task_run_core():
     else:
         fmts = 'HB' # default value if no format option given
     for fmt in fmts.split(','):
-        sql = {
+        dummy, last_updated = fetch_last_updated(DATESTORE_KEY % fmt)
+        write_message("last stored run date is %s" % last_updated)
 
-            "all" : "select br.id from bibrec as br, bibfmt as bf where bf.id_bibrec=br.id and bf.format ='%s'" % fmt,
-            "last": """select br.id from bibrec as br, bibfmt as bf
-                       where bf.id_bibrec=br.id and bf.format='%(format)s'
-                       and br.modification_date >= (select max(bf2.last_updated) from bibfmt as bf2 where bf2.format='%(format)s')
-                       and bf.last_updated < br.modification_date""" % {'format': fmt},
-            "q1"  : "select br.id from bibrec as br",
-            "q2"  : "select br.id from bibrec as br, bibfmt as bf where bf.id_bibrec=br.id and bf.format ='%s'" % fmt
+        sql = {
+            "all" : """SELECT br.id FROM bibrec AS br, bibfmt AS bf
+                       WHERE bf.id_bibrec = br.id AND bf.format = '%s'""" % fmt,
+            "last": """SELECT br.id FROM bibrec AS br
+                       INNER JOIN bibfmt AS bf ON bf.id_bibrec = br.id
+                       WHERE br.modification_date >= '%(last_updated)s'
+                       AND bf.format='%(format)s'
+                       AND bf.last_updated < br.modification_date""" \
+                            % {'format': fmt,
+                               'last_updated': last_updated.strftime('%Y-%m-%d %H:%M:%S')},
+            "missing"  : """SELECT br.id
+                            FROM bibrec as br
+                            LEFT JOIN bibfmt as bf ON bf.id_bibrec=br.id
+                            WHERE bf.format ='%s'
+                            AND bf.id_bibrec IS NULL
+                         """ % fmt,
         }
         sql_queries = []
         cds_query = {}
