@@ -35,7 +35,7 @@ from invenio.bibtask import task_init, task_set_option, \
                             task_sleep_now_if_required, \
                             task_update_progress
 from invenio.dbquery import run_sql
-from invenio.shellutils import split_ids
+from invenio.shellutils import split_cli_ids_arg
 from invenio.search_engine import get_collection_reclist
 from invenio.bibrank_selfcites_indexer import update_self_cites_tables, \
                                               compute_friends_self_citations, \
