@@ -652,6 +652,7 @@ AC_CONFIG_FILES([config.nice  \
      modules/bibharvest/bin/Makefile \
      modules/bibharvest/bin/oairepositoryupdater \
      modules/bibharvest/bin/oaiharvest \
+     modules/bibharvest/bin/arxiv-pdf-checker \
      modules/bibharvest/doc/Makefile \
      modules/bibharvest/doc/admin/Makefile \
      modules/bibharvest/doc/hacking/Makefile \

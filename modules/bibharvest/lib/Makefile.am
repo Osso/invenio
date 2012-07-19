@@ -32,7 +32,9 @@ pylib_DATA = oai_repository_server.py \
              oai_harvest_daemon.py \
              oai_repository_updater.py \
              oai_harvest_config.py \
-             bibharvest_web_tests.py
+             bibharvest_web_tests.py \
+             arxiv_pdf_checker.py \
+             arxiv_pdf_checker_regression_tests.py
 
 EXTRA_DIST = $(pylib_DATA)
 
