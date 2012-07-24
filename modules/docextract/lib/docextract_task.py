@@ -29,6 +29,7 @@ from invenio.bibtask import task_get_option, write_message, \
 from invenio.dbquery import run_sql
 from invenio.search_engine import get_record
 from invenio.search_engine import get_collection_reclist
+from invenio.refextract_api import get_pdf_doc
 from invenio.bibrecord import record_get_field_instances, \
                               field_get_subfield_values
 
@@ -116,7 +117,7 @@ def fetch_concerned_arxiv_records(name):
     # Fetch all records inserted since last run
     sql = "SELECT `id`, `modification_date` FROM `bibrec` " \
         "WHERE `modification_date` >= %s " \
-        "AND `modification_date` > NOW() - INTERVAL 7 DAY " \
+        "AND `creation_date` > NOW() - INTERVAL 7 DAY " \
         "ORDER BY `modification_date`" \
         "LIMIT 5000"
     records = run_sql(sql, [last_date.isoformat()])
@@ -130,8 +131,16 @@ def fetch_concerned_arxiv_records(name):
                     return True
         return False
 
+    def check_pdf_date(recid):
+        doc = get_pdf_doc(recid)
+        if doc:
+            return doc.md > last_date
+        return False
+
     records = [(r, mod_date) for r, mod_date in records if check_arxiv(r)]
-    write_message("recids %s" % repr(records))
+    records = [(r, mod_date) for r, mod_date in records if check_pdf_date(r)]
+    write_message("recids %s" % repr([(r, mod_date.isoformat()) \
+                                               for r, mod_date in records]))
     task_update_progress("Done fetching arxiv record ids")
     return records
 

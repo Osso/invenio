@@ -196,22 +196,33 @@ def update_references(recid, inspire=CFG_INSPIRE_SITE, overwrite=True):
                               '-z', temp_path)
 
 
-def look_for_fulltext(recid):
+def list_pdfs(recid):
     rec_info = BibRecDocs(recid)
     docs = rec_info.list_bibdocs()
 
-    path = None
     for doc in docs:
-        try:
-            path = doc.get_file('pdf').get_full_path()
-        except InvenioWebSubmitFileError:
+        for ext in ('pdf', 'pdfa', 'PDF'):
             try:
-                path = doc.get_file('pdfa').get_full_path()
+                yield doc.get_file(ext)
             except InvenioWebSubmitFileError:
-                try:
-                    path = doc.get_file('PDF').get_full_path()
-                except InvenioWebSubmitFileError:
-                    pass
+                pass
+
+
+def get_pdf_doc(recid):
+    try:
+        doc = list_pdfs(recid).next()
+    except StopIteration:
+        doc = None
+
+    return doc
+
+
+def look_for_fulltext(recid):
+    doc = get_pdf_doc(recid)
+
+    path = None
+    if doc:
+        path = doc.get_full_path()
 
     return path
 
