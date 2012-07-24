@@ -120,7 +120,6 @@ def fetch_concerned_arxiv_records(name):
         "ORDER BY `modification_date`" \
         "LIMIT 5000"
     records = run_sql(sql, [last_date.isoformat()])
-    records = [(2856, None)]
 
     def check_arxiv(recid):
         record = get_record(recid)
