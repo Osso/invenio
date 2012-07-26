@@ -110,7 +110,6 @@ def fetch_concerned_records(name):
 
 def fetch_concerned_arxiv_records(name):
     task_update_progress("Fetching arxiv record ids")
-    name = "%s:arxiv" % name
 
     last_id, last_date = fetch_last_updated(name)
 
@@ -173,8 +172,9 @@ def task_run_core(name, func, extra_vars=None):
 
     if task_get_option('arxiv'):
         extra_vars['_arxiv'] = True
-        records = fetch_concerned_arxiv_records(name)
-        process_records(name, records, func, extra_vars)
+        arxiv_name = "%s:arxiv" % name
+        records = fetch_concerned_arxiv_records(arxiv_name)
+        process_records(arxiv_name, records, func, extra_vars)
 
     write_message("Complete")
     return True
