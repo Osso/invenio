@@ -1147,15 +1147,22 @@ If the record is not there yet, try again later. It may take some time for it to
 List of unidentified fields:
 %(fields)s
     """ % {
-           'ident' : identifier,
-           'baseurl' : CFG_SITE_URL,
-           'fields' : "\n".join([field_xml_output(field, tag) for tag, field_instances in matching_fields \
+           'ident': identifier,
+           'baseurl': CFG_SITE_URL,
+           'fields': "\n".join([field_xml_output(field, tag) for tag, field_instances in matching_fields \
                                 for field in field_instances])
            }
     queue = "Authors"
-    ticketid = bibcatalog_system.ticket_submit(subject=subject, queue=queue)
-    if bibcatalog_system.ticket_comment(None, ticketid, text) == None:
-        write_message("Error: commenting on ticket %s failed." % (str(ticketid),))
+    try:
+        ticketid = bibcatalog_system.ticket_submit(subject=subject, queue=queue)
+    except ValueError, e:
+        write_message("Error creating ticket: %s" % (str(e),))
+        return None
+    try:
+        bibcatalog_system.ticket_comment(None, ticketid, text)
+    except ValueError, e:
+        write_message("Error commenting on ticket %s: %s" % (str(ticketid), str(e)))
+        return None
     return ticketid
 
 def create_oaiharvest_log(task_id, oai_src_id, marcxmlfile):
