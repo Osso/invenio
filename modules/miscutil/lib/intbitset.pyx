@@ -89,7 +89,6 @@ cdef extern from "intbitset.h":
     IntBitSet *intBitSetISub(IntBitSet *x, IntBitSet *y)
     IntBitSet *intBitSetIXor(IntBitSet *x, IntBitSet *y)
     int intBitSetGetNext(IntBitSet *x, int last)
-    int intBitSetGetLast(IntBitSet *x)
     unsigned char intBitSetCmp(IntBitSet *x, IntBitSet *y)
 
 __maxelem__ = maxelem
@@ -584,15 +583,11 @@ cdef class intbitset:
         return intbitset(self)
 
     def pop(self):
-        """Remove and return an arbitrary set element.
-
-        @note: intbitset implementation of .pop() differs from the native C{set}
-            implementation by guaranteeing returning always the largest element.
-        """
+        """Remove and return an arbitrary set element."""
         cdef int ret
-        ret = intBitSetGetLast(self.bitset)
+        ret = intBitSetGetNext(self.bitset, -1)
         if ret < 0:
-            raise KeyError("pop from an empty or infinite intbitset")
+            raise KeyError("pop from an empty intbitset")
         intBitSetDelElem(self.bitset, ret)
         return ret
 
