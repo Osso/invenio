@@ -1012,7 +1012,8 @@ class BibSched(object):
         of tasks to sleep.
         """
         if proc in CFG_BIBTASK_MONOTASKS:
-            return [], task_set
+            return [], [t for t in task_set \
+                                if t[3] not in ('SLEEPING', 'ABOUT TO SLEEP')]
 
         min_prio = None
         min_task_id = None
@@ -1127,7 +1128,7 @@ class BibSched(object):
                 ### !!! Basically, the number of concurrent tasks should count per node
                 ## Not enough resources.
                 if debug:
-                    Log("Cannot run because all resource (%s) are used (%s), higher: %s" % (CFG_BIBSCHED_MAX_NUMBER_CONCURRENT_TASKS, len(higher), higher))
+                    Log("Cannot run because all resources (%s) are used (%s), higher: %s" % (CFG_BIBSCHED_MAX_NUMBER_CONCURRENT_TASKS, len(higher), higher))
                 return False
 
             ## We check if it is necessary to stop/put to sleep some lower priority
@@ -1146,6 +1147,16 @@ class BibSched(object):
 
             procname = proc.split(':')[0]
             if not tasks_to_stop and not tasks_to_sleep:
+                if proc in CFG_BIBTASK_MONOTASKS and self.node_relevant_active_tasks:
+                    if debug:
+                        Log("Cannot run because this is a monotask and there are other tasks running: %s" % (self.node_relevant_active_tasks, ))
+                    return False
+
+                if len(self.node_relevant_active_tasks) >= CFG_BIBSCHED_MAX_NUMBER_CONCURRENT_TASKS:
+                    if debug:
+                        Log("Cannot run because all resources (%s) are used (%s), active: %s" % (CFG_BIBSCHED_MAX_NUMBER_CONCURRENT_TASKS, len(self.node_relevant_active_tasks), self.node_relevant_active_tasks))
+                    return False
+
                 if status in ("SLEEPING", "ABOUT TO SLEEP"):
                     if host == self.hostname:
                         ## We can only wake up tasks that are running on our own host
