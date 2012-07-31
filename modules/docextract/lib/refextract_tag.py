@@ -41,7 +41,6 @@ from invenio.refextract_re import \
     re_correct_numeration_2nd_try_ptn3, \
     re_correct_numeration_2nd_try_ptn4, \
     re_correct_numeration_2nd_try_ptn5, \
-    re_correct_numeration_2nd_try_ptn6, \
     re_numeration_nucphys_vol_page_yr, \
     re_numeration_vol_subvol_nucphys_yr_page, \
     re_numeration_nucphys_vol_yr_page, \
@@ -435,7 +434,6 @@ def re_identify_numeration(line):
         re_correct_numeration_2nd_try_ptn3,
         re_correct_numeration_2nd_try_ptn4,
         re_correct_numeration_2nd_try_ptn5,
-        re_correct_numeration_2nd_try_ptn6,
     )
     for pattern, replacement in patterns:
         line = pattern.sub(replacement, line)
@@ -1170,7 +1168,7 @@ def identify_journals(line, kb_journals):
         # in the line:
         # for each matched periodical title:
         for title_match in periodical_title_search_kb[title].finditer(line):
-            
+
             if title not in titles_count:
                 # Add this title into the titles_count dictionary:
                 titles_count[title] = 1

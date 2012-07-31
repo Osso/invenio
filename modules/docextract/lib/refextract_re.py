@@ -314,15 +314,8 @@ re_correct_numeration_2nd_try_ptn3 = (re.compile(
   re.UNICODE|re.VERBOSE), ur'\g<title_tag>  <cds.VOL>\g<vol></cds.VOL> ' \
                                       ur'<cds.PG>\g<page></cds.PG>')
 
-re_correct_numeration_2nd_try_ptn4 = (re.compile(
-  re_title_tag + re_sep +                          # Recognised, tagged title
-  re_volume + re_volume_sub_number_opt + re_sep +  # The volume
-  re_year,                                         # The year
-  re.UNICODE|re.VERBOSE), ur'\g<title_tag>  <cds.VOL>\g<vol></cds.VOL> ' \
-                                      ur'<cds.YR>(\g<year>)</cds.YR> ' \
-                                      ur'<cds.PG>1</cds.PG>')
 
-re_correct_numeration_2nd_try_ptn5 = (re.compile(
+re_correct_numeration_2nd_try_ptn4 = (re.compile(
   re_title_tag + re_sep +        # Recognised, tagged title
   re_year + ur"\s*[.,\s:]\s*" +  # Year
   re_volume + re_sep +           # The volume
@@ -331,7 +324,7 @@ re_correct_numeration_2nd_try_ptn5 = (re.compile(
     ur'<cds.YR>(\g<year>)</cds.YR> <cds.PG>\g<page></cds.PG>')
 
 
-re_correct_numeration_2nd_try_ptn6 = (re.compile(
+re_correct_numeration_2nd_try_ptn5 = (re.compile(
   re_title_tag + re_sep + re_volume, re.UNICODE|re.VERBOSE),
     ur'\g<title_tag> <cds.VOL>\g<vol></cds.VOL>')
 

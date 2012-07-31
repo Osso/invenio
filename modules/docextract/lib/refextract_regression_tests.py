@@ -1380,7 +1380,6 @@ Rev. D 80 034030 1-25"""
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">3</subfield>
-      <subfield code="s">J.Phys.,G30,1</subfield>
    </datafield>
 </record>""")
 
