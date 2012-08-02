@@ -1035,16 +1035,12 @@ class BibSched(object):
                 min_status = this_status
                 min_sequenceid = this_sequenceid
 
-        if len(task_set) < CFG_BIBSCHED_MAX_NUMBER_CONCURRENT_TASKS and not to_stop:
-            ## All the task are safe and there are enough resources
-            return [], []
+        if to_stop:
+            return to_stop, []
+        elif min_task_id:
+            return [], [(min_task_id, min_proc, min_prio, min_status, min_sequenceid)]
         else:
-            if to_stop:
-                return to_stop, []
-            elif min_task_id:
-                return [], [(min_task_id, min_proc, min_prio, min_status, min_sequenceid)]
-            else:
-                return [], []
+            return [], []
 
     def split_active_tasks_by_priority(self, task_id, priority):
         """Return two lists: the list of task_ids with lower priority and
