@@ -429,9 +429,9 @@ def task_run_core():
                                'last_updated': last_updated.strftime('%Y-%m-%d %H:%M:%S')},
             "missing"  : """SELECT br.id
                             FROM bibrec as br
-                            LEFT JOIN bibfmt as bf ON bf.id_bibrec=br.id
-                            WHERE bf.format ='%s'
-                            AND bf.id_bibrec IS NULL
+                            LEFT JOIN bibfmt as bf
+                            ON bf.id_bibrec = br.id AND bf.format ='%s'
+                            WHERE bf.id_bibrec IS NULL
                          """ % fmt,
         }
         sql_queries = []
