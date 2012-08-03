@@ -1244,7 +1244,7 @@ class BibSched(object):
             ## The bibupload tasks are sorted by id, which means by the order they were scheduled
             self.node_relevant_bibupload_tasks = run_sql(
                 """SELECT id, proc, runtime, status, priority, host, sequenceid
-                   FROM schTASK WHERE status = 'WAITING'
+                   FROM schTASK WHERE status IN ('WAITING', 'SLEEPING')
                    AND proc = 'bibupload'
                    AND runtime <= NOW()
                    ORDER BY id ASC LIMIT 1""", n=1)
