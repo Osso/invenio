@@ -259,9 +259,9 @@ def iterate_over_new(list, fmt):
         start_date = time.strftime('%Y-%m-%d %H:%M:%S')
         formatted_record = zlib.compress(format_record(recID, fmt, on_the_fly=True))
         if run_sql('SELECT id FROM bibfmt WHERE id_bibrec=%s AND format=%s', (recID, fmt)):
-            run_sql('UPDATE bibfmt SET last_updated=%s, value=%s WHERE id_bibrec=%s AND format=%s', (start_date, formatted_record, recID, fmt))
+            run_sql('UPDATE LOW_PRIORITY bibfmt SET last_updated=%s, value=%s WHERE id_bibrec=%s AND format=%s', (start_date, formatted_record, recID, fmt))
         else:
-            run_sql('INSERT INTO bibfmt(id_bibrec, format, last_updated, value) VALUES(%s, %s, %s, %s)', (recID, fmt, start_date, formatted_record))
+            run_sql('INSERT LOW_PRIORITY INTO bibfmt(id_bibrec, format, last_updated, value) VALUES(%s, %s, %s, %s)', (recID, fmt, start_date, formatted_record))
         t2 = os.times()[4]
         tbibformat += (t2 - t1)
         count += 1
