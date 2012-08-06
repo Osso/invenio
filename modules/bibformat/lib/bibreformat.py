@@ -224,14 +224,20 @@ def check_validity_input_formats(input_formats):
 ### Identify recIDs of records with missing format
 ###
 
-def without_fmt(sql):
+def without_fmt(queries, chunk_size=2000):
     """
     List of record IDs to be reformated, not having the specified format yet
 
     @param sql: a dictionary with sql queries to pick from
     @return: a list of record ID without pre-created format cache
     """
-    return intbitset(run_sql(sql['missing']))
+    sql = queries['missing']
+    recids = intbitset()
+    max_id = run_sql("SELECT max(id) FROM bibrec")[0][0]
+    for start in xrange(1, max_id + 1, chunk_size):
+        end = start + chunk_size
+        recids += intbitset(run_sql(sql, (start, end)))
+    return recids
 
 
 ### Bibreformat all selected records (using new python bibformat)
@@ -432,6 +438,7 @@ def task_run_core():
                             LEFT JOIN bibfmt as bf
                             ON bf.id_bibrec = br.id AND bf.format ='%s'
                             WHERE bf.id_bibrec IS NULL
+                            AND br.id BETWEEN %%s AND %%s
                          """ % fmt,
         }
         sql_queries = []
