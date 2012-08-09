@@ -74,4 +74,30 @@ $(document).ready(function(){
             $('#'+div_id).toggle(this.checked);
         }
     });
+
+    $( "#holdingpencontainer" ).accordion({collapsible: true, autoHeight: false});
+    $( "#holdingpencontainer > div" ).accordion({collapsible: true, autoHeight: false});
+    $( "#holdingpencontainer > div > div" ).accordion({collapsible: true, active: false, autoHeight: false, clearStyle: true});
+
+    $( "#holdingpencontainer > div > div").bind("accordionchangestart", function(event, ui) {
+        console.dir(ui.newHeader); // jQuery, activated header
+        console.dir(ui.oldHeader); 
+        if(ui.newHeader[0]){
+            console.log(ui.newHeader[0].id); //this has the id attribute of the header that was clicked
+            elementId = ui.newHeader[0].id;
+        
+
+            $(elementId).next().empty().append("<p>Loading...</p>");
+
+            $.getJSON(serverAddress + "/admin/oaiharvest/oaiharvestadmin.py/getHoldingPenData",
+                      {elementId : elementId},
+                       function(json){
+                           $("#" + json.elementId).next().empty();
+                           $("#" + json.elementId).next().append(json.html);
+                           //$("#" + json.elementId).next().css({'height': $("#" + json.elementId).next().find('.brtable').eq(0).height()}).page();
+                           //console.log($("#" + json.elementId).next().find('.brtable').eq(0).height());
+                       });
+        }
+    });
 });
+
