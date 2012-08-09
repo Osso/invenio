@@ -236,6 +236,10 @@ def format_hep(citation_elements):
 
 
 def format_author_ed(citation_elements):
+    """Standardise to (ed.) and (eds.)
+
+    e.g. Remove extra space in (ed. )
+    """
     for el in citation_elements:
         if el['type'] == 'AUTH':
             el['auth_txt'] = el['auth_txt'].replace('(ed. )', '(ed.)')
@@ -244,6 +248,11 @@ def format_author_ed(citation_elements):
 
 
 def look_for_books(citation_elements, kbs):
+    """Look for books in our kb
+
+    Create book tags by using the authors and the title to find books
+    in our knowledge base
+    """
     authors = None
     title   = None
     for el in citation_elements:
@@ -270,12 +279,31 @@ def look_for_books(citation_elements, kbs):
 
 
 def split_volume_from_journal(citation_elements):
+    """Split volume from journal title
+
+    We need this because sometimes the volume is attached to the journal title
+    instead of the volume. In those cases we move it here from the title to the
+    volume
+    """
     for el in citation_elements:
         if el['type'] == 'JOURNAL' and ';' in el['title']:
             el['title'], series = el['title'].rsplit(';', 1)
             el['volume'] = series + el['volume']
     return citation_elements
 
+
+def remove_b_for_nucl_phys(citation_elements):
+    """Removes b from the volume of some journals
+
+    Removes the B from the volume for Nucl.Phys.Proc.Suppl. because in INSPIRE
+    that journal is handled differently.
+    """
+    for el in citation_elements:
+        if el['type'] == 'JOURNAL' and el['title'] == 'Nucl.Phys.Proc.Suppl.' \
+            and 'volume' in el \
+            and (el['volume'].startswith('b') or el['volume'].startswith('B')):
+                el['volume'] = el['volume'][1:]
+    return citation_elements
 
 ## End of elements transformations
 
@@ -318,6 +346,7 @@ def parse_reference_line(ref_line, kbs, bad_titles_count={}):
     citation_elements = format_author_ed(citation_elements)
     citation_elements = look_for_books(citation_elements, kbs)
     citation_elements = format_hep(citation_elements)
+    citation_elements = remove_b_for_nucl_phys(citation_elements)
 
     return citation_elements, line_marker, counts, bad_titles_count
 

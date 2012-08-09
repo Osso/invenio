@@ -139,6 +139,8 @@ class RefextractTest(unittest.TestCase):
             ("SITZUNGSBER PREUSS AKAD WISS PHYS MATH KL", "Sitzungsber.Preuss.Akad.Wiss.Berlin (Math.Phys.)"),
             ("PHYS LETT", "Phys.Lett."),
             ("NUCL PHYS", "Nucl.Phys."),
+            ("NUCL PHYS", "Nucl.Phys."),
+            ("NUCL PHYS PROC SUPPL", "Nucl.Phys.Proc.Suppl."),
             ("JINST", "JINST"),
             ("THE EUROPEAN PHYSICAL JOURNAL C PARTICLES AND FIELDS", "Eur.Phys.J.;C"),
             ("COMMUN MATH PHYS", "Commun.Math.Phys."),
@@ -1972,6 +1974,17 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">6</subfield>
       <subfield code="h">Sivers D. W.</subfield>
       <subfield code="r">astro-ph/9711200</subfield>
+   </datafield>
+</record>""")
+
+    def test_nucl_phys_b_removal(self):
+        ref_line = u"""[6] Sivers D. W., Nucl. Phys. (Proc.Suppl.) B21 (2004) 334-356"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">Sivers D. W.</subfield>
+      <subfield code="s">Nucl.Phys.Proc.Suppl.,21,334</subfield>
    </datafield>
 </record>""")
 
