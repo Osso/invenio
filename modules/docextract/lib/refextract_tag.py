@@ -59,7 +59,8 @@ from invenio.refextract_re import \
     re_isbn, \
     re_arxiv, \
     re_new_arxiv, \
-    re_pos
+    re_pos, \
+    re_pos_year_num
 
 from invenio.authorextract_re import re_auth, \
                                      re_extra_auth, \
@@ -96,6 +97,9 @@ def tag_reference_line(line, kbs, record_titles_count):
     # accents, and correct puncutation, etc:
     working_line1 = wash_line(line)
 
+    # Identify volume for POS journal
+    working_line1 = tag_pos_volume(working_line1)
+
     # Identify and standardise numeration in the line:
     working_line1 = tag_numeration(working_line1)
 
@@ -117,9 +121,6 @@ def tag_reference_line(line, kbs, record_titles_count):
 
     # Identify arxiv reports
     working_line1 = tag_arxiv(working_line1)
-
-    # Identify volume for POS journal
-    working_line1 = tag_pos_volume(working_line1)
 
     # Identify journals with regular expression
     # Some journals need to match exact regexps because they can
@@ -403,8 +404,16 @@ def tag_pos_volume(line):
     """
     def tagger(match):
         groups = match.groupdict()
-        if match.group('year'):
-            groups['year'] = ' <cds.YR>%s</cds.YR>' % groups['year'].strip()
+        try:
+            year = match.group('year')
+        except IndexError:
+            # Extract year from volume name
+            # which should always include the year
+            g = re.search(re_pos_year_num, match.group('volume'), re.UNICODE)
+            year = g.group(0)
+
+        if year:
+            groups['year'] = ' <cds.YR>(%s)</cds.YR>' % year.strip().strip('()')
         else:
             groups['year'] = ''
 

@@ -21,18 +21,30 @@ import re
 from datetime import datetime
 
 # Pattern for PoS journal
-re_pos_year = ur'\s*(?P<year>\s\(?(?:19|20)\d{2}\)?)?'
-# e.g. e.g. LAT2007
-re_pos_volume = ur'\s+(?P<volume>\w{1,10}(?:19|20)\d{2})\s*'
-re_pos_page = ur'\s+(?P<page>\d{1,4})'
+
+# e.g. 2006
+re_pos_year_num = ur'(?:19|20)\d{2}'
+re_pos_year = ur'(?P<year>(' \
+                  + ur'\s' + re_pos_year_num + ur'\s' \
+                  + ur'|' \
+                  + ur'\(' + re_pos_year_num + '\)' \
+                  + ur'))'
+# e.g. LAT2007
+re_pos_volume = ur'(?P<volume>\w{1,10}(?:19|20)\d{2})'
+# e.g. (LAT2007)
+re_pos_volume_par = ur'\(' + re_pos_volume + ur'\)'
+# e.g. 20
+re_pos_page = ur'(?P<page>\d{1,4})'
 re_pos_title = ur'POS'
 
 re_pos_patterns = [
-    re_pos_title + re_pos_year + re_pos_volume + re_pos_page,
-    re_pos_title + re_pos_volume + re_pos_year + re_pos_page,
-    re_pos_title + re_pos_volume + re_pos_page + re_pos_year,
+    re_pos_title + ur'\s*' + re_pos_year + ur'\s+' + re_pos_volume + ur'\s+' + re_pos_page,
+    re_pos_title + ur'\s+' + re_pos_volume + ur'\s*' + re_pos_year + ur'\s*' + re_pos_page,
+    re_pos_title + ur'\s+' + re_pos_volume + ur'\s+' + re_pos_page + ur'\s*' + re_pos_year,
+    re_pos_title + ur'\s*' + re_pos_volume_par + ur'\s*' + re_pos_page,
 ]
 re_opts = re.VERBOSE | re.UNICODE | re.IGNORECASE
+
 
 def compute_pos_patterns(patterns):
     return [re.compile(p, re_opts) for p in patterns]

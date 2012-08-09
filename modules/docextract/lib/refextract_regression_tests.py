@@ -1811,6 +1811,28 @@ Rev. D 80 034030 1-25"""
    </datafield>
 </record>""")
 
+    def test_pos2(self):
+        ref_line = u"""[23] M. A. Donnellan, et al., PoS LAT2007 2007 369."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">23</subfield>
+      <subfield code="h">M. A. Donnellan, et al.</subfield>
+      <subfield code="s">PoS,LAT2007,369</subfield>
+   </datafield>
+</record>""")
+
+    def test_pos3(self):
+        ref_line = u"""[23] M. A. Donnellan, et al., PoS(LAT2005)239."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">23</subfield>
+      <subfield code="h">M. A. Donnellan, et al.</subfield>
+      <subfield code="s">PoS,LAT2005,239</subfield>
+   </datafield>
+</record>""")
+
     def test_complex_author(self):
         ref_line = u"""[39] Michael E. Peskin, Michael E. Peskin and Michael E. Peskin “An Introduction To Quantum Field Theory,” Westview Press, 1995."""
         reference_test(self, ref_line, u"""<record>
