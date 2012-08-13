@@ -24,7 +24,6 @@ Stores self-citations in a table for quick access
 """
 
 import sys
-import traceback
 from datetime import datetime
 
 from invenio.config import CFG_VERSION, \
@@ -109,13 +108,13 @@ def parse_option(key, value, dummy, args):
         if not collections:
             collections = set()
             task_set_option('collections', collections)
-        collections.update(split_ids(value))
+        collections.update(split_cli_ids_arg(value))
     elif key in ('-r', '--recids'):
         recids = task_get_option('recids')
         if not recids:
             recids = set()
             task_set_option('recids', recids)
-        recids.update(split_ids(value))
+        recids.update(split_cli_ids_arg(value))
 
     return True
 
@@ -171,7 +170,7 @@ def rebuild_tables():
 
 def fetch_bibauthorid_last_update():
     bibauthorid_log = bibauthorid_user_log(userinfo='daemon',
-                                       action='PFAP',
+                                       action='PID_UPDATE',
                                        only_most_recent=True)
     try:
         bibauthorid_end_date = bibauthorid_log[0][2]
