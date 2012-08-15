@@ -225,7 +225,8 @@ def format_hep(citation_elements):
 
     e.g. replaces hep-th-9711200 with hep-th/9711200
     """
-    prefixes = ('astro-ph-', 'hep-th-', 'hep-ph-', 'hep-ex-', 'hep-lat-')
+    prefixes = ('astro-ph-', 'hep-th-', 'hep-ph-', 'hep-ex-', 'hep-lat-',
+                'math-ph-')
     for el in citation_elements:
         if el['type'] == 'REPORTNUMBER':
             for p in prefixes:
