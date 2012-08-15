@@ -35,6 +35,7 @@ from invenio.refextract_engine import parse_references, \
                                       extract_references_from_fulltext, \
                                       get_kbs
 from invenio.config import CFG_INSPIRE_SITE
+from invenio.search_engine_utils import get_fieldvalues
 from invenio.bibindex_engine import CFG_JOURNAL_PUBINFO_STANDARD_FORM
 from invenio.bibdocfile import BibRecDocs, InvenioWebSubmitFileError
 from invenio.search_engine import get_record
@@ -179,7 +180,11 @@ def update_references(recid, inspire=CFG_INSPIRE_SITE, overwrite=True):
         # Check for references in record
         record = get_record(recid)
         if record and record_has_field(record, '999'):
-            raise RecordHasReferences(recid)
+            raise RecordHasReferences('Record has references and overwrite ' \
+                                      'mode is disabled: %s' % recid)
+
+    if get_fieldvalues(recid, '999C59'):
+        raise RecordHasReferences('Record has been curated: %s' % recid)
 
     # Parse references
     references_xml = extract_references_from_record_xml(recid, inspire=inspire)
