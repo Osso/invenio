@@ -26,6 +26,7 @@ Checks arxiv records for missing pdfs and downloads them from arXiv
 import os
 import time
 from tempfile import mkstemp
+from datetime import datetime
 import urllib2
 import socket
 
@@ -265,8 +266,7 @@ def fetch_updated_arxiv_records(date):
     # Fetch all records inserted since last run
     sql = "SELECT `id`, `modification_date` FROM `bibrec` " \
           "WHERE `modification_date` >= %s " \
-          "ORDER BY `modification_date`" \
-          "LIMIT 5000"
+          "ORDER BY `modification_date`"
     records = run_sql(sql, [date.isoformat()])
     records = [(r, mod_date) for r, mod_date in records if check_arxiv(r)]
     write_message("recids %s" % repr(records))
@@ -275,6 +275,7 @@ def fetch_updated_arxiv_records(date):
 
 
 def task_run_core(name=NAME):
+    start_date = datetime.now()
     dummy, last_date = fetch_last_updated(name)
 
     recids = task_get_option('recids')
@@ -284,21 +285,21 @@ def task_run_core(name=NAME):
         recids = fetch_updated_arxiv_records(last_date)
 
     for count, (recid, mod_date) in enumerate(recids):
-        if count != 0:
-            time.sleep(60)
         if count % 50 == 0:
             write_message('done %s of %s' % (count, len(recids)))
 
         write_message('processing %s' % recid, verbose=9)
         try:
             process_one(recid)
+            if count + 1 != len(recids):
+                time.sleep(60)
         except FoundExistingPdf:
             write_message('found existing pdf')
         except InvenioFileDownloadError, e:
             write_message("failed to download: %s" % e)
 
         if mod_date:
-            store_last_updated(recid, mod_date, name)
+            store_last_updated(recid, start_date, name)
 
     return True
 
