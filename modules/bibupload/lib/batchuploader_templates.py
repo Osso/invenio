@@ -29,6 +29,7 @@ from invenio.config import CFG_SITE_URL
 from invenio.dbquery import run_sql
 from invenio.messages import gettext_set_language
 from invenio.urlutils import auto_version_url
+from invenio.htmlutils import escape_html
 
 
 class Template:
@@ -239,6 +240,12 @@ class Template:
         </select>
     </div>
     <div>
+        <label class="nowidth" for="skip_simulation">
+            &nbsp;&nbsp;%(txt_skip_simulation)s
+        </label>
+        <input type="checkbox" name="skip_simulation" value="skip">
+    </div>
+    <div>
         %(txt_upload_later)s&nbsp;&nbsp;&nbsp; <span class="italics">%(txt_date)s:</span>
     <input type="text" id="datepicker" name="submit_date" value=%(submit_date)s onBlur="defText(this)" onFocus="clearText(this)" style="width:100px" >
     &nbsp;&nbsp;<span class="italics">%(txt_time)s:</span>
@@ -258,6 +265,7 @@ class Template:
         'txt_mandatory': _("All fields with %(x_fmt_open)s*%(x_fmt_close)s are mandatory") % \
                   {'x_fmt_open': '<span class="mandatory_field">', 'x_fmt_close': '</span>'},
         'txt_priority': _("Upload priority"),
+        'txt_skip_simulation': _("Skip upload simulation"),
         'txt_strong_tags': _("Strong tags"),
         'type_sel1': filetype == 'marcxml' and "selected" or "",
         'type_sel2': filetype == 'textmarc' and "selected" or "",
@@ -492,7 +500,7 @@ class Template:
     def tmpl_display_confirm_page(self, ln=CFG_SITE_LANG,
                 metafile=None, filetype=None, mode=None, submit_date=None,
                 submit_time=None, file_name=None, priority=None,
-                errors_upload='', strong_tags=False):
+                errors_upload='', strong_tags=False, skip_simulation=False):
         """ Display a confirmation page before uploading metadata
         """
         _ = gettext_set_language(ln)
@@ -509,11 +517,17 @@ class Template:
             error_msgs.append("<li>%s</li>" % error)
         error_msgs.append("</ol>")
 
-        errors_textarea = """%(text_error1)s
-                              <div class="batchuploader_error"> %(error_msgs)s </div>
-                              <br />
-                           """ % {'text_error1': '<div class="clean_error">Some errors have been found during the upload simulation</div>',
-                                  'error_msgs': '\n'.join(error_msgs)}
+        errors_textarea = ""
+        if not skip_simulation:
+            errors_textarea = """%(text_error1)s
+                                  <div class="batchuploader_error"> %(error_msgs)s </div>
+                                  <br />
+                               """ % {'text_error1': '<div class="clean_error">Some errors have been found during the upload simulation</div>',
+                                      'error_msgs': '\n'.join(error_msgs)}
+            if not errors_upload:
+                errors_textarea = '<div class="clean_ok">No errors were found during the upload simulation</div><br/>'
+
+        marcxml_textarea = """<textarea style="background-color: lightyellow" name="metafile" rows="20" cols="80">%(filecontent)s</textarea> """ % {'filecontent': escape_html(metafile.value)}
 
         strong_tags_html = """WARNING: Strong tags is set to <strong>replace
                               </strong> so all tags will be replaced<br/><br/>"""
@@ -530,7 +544,7 @@ class Template:
                         <input type="hidden" name="priority" value=%(priority_num)s>
                         <input type="hidden" name="strong_tags" value=%(strong_tags)s>
                         <div> %(errors_textarea)s %(text_confirm1)s <strong>%(filetype)s</strong> %(text_confirm2)s <strong>%(filename)s</strong> %(text_confirm3)s: <br /><br />
-                            <textarea style="background-color: lightyellow" name="metafile" rows="20" cols="80">%(filecontent)s</textarea>
+                            %(marcxml_textarea)s
                             <br /><br />
                             %(text_confirm4)s <strong>%(priority_txt)s</strong> %(text_confirm5)s <strong>%(mode)s</strong>.
                             <br/><br/>
@@ -554,6 +568,7 @@ class Template:
                                'schedule_msg' : display_schedule and schedule_msg or '',
                                'filetype': filetype,
                                'filename': file_name,
+                               'marcxml_textarea': marcxml_textarea,
                                'filecontent': metafile.value,
                                'priority_num': priority,
                                'priority_txt': priority_map[priority],
@@ -563,7 +578,7 @@ class Template:
                                'submit_date': submit_date,
                                'submit_time': submit_time,
                                'strong_tags_txt': strong_tags == "replace" and strong_tags_html or '',
-                               'errors_textarea': errors_upload and errors_textarea or '<div class="clean_ok">No errors were found during the upload simulation</div><br/>',
+                               'errors_textarea': errors_textarea,
                                'confirm_disabled': errors_upload and 'DISABLED style="background:grey;"' or ''}
         body_content += """</div></form> """
         return body_content
