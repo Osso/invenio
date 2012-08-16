@@ -194,10 +194,11 @@ def handle_special_journals(citation_elements, kbs):
 
             # Sometimes the page is omitted and the year is written in its place
             # We can never be sure but it's very likely that page > 1900 is
-            # actually a year
+            # actually a year, so we skip this reference
             if el['year'] == '' and re.match('(19|20)\d{2}$', el['page']):
-                el['year'] = el['page']
-                el['page'] = '1'
+                el['type'] = 'MISC'
+                el['misc_txt'] = "%s,%s,%s" \
+                                     % (el['title'], el['volume'], el['page'])
 
             el['volume'] = el['year'][-2:] + '%02d' % int(el['volume'])
 
