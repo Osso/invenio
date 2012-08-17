@@ -33,6 +33,7 @@ pylib_DATA = docextract_pdf.py \
              refextract_tag.py \
              refextract_cli.py \
              refextract_kbs.py \
+             refextract_linker.py \
              authorextract_api.py \
              authorextract_engine.py \
              authorextract_cli.py \

@@ -32,9 +32,8 @@ from tempfile import mkstemp
 from invenio.refextract_engine import parse_references, \
                                       get_plaintext_document_body, \
                                       parse_reference_line, \
-                                      extract_references_from_fulltext, \
                                       get_kbs
-from invenio.config import CFG_INSPIRE_SITE
+from invenio.refextract_text import extract_references_from_fulltext
 from invenio.search_engine_utils import get_fieldvalues
 from invenio.bibindex_engine import CFG_JOURNAL_PUBINFO_STANDARD_FORM
 from invenio.bibdocfile import BibRecDocs, InvenioWebSubmitFileError
@@ -62,7 +61,7 @@ class RecordHasReferences(Exception):
    """
 
 
-def extract_references_from_url_xml(url, inspire=CFG_INSPIRE_SITE):
+def extract_references_from_url_xml(url):
     """Extract references from the pdf specified in the url
 
     The single parameter is the path to the pdf.
@@ -72,8 +71,7 @@ def extract_references_from_url_xml(url, inspire=CFG_INSPIRE_SITE):
     filename, dummy = urlretrieve(url)
     try:
         try:
-            marcxml = extract_references_from_file_xml(filename,
-                                                       inspire=inspire)
+            marcxml = extract_references_from_file_xml(filename)
         except IOError, err:
             if err.code == 404:
                 raise FullTextNotAvailable()
@@ -84,7 +82,7 @@ def extract_references_from_url_xml(url, inspire=CFG_INSPIRE_SITE):
     return marcxml
 
 
-def extract_references_from_file_xml(path, recid=1, inspire=CFG_INSPIRE_SITE):
+def extract_references_from_file_xml(path, recid=1):
     """Extract references from a local pdf file
 
     The single parameter is the path to the file
@@ -100,10 +98,10 @@ def extract_references_from_file_xml(path, recid=1, inspire=CFG_INSPIRE_SITE):
         docbody, dummy = get_plaintext_document_body(path, keep_layout=True)
         reflines, dummy, dummy = extract_references_from_fulltext(docbody)
 
-    return parse_references(reflines, recid=recid, inspire=inspire)
+    return parse_references(reflines, recid=recid)
 
 
-def extract_references_from_string_xml(source, inspire=CFG_INSPIRE_SITE):
+def extract_references_from_string_xml(source):
     """Extract references from a string
 
     The single parameter is the document
@@ -116,10 +114,10 @@ def extract_references_from_string_xml(source, inspire=CFG_INSPIRE_SITE):
         reflines, dummy, dummy = extract_references_from_fulltext(docbody)
     else:
         reflines = []
-    return parse_references(reflines, inspire=inspire)
+    return parse_references(reflines)
 
 
-def extract_references_from_record_xml(recid, inspire=CFG_INSPIRE_SITE):
+def extract_references_from_record_xml(recid):
     """Extract references from a record id
 
     The single parameter is the document
@@ -129,10 +127,10 @@ def extract_references_from_record_xml(recid, inspire=CFG_INSPIRE_SITE):
     if not path:
         raise FullTextNotAvailable()
 
-    return extract_references_from_file_xml(path, recid=recid, inspire=inspire)
+    return extract_references_from_file_xml(path, recid=recid)
 
 
-def replace_references(recid, inspire=CFG_INSPIRE_SITE):
+def replace_references(recid):
     """Replace references for a record
 
     The record itself is not updated, the marc xml of the document with updated
@@ -140,10 +138,9 @@ def replace_references(recid, inspire=CFG_INSPIRE_SITE):
 
     Parameters:
     * recid: the id of the record
-    * inspire: format of ther references
     """
     # Parse references
-    references_xml = extract_references_from_record_xml(recid, inspire=inspire)
+    references_xml = extract_references_from_record_xml(recid)
     references = create_record(references_xml.encode('utf-8'))
     # Record marc xml
     record = get_record(recid)
@@ -164,7 +161,7 @@ def replace_references(recid, inspire=CFG_INSPIRE_SITE):
     return out_xml
 
 
-def update_references(recid, inspire=CFG_INSPIRE_SITE, overwrite=True):
+def update_references(recid, overwrite=True):
     """Update references for a record
 
     First, we extract references from a record.
@@ -173,7 +170,6 @@ def update_references(recid, inspire=CFG_INSPIRE_SITE, overwrite=True):
 
     Parameters:
     * recid: the id of the record
-    * inspire: format of ther references
     """
 
     if not overwrite:
@@ -187,7 +183,7 @@ def update_references(recid, inspire=CFG_INSPIRE_SITE, overwrite=True):
         raise RecordHasReferences('Record has been curated: %s' % recid)
 
     # Parse references
-    references_xml = extract_references_from_record_xml(recid, inspire=inspire)
+    references_xml = extract_references_from_record_xml(recid)
 
     # Save new record to file
     (temp_fd, temp_path) = mkstemp(prefix=CFG_REFEXTRACT_FILENAME,
@@ -250,20 +246,21 @@ def search_from_reference(text):
     pattern = ''
 
     kbs = get_kbs()
-    elements, dummy_m, dummy_c, dummy_co = parse_reference_line(text, kbs)
+    references, dummy_m, dummy_c, dummy_co = parse_reference_line(text, kbs)
 
-    for el in elements:
-        if el['type'] == 'JOURNAL':
-            field = 'journal'
-            pattern = CFG_JOURNAL_PUBINFO_STANDARD_FORM \
-                .replace('773__p', el['title']) \
-                .replace('773__v', el['volume']) \
-                .replace('773__c', el['page']) \
-                .replace('773__y', el['year'])
-            break
-        elif el['type'] == 'REPORTNUMBER':
-            field = 'report'
-            pattern = el['report_num']
-            break
+    for elements in references:
+        for el in elements:
+            if el['type'] == 'JOURNAL':
+                field = 'journal'
+                pattern = CFG_JOURNAL_PUBINFO_STANDARD_FORM \
+                    .replace('773__p', el['title']) \
+                    .replace('773__v', el['volume']) \
+                    .replace('773__c', el['page']) \
+                    .replace('773__y', el['year'])
+                break
+            elif el['type'] == 'REPORTNUMBER':
+                field = 'report'
+                pattern = el['report_num']
+                break
 
     return field, pattern.encode('utf-8')

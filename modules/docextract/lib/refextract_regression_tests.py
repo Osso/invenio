@@ -32,6 +32,8 @@ from invenio.testutils import make_test_suite, run_test_suite
 from invenio.refextract_engine import parse_references
 from invenio.docextract_utils import setup_loggers
 from invenio.refextract_text import wash_and_repair_reference_line
+from invenio import refextract_kbs
+from invenio import refextract_xml
 
 
 def compare_references(test, references, expected_references, ignore_misc=True):
@@ -56,20 +58,25 @@ def reference_test(test, ref_line, parsed_reference, ignore_misc=True):
     #print u'refs: %s' % ref_line
     ref_line = wash_and_repair_reference_line(ref_line)
     #print u'cleaned: %s' % ref_line
-    out = parse_references([ref_line], inspire=test.inspire, kbs_files={
+    out = parse_references([ref_line], kbs_files={
         'journals'       : test.kb_journals,
         'journals-re'    : test.kb_journals_re,
         'report-numbers' : test.kb_report_numbers,
         'books'          : test.kb_books,
     })
-    compare_references(test, out, parsed_reference, ignore_misc)
+    compare_references(test, out, parsed_reference, ignore_misc=ignore_misc)
 
 
 class RefextractInvenioTest(unittest.TestCase):
 
     def setUp(self):
-        self.inspire = False
-        setup_loggers(verbosity=1)
+        self.old_override = refextract_kbs.CFG_REFEXTRACT_KBS_OVERRIDE
+        refextract_kbs.CFG_REFEXTRACT_KBS_OVERRIDE = {}
+
+        self.old_inspire = refextract_xml.CFG_INSPIRE_SITE
+        refextract_xml.CFG_INSPIRE_SITE = False
+
+        setup_loggers(verbosity=9)
         self.maxDiff = 2000
         self.kb_journals = None
         self.kb_journals_re = None
@@ -78,6 +85,10 @@ class RefextractInvenioTest(unittest.TestCase):
         self.kb_books = None
         self.kb_conferences = None
 
+    def tearDown(self):
+        refextract_kbs.CFG_REFEXTRACT_KBS_OVERRIDE = self.old_override
+        refextract_xml.CFG_INSPIRE_SITE = self.old_inspire
+
     def test_month_with_year(self):
         ref_line = u"""[2] S. Weinberg, A Model of Leptons, Phys. Rev. Lett. 19 (Nov, 1967) 1264–1266."""
         reference_test(self, ref_line, u"""<record>
@@ -85,7 +96,8 @@ class RefextractInvenioTest(unittest.TestCase):
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">2</subfield>
       <subfield code="h">S. Weinberg, A Model of Leptons</subfield>
-      <subfield code="s">Phys.Rev.Lett. 19 (1967) 1264</subfield>
+      <subfield code="s">Phys. Rev. Lett. 19 (1967) 1264</subfield>
+      <subfield code="y">1967</subfield>
    </datafield>
 </record>""")
 
@@ -98,6 +110,7 @@ class RefextractInvenioTest(unittest.TestCase):
       <subfield code="h">M. Papakyriacou, H. Mayer, C. Pypen, H. P. Jr., and S. Stanzl-Tschegg</subfield>
       <subfield code="t">Influence of loading frequency on high cycle fatigue properties of b.c.c. and h.c.p. metals</subfield>
       <subfield code="s">Mat.Sci.Eng. A308 (2001) 143</subfield>
+      <subfield code="y">2001</subfield>
    </datafield>
 </record>""")
 
@@ -111,6 +124,7 @@ class RefextractInvenioTest(unittest.TestCase):
       <subfield code="h">Y.-B. Park, R. Mnig, and C. A. Volkert</subfield>
       <subfield code="t">Frequency effect on thermal fatigue damage in Cu interconnects</subfield>
       <subfield code="s">Thin Solid Films 515 (2007) 3253</subfield>
+      <subfield code="y">2007</subfield>
    </datafield>
 </record>""")
 
@@ -174,6 +188,7 @@ class RefextractTest(unittest.TestCase):
             "ASTRO PH---astro-ph",
             "HEP PH---hep-ph",
             "HEP TH---hep-th",
+            "HEP EX---hep-ex",
             "#####LHC#####",
             "< yy 999>",
             "<syyyy 999>",
@@ -182,9 +197,13 @@ class RefextractTest(unittest.TestCase):
             "CERN LHC PROJECT REPORT---CERN-LHC-Project-Report",
             "CLIC NOTE              ---CERN-CLIC-Note",
             "CERN LHCC              ---CERN-LHCC",
+            "CERN EP                ---CERN-EP",
+            "######ATLANTIS#######",
+            "< 9999999>",
+            "CERN EX---CERN-EX",
         ]
         setup_loggers(verbosity=9)
-        self.maxDiff = 2000
+        self.maxDiff = 2500
 
     def test_year_title_volume_page(self):
         ref_line = u"[14] L. Randall and R. Sundrum, (1999) Phys. Rev. Lett. B83  S08004 More text"
@@ -194,6 +213,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">14</subfield>
       <subfield code="h">L. Randall and R. Sundrum</subfield>
       <subfield code="s">Phys.Rev.Lett.,B83,S08004</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
 </record>""")
 
@@ -208,14 +228,19 @@ class RefextractTest(unittest.TestCase):
       <subfield code="h">J. Maldacena</subfield>
       <subfield code="s">Adv.Theor.Math.Phys.,2,231</subfield>
       <subfield code="r">hep-th/9711200</subfield>
+      <subfield code="y">1998</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">1</subfield>
       <subfield code="u">http://cdsweb.cern.ch/</subfield>
       <subfield code="u">http://www.itp.ucsb.edu/online/susyc99/discussion/</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">1</subfield>
       <subfield code="h">L. Susskind</subfield>
       <subfield code="s">J.Math.Phys.,36,6377</subfield>
       <subfield code="r">hep-th/9409089</subfield>
+      <subfield code="y">1995</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">1</subfield>
@@ -232,6 +257,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">2</subfield>
       <subfield code="h">J. Maldacena</subfield>
       <subfield code="s">Adv.Theor.Math.Phys.,2,231</subfield>
+      <subfield code="y">1998</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">2</subfield>
@@ -259,6 +285,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">3</subfield>
       <subfield code="h">S. Gubser, I. Klebanov and A. Polyakov</subfield>
       <subfield code="s">Phys.Lett.,B428,105</subfield>
+      <subfield code="y">1998</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">3</subfield>
@@ -286,6 +313,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">4</subfield>
       <subfield code="h">E. Witten</subfield>
       <subfield code="s">Adv.Theor.Math.Phys.,2,253</subfield>
+      <subfield code="y">1998</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">4</subfield>
@@ -301,6 +329,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">6</subfield>
       <subfield code="h">L. Susskind</subfield>
       <subfield code="s">J.Math.Phys.,36,6377</subfield>
+      <subfield code="y">1995</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">6</subfield>
@@ -333,6 +362,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="h">N. Kaloper and A. Linde</subfield>
       <subfield code="s">Phys.Rev.,D60,105509</subfield>
       <subfield code="r">hep-th/9904120</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
 </record>""")
 
@@ -344,6 +374,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">9</subfield>
       <subfield code="h">R. Bousso</subfield>
       <subfield code="s">JHEP,9906,028</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">9</subfield>
@@ -363,13 +394,14 @@ class RefextractTest(unittest.TestCase):
 </record>""")
 
     def test_hep_combined(self):
-        ref_line = u"""[11] R. Britto-Pacumio, A. Strominger and A. Volovich, JHEP 9911:013 (1999); hep-th/9905210. blah hep-th/9905211 blah hep-ph/9711200"""
+        ref_line = u"""[11] R. Britto-Pacumio, A. Strominger and A. Volovich, JHEP 9911:013 (1999); hep-th/9905210; blah hep-th/9905211; blah hep-ph/9711200"""
         reference_test(self, ref_line, u"""<record>
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">11</subfield>
       <subfield code="h">R. Britto-Pacumio, A. Strominger and A. Volovich</subfield>
       <subfield code="s">JHEP,9911,013</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">11</subfield>
@@ -393,6 +425,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">12</subfield>
       <subfield code="h">V. Balasubramanian and P. Kraus</subfield>
       <subfield code="s">Commun.Math.Phys.,208,413</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">12</subfield>
@@ -408,6 +441,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">13</subfield>
       <subfield code="h">V. Balasubramanian and P. Kraus</subfield>
       <subfield code="s">Phys.Rev.Lett.,83,3605</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">13</subfield>
@@ -434,13 +468,11 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">15</subfield>
       <subfield code="h">L. Randall and R. Sundrum</subfield>
       <subfield code="s">Phys.Rev.Lett.,83,4690</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">15</subfield>
       <subfield code="r">hep-th/9906064</subfield>
-   </datafield>
-   <datafield tag="999" ind1="C" ind2="5">
-      <subfield code="o">15</subfield>
       <subfield code="r">CERN-LHC-Project-Report-2006</subfield>
    </datafield>
 </record>""")
@@ -497,6 +529,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">19</subfield>
       <subfield code="h">D. Page and C. Pope</subfield>
       <subfield code="s">Commun.Math.Phys.,127,529</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
 </record>""")
 
@@ -518,6 +551,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">21</subfield>
       <subfield code="h">D. Page</subfield>
       <subfield code="s">Phys.Lett.,B79,235</subfield>
+      <subfield code="y">1978</subfield>
    </datafield>
 </record>""")
 
@@ -530,11 +564,13 @@ class RefextractTest(unittest.TestCase):
       <subfield code="h">M. Cassidy and S. Hawking</subfield>
       <subfield code="s">Phys.Rev.,D57,2372</subfield>
       <subfield code="r">hep-th/9709066</subfield>
+      <subfield code="y">1998</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">22</subfield>
       <subfield code="h">S. Hawking</subfield>
       <subfield code="s">Phys.Rev.,D52,5681</subfield>
+      <subfield code="y">1995</subfield>
    </datafield>
 </record>""")
 
@@ -558,6 +594,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="h">M. Henningson and K. Skenderis</subfield>
       <subfield code="s">JHEP,9807,023</subfield>
       <subfield code="r">hep-th/9806087</subfield>
+      <subfield code="y">1998</subfield>
    </datafield>
 </record>""")
 
@@ -591,6 +628,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">28</subfield>
       <subfield code="h">R. Emparan</subfield>
       <subfield code="s">JHEP,9906,036</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">28</subfield>
@@ -599,7 +637,7 @@ class RefextractTest(unittest.TestCase):
 </record>""")
 
     def test_journal_with_hep3(self):
-        ref_line = u"""[29] A. Chamblin, R. Emparan, C. Johnson and R. Myers, Phys. Rev. D59 (1999) 64010, hep-th/9808177; S. Hawking, C. Hunter and D. Page, Phys. Rev. D59 (1999) 44033, hep-th/9809035."""
+        ref_line = u"""[29] A. Chamblin, R. Emparan, C. Johnson and R. Myers, Phys. Rev. D59 (1999) 64010, hep-th/9808177; S. Hawking, C. Hunter and D. Page, Phys. Rev. D59 (1998) 44033, hep-th/9809035."""
         reference_test(self, ref_line, u"""<record>
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
@@ -607,12 +645,14 @@ class RefextractTest(unittest.TestCase):
       <subfield code="h">A. Chamblin, R. Emparan, C. Johnson and R. Myers</subfield>
       <subfield code="s">Phys.Rev.,D59,64010</subfield>
       <subfield code="r">hep-th/9808177</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">29</subfield>
       <subfield code="h">S. Hawking, C. Hunter and D. Page</subfield>
       <subfield code="s">Phys.Rev.,D59,44033</subfield>
       <subfield code="r">hep-th/9809035</subfield>
+      <subfield code="y">1998</subfield>
    </datafield>
 </record>""")
 
@@ -625,12 +665,14 @@ class RefextractTest(unittest.TestCase):
       <subfield code="h">S. Sethi and L. Susskind</subfield>
       <subfield code="s">Phys.Lett.,B400,265</subfield>
       <subfield code="r">hep-th/9702101</subfield>
+      <subfield code="y">1997</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">30</subfield>
       <subfield code="h">T. Banks and N. Seiberg</subfield>
       <subfield code="s">Nucl.Phys.,B497,41</subfield>
       <subfield code="r">hep-th/9702187</subfield>
+      <subfield code="y">1997</subfield>
    </datafield>
 </record>""")
 
@@ -642,6 +684,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">31</subfield>
       <subfield code="h">R. Emparan, C. Johnson and R. Myers</subfield>
       <subfield code="s">Phys.Rev.,D60,104001</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">31</subfield>
@@ -657,6 +700,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">32</subfield>
       <subfield code="h">S. Hawking, C. Hunter and M. Taylor-Robinson</subfield>
       <subfield code="s">Phys.Rev.,D59,064005</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">32</subfield>
@@ -672,6 +716,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">33</subfield>
       <subfield code="h">J. Dowker</subfield>
       <subfield code="s">Class.Quant.Grav.,16,1937</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">33</subfield>
@@ -687,6 +732,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">34</subfield>
       <subfield code="h">J. Brown and J. York</subfield>
       <subfield code="s">Phys.Rev.,D47,1407</subfield>
+      <subfield code="y">1993</subfield>
    </datafield>
 </record>""")
 
@@ -698,15 +744,14 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">35</subfield>
       <subfield code="h">D. Freedman, S. Mathur, A. Matsuis and L. Rastelli</subfield>
       <subfield code="s">Nucl.Phys.,B546,96</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">35</subfield>
       <subfield code="r">hep-th/9804058</subfield>
-   </datafield>
-   <datafield tag="999" ind1="C" ind2="5">
-      <subfield code="o">35</subfield>
-      <subfield code="s">Nucl.Phys.,A546,96</subfield>
       <subfield code="h">D. Freedman, S. Mathur, A. Matsuis and L. Rastelli</subfield>
+      <subfield code="s">Nucl.Phys.,A546,96</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
 </record>""")
 
@@ -718,6 +763,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">36</subfield>
       <subfield code="h">D. Freedman, S. Mathur, A. Matsuis and L. Rastelli</subfield>
       <subfield code="s">Nucl.Phys.,B546,96</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">36</subfield>
@@ -726,43 +772,81 @@ class RefextractTest(unittest.TestCase):
 </record>""")
 
     def test_misc12(self):
-        ref_line = u"""[37] some misc  lkjslkdjlksjflksj [hep-th/9804058] lkjlkjlkjlkj [hep-th/0001567], hep-th/1212321, some more misc; Nucl. Phys. B546 (1999) 96"""
+        ref_line = u"""[37] some misc  lkjslkdjlksjflksj [hep-th/0703265] lkjlkjlkjlkj [hep-th/0606096], hep-ph/0002060, some more misc; Nucl. Phys. B546 (1999) 96"""
         reference_test(self, ref_line, u"""<record>
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">37</subfield>
-      <subfield code="r">hep-th/9804058</subfield>
+      <subfield code="r">hep-th/0703265</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">37</subfield>
-      <subfield code="r">hep-th/0001567</subfield>
+      <subfield code="r">hep-th/0606096</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">37</subfield>
-      <subfield code="r">hep-th/1212321</subfield>
+      <subfield code="r">hep-ph/0002060</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">37</subfield>
       <subfield code="s">Nucl.Phys.,B546,96</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
 </record>""")
 
     def test_misc13(self):
-        ref_line = u"""[38] R. Emparan, C. Johnson and R.. Myers, Phys. Rev. D60 (1999) 104001; this is :: .... misc! hep-th/9903238. and some ...,.,.,.,::: more hep-ph/9912000"""
+        ref_line = u"""[38] R. Emparan, C. Johnson and R.. Myers, Phys. Rev. D60 (1999) 104001; this is :: .... misc! hep-th/0703265. and some ...,.,.,.,::: more hep-th/0606096"""
         reference_test(self, ref_line, u"""<record>
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">38</subfield>
       <subfield code="h">R. Emparan, C. Johnson and R.. Myers</subfield>
       <subfield code="s">Phys.Rev.,D60,104001</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">38</subfield>
-      <subfield code="r">hep-th/9903238</subfield>
+      <subfield code="r">hep-th/0703265</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">38</subfield>
-      <subfield code="r">hep-ph/9912000</subfield>
+      <subfield code="r">hep-th/0606096</subfield>
+   </datafield>
+</record>""")
+
+    def test_misc14(self):
+        """Same as test_misc12 but with unknow report numbers to the system"""
+        ref_line = u"""[37] some misc  lkjslkdjlksjflksj [hep-th/8703265] lkjlkjlkjlkj [hep-th/8606096], hep-ph/8002060, some more misc; Nucl. Phys. B546 (1999) 96"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">37</subfield>
+      <subfield code="r">hep-th/8703265</subfield>
+      <subfield code="r">hep-th/8606096</subfield>
+      <subfield code="r">hep-ph/8002060</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">37</subfield>
+      <subfield code="s">Nucl.Phys.,B546,96</subfield>
+      <subfield code="y">1999</subfield>
+   </datafield>
+</record>""")
+
+    def test_misc15(self):
+        """Same as test_misc13 but with unknow report numbers to the system"""
+        ref_line = u"""[38] R. Emparan, C. Johnson and R.. Myers, Phys. Rev. D60 (1999) 104001; this is :: .... misc! hep-th/8703265. and some ...,.,.,.,::: more hep-th/8606096"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">38</subfield>
+      <subfield code="h">R. Emparan, C. Johnson and R.. Myers</subfield>
+      <subfield code="s">Phys.Rev.,D60,104001</subfield>
+      <subfield code="y">1999</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">38</subfield>
+      <subfield code="r">hep-th/8703265</subfield>
+      <subfield code="r">hep-th/8606096</subfield>
    </datafield>
 </record>""")
 
@@ -775,6 +859,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="h">A. Ceresole, G. Dall Agata and R. D Auria</subfield>
       <subfield code="s">JHEP,9911,009</subfield>
       <subfield code="r">hep-th/9907216</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
 </record>""")
 
@@ -787,6 +872,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="h">D.P. Jatkar and S. Randjbar-Daemi</subfield>
       <subfield code="s">Phys.Lett.,B460,281</subfield>
       <subfield code="r">hep-th/9904187</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
 </record>""")
 
@@ -799,6 +885,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="h">G. DallAgata</subfield>
       <subfield code="s">Phys.Lett.,B460,79</subfield>
       <subfield code="r">hep-th/9904198</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
 </record>""")
 
@@ -810,6 +897,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">43</subfield>
       <subfield code="h">Becchi C., Blasi A., Bonneau G., Collina R., Delduc F.</subfield>
       <subfield code="s">Commun.Math.Phys.,120,121</subfield>
+      <subfield code="y">1988</subfield>
    </datafield>
 </record>""")
 
@@ -821,6 +909,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">44</subfield>
       <subfield code="h">N. Nekrasov, A. Schwarz</subfield>
       <subfield code="s">Commun.Math.Phys.,198,689</subfield>
+      <subfield code="y">1998</subfield>
    </datafield>
 </record>""")
 
@@ -832,6 +921,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">42</subfield>
       <subfield code="h">S.M. Donaldson</subfield>
       <subfield code="s">Commun.Math.Phys.,93,453</subfield>
+      <subfield code="y">1984</subfield>
    </datafield>
 </record>""")
 
@@ -843,40 +933,48 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">45</subfield>
       <subfield code="h">H. J. Bhabha</subfield>
       <subfield code="s">Rev.Mod.Phys.,17,200</subfield>
+      <subfield code="y">1945</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">45</subfield>
-      <subfield code="s">Rev.Mod.Phys.,21,451</subfield>
       <subfield code="h">H. J. Bhabha</subfield>
+      <subfield code="s">Rev.Mod.Phys.,21,451</subfield>
+      <subfield code="y">1949</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">45</subfield>
       <subfield code="h">S. Weinberg</subfield>
       <subfield code="s">Phys.Rev.,133,B1318</subfield>
+      <subfield code="y">1964</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">45</subfield>
-      <subfield code="s">Phys.Rev.,134,882</subfield>
       <subfield code="h">S. Weinberg</subfield>
+      <subfield code="s">Phys.Rev.,134,882</subfield>
+      <subfield code="y">1964</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">45</subfield>
       <subfield code="h">D. L. Pursey</subfield>
       <subfield code="s">Ann.Phys.,32,157</subfield>
+      <subfield code="y">1965</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">45</subfield>
       <subfield code="h">W. K. Tung</subfield>
       <subfield code="s">Phys.Rev.Lett.,16,763</subfield>
+      <subfield code="y">1966</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">45</subfield>
       <subfield code="s">Phys.Rev.,156,1385</subfield>
+      <subfield code="y">1967</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">45</subfield>
       <subfield code="h">W. J. Hurley</subfield>
       <subfield code="s">Phys.Rev.Lett.,29,1475</subfield>
+      <subfield code="y">1972</subfield>
    </datafield>
 </record>""")
 
@@ -888,11 +986,13 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">46</subfield>
       <subfield code="h">E. Schrodinger</subfield>
       <subfield code="s">Sitzungsber.Preuss.Akad.Wiss.Berlin (Math.Phys.),24,418</subfield>
+      <subfield code="y">1930</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">46</subfield>
-      <subfield code="s">Sitzungsber.Preuss.Akad.Wiss.Berlin (Math.Phys.),3,1</subfield>
       <subfield code="h">E. Schrodinger</subfield>
+      <subfield code="s">Sitzungsber.Preuss.Akad.Wiss.Berlin (Math.Phys.),3,1</subfield>
+      <subfield code="y">1931</subfield>
    </datafield>
 </record>""")
 
@@ -904,11 +1004,13 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">47</subfield>
       <subfield code="h">P. A. M. Dirac</subfield>
       <subfield code="s">Proc.Roy.Soc.Lond.,A155,447</subfield>
+      <subfield code="y">1936</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">47</subfield>
-      <subfield code="s">Proc.Roy.Soc.Lond.,D24,3333</subfield>
       <subfield code="h">P. A. M. Dirac</subfield>
+      <subfield code="s">Proc.Roy.Soc.Lond.,D24,3333</subfield>
+      <subfield code="y">1981</subfield>
    </datafield>
 </record>""")
 
@@ -943,7 +1045,16 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">50</subfield>
       <subfield code="h">M. Gell-Mann, P. Ramon ans R. Slansky P. van Niewenhuizen and D. Freedman</subfield>
       <subfield code="p">North-Holland</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">50</subfield>
+      <subfield code="h">T. Yanagida (O. Sawaga and A. Sugamoto (eds.))</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">50</subfield>
+      <subfield code="h">R.N. Mohapatra and G. Senjanovic</subfield>
       <subfield code="s">Phys.Rev.Lett.,44,912</subfield>
+      <subfield code="y">1980</subfield>
    </datafield>
 </record>""")
 
@@ -955,20 +1066,24 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">51</subfield>
       <subfield code="h">L.S. Durkin and P. Langacker</subfield>
       <subfield code="s">Phys.Lett.,B166,436</subfield>
+      <subfield code="y">1986</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">51</subfield>
       <subfield code="h">Amaldi et al.</subfield>
       <subfield code="s">Phys.Rev.,D36,1385</subfield>
+      <subfield code="y">1987</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">51</subfield>
       <subfield code="h">(Hayward and Yellow et al. (eds.))</subfield>
       <subfield code="s">Phys.Lett.,B245,669</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">51</subfield>
       <subfield code="s">Nucl.Phys.,B342,15</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
 </record>""")
 
@@ -993,6 +1108,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">54</subfield>
       <subfield code="h">T.G. Rizzo</subfield>
       <subfield code="s">Phys.Rev.,D40,3035</subfield>
+      <subfield code="y">1989</subfield>
    </datafield>
 </record>""")
 
@@ -1039,6 +1155,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">1</subfield>
       <subfield code="h">Amaldi et al.</subfield>
       <subfield code="s">Phys.Rev.,D36,1385</subfield>
+      <subfield code="y">1987</subfield>
    </datafield>
 </record>""")
 
@@ -1054,14 +1171,17 @@ class RefextractTest(unittest.TestCase):
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">58</subfield>
       <subfield code="s">Nucl.Phys.,B342,15</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">58</subfield>
       <subfield code="s">Phys.Lett.,B261,146</subfield>
+      <subfield code="y">1991</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">58</subfield>
       <subfield code="s">Phys.Lett.,B263,459</subfield>
+      <subfield code="y">1991</subfield>
    </datafield>
 </record>""")
 
@@ -1074,6 +1194,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">60</subfield>
       <subfield code="h">(HERMES Collaboration) Airapetian A et al.</subfield>
       <subfield code="s">Phys.Rev.,D71,012003</subfield>
+      <subfield code="y">2005</subfield>
    </datafield>
 </record>""")
 
@@ -1085,6 +1206,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">61</subfield>
       <subfield code="h">de Florian D, Sassot R and Stratmann M</subfield>
       <subfield code="s">Phys.Rev.,D75,114010</subfield>
+      <subfield code="y">2007</subfield>
    </datafield>
 </record>""")
 
@@ -1096,6 +1218,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">64</subfield>
       <subfield code="h">Bourrely C, Soffer J and Buccella F</subfield>
       <subfield code="s">Eur.Phys.J.,C23,487</subfield>
+      <subfield code="y">2002</subfield>
    </datafield>
 </record>""")
 
@@ -1117,6 +1240,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">65</subfield>
       <subfield code="h">K. Huang</subfield>
       <subfield code="s">Am.J.Phys.,20,479</subfield>
+      <subfield code="y">1952</subfield>
    </datafield>
 </record>""")
 
@@ -1130,6 +1254,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">62</subfield>
       <subfield code="h">Pate S. F., McKee D. W. and Papavassiliou V.</subfield>
       <subfield code="s">Phys.Rev.,C78,448</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1143,6 +1268,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">62</subfield>
       <subfield code="h">Pate S., McKee D.</subfield>
       <subfield code="s">Phys.Rev.,C78,448</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1156,6 +1282,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">62</subfield>
       <subfield code="h">Pate S F, McKee D W and Papavassiliou V</subfield>
       <subfield code="s">Phys.Rev.,C78,448</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1169,6 +1296,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">62</subfield>
       <subfield code="h">Pate S, McKee D</subfield>
       <subfield code="s">Phys.Rev.,C78,448</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1180,6 +1308,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">67</subfield>
       <subfield code="h">G. A. Perkins</subfield>
       <subfield code="s">Found.Phys.,6,237</subfield>
+      <subfield code="y">1976</subfield>
    </datafield>
 </record>""")
 
@@ -1191,6 +1320,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">67</subfield>
       <subfield code="h">G. Perkins</subfield>
       <subfield code="s">Found.Phys.,6,237</subfield>
+      <subfield code="y">1976</subfield>
    </datafield>
 </record>""")
 
@@ -1202,6 +1332,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">67</subfield>
       <subfield code="h">G A Perkins</subfield>
       <subfield code="s">Found.Phys.,6,237</subfield>
+      <subfield code="y">1976</subfield>
    </datafield>
 </record>""")
 
@@ -1213,6 +1344,7 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">67</subfield>
       <subfield code="h">G Perkins</subfield>
       <subfield code="s">Found.Phys.,6,237</subfield>
+      <subfield code="y">1976</subfield>
    </datafield>
 </record>""")
 
@@ -1224,16 +1356,19 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">68</subfield>
       <subfield code="h">A. O. Barut et al.</subfield>
       <subfield code="s">Phys.Rev.,D23,2454</subfield>
+      <subfield code="y">1981</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">68</subfield>
+      <subfield code="h">A. O. Barut et al.</subfield>
       <subfield code="s">Phys.Rev.,D24,3333</subfield>
-      <subfield code="h">A. O. Barut et al.</subfield>
+      <subfield code="y">1981</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">68</subfield>
-      <subfield code="s">Phys.Rev.,D31,1386</subfield>
       <subfield code="h">A. O. Barut et al.</subfield>
+      <subfield code="s">Phys.Rev.,D31,1386</subfield>
+      <subfield code="y">1985</subfield>
    </datafield>
 </record>""")
 
@@ -1244,6 +1379,7 @@ class RefextractTest(unittest.TestCase):
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">69</subfield>
       <subfield code="s">Phys.Rev.Lett.,52,2009</subfield>
+      <subfield code="y">1984</subfield>
    </datafield>
 </record>""")
 
@@ -1257,10 +1393,12 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">17</subfield>
       <subfield code="h">de Florian D, Sassot R, Stratmann M and Vogelsang W</subfield>
       <subfield code="s">Phys.Rev.Lett.,101,072001</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">17</subfield>
       <subfield code="s">Phys.Rev.,D80,034030</subfield>
+      <subfield code="y">2009</subfield>
    </datafield>
 </record>""")
 
@@ -1273,6 +1411,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="h">A. Kuper, H. Letaw, L. Slifkin, E-Sonder, and C. T. Tomizuka</subfield>
       <subfield code="t">Self- diffusion in copper</subfield>
       <subfield code="s">Phys.Rev.,96,1224</subfield>
+      <subfield code="y">1954</subfield>
    </datafield>
 </record>""")
 
@@ -1284,6 +1423,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">1</subfield>
       <subfield code="h">(ATLAS Collaboration) G. Aad et al.</subfield>
       <subfield code="s">JINST,3,S08003</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1295,6 +1435,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">28</subfield>
       <subfield code="h">(Particle Data Group Collaboration) K. Nakamura et al.</subfield>
       <subfield code="s">J.Phys.,G37,075021</subfield>
+      <subfield code="y">2010</subfield>
    </datafield>
 </record>""")
 
@@ -1306,6 +1447,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">8</subfield>
       <subfield code="h">S. Horvat, D. Khartchenko, O. Kortner, S. Kotov, H. Kroha, A. Manz, S. Mohrdieck-Mock, K. Nikolaev, R. Richter, W. Stiller, C. Valderanis, J. Dubbert, F. Rauscher, and A. Staude</subfield>
       <subfield code="s">IEEE Trans.Nucl.Sci.,53,562</subfield>
+      <subfield code="y">2006</subfield>
    </datafield>
 </record>""")
 
@@ -1317,6 +1459,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">33</subfield>
       <subfield code="h">A. Moraes, C. Buttar, and I. Dawson</subfield>
       <subfield code="s">Eur.Phys.J.,C50,435</subfield>
+      <subfield code="y">2007</subfield>
    </datafield>
 </record>""")
 
@@ -1328,6 +1471,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">7</subfield>
       <subfield code="h">L. Evans, (ed.) and P. Bryant, (ed.)</subfield>
       <subfield code="s">JINST,3,S08001</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1353,6 +1497,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">19</subfield>
       <subfield code="h">(ATLAS Inner Detector software group Collaboration) T. Cornelissen, M. Elsing, I. Gavilenko, W. Liebig, E. Moyse, and A. Salzburger</subfield>
       <subfield code="s">J.Phys.,119,032014</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1365,19 +1510,33 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">22</subfield>
       <subfield code="h">G. P. Salam and G. Soyez</subfield>
       <subfield code="s">JHEP,0705,086</subfield>
+      <subfield code="y">2007</subfield>
    </datafield>
 </record>""")
 
     def test_journal_not_recognized2(self):
-        ref_line = u"""[3] Physics Performance Report Vol 1 – J. Phys. G. Vol 30 N° 11 (2004)"""
+        ref_line = u"""[3] Physics Performance Report Vol 1 – J. Phys. G. Vol 30 N° 11 (2004) 232"""
         reference_test(self, ref_line, u"""<record>
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">3</subfield>
+      <subfield code="s">J.Phys.,G30,232</subfield>
+      <subfield code="y">2004</subfield>
    </datafield>
 </record>""")
 
     def test_journal_not_recognized3(self):
+        ref_line = u"""[3] Physics Performance Report Vol 1 – J. Phys. G. N° 30 (2004) 232"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">3</subfield>
+      <subfield code="s">J.Phys.,G30,232</subfield>
+      <subfield code="y">2004</subfield>
+   </datafield>
+</record>""")
+
+    def test_journal_not_recognized4(self):
         ref_line = u"""[128] D. P. Pritzkau and R. H. Siemann, “Experimental study of rf pulsed heat- ing on oxygen free electronic copper,” Physical Review Special Topics - Accelerators and Beams, vol. 5, pp. 1–22, 2002."""
         reference_test(self, ref_line, u"""<record>
    <controlfield tag="001">1</controlfield>
@@ -1386,6 +1545,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="h">D. P. Pritzkau and R. H. Siemann</subfield>
       <subfield code="t">Experimental study of rf pulsed heat- ing on oxygen free electronic copper</subfield>
       <subfield code="s">Phys.Rev.ST Accel.Beams,5,1</subfield>
+      <subfield code="y">2002</subfield>
    </datafield>
 </record>""")
 
@@ -1432,6 +1592,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="h">L. Lu, Y. Shen, X. Chen, L. Qian, and K. Lu</subfield>
       <subfield code="t">Ultrahigh strength and high electrical conductivity in copper</subfield>
       <subfield code="s">Science,304,422</subfield>
+      <subfield code="y">2004</subfield>
    </datafield>
 </record>""")
 
@@ -1443,6 +1604,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">28</subfield>
       <subfield code="h">(Particle Data Group Collaboration) K. Nakamura et al.</subfield>
       <subfield code="s">J.Phys.,G37,075021</subfield>
+      <subfield code="y">2010</subfield>
    </datafield>
 </record>""")
 
@@ -1454,6 +1616,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">2</subfield>
       <subfield code="h">C. Rubbia</subfield>
       <subfield code="s">Rev.Mod.Phys.,57,699</subfield>
+      <subfield code="y">1985</subfield>
    </datafield>
 </record>""")
 
@@ -1491,6 +1654,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">7</subfield>
       <subfield code="h">Pod I., C. Jennings, et al.</subfield>
       <subfield code="s">Nucl.Phys.,B342,15</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
 </record>""")
 
@@ -1502,6 +1666,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">24</subfield>
       <subfield code="h">R. Downing et al.</subfield>
       <subfield code="s">Nucl.Instrum.Meth.,A570,36</subfield>
+      <subfield code="y">2007</subfield>
    </datafield>
 </record>""")
 
@@ -1513,20 +1678,24 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">43</subfield>
       <subfield code="h">L.S. Durkin and P. Langacker</subfield>
       <subfield code="s">Phys.Lett.,B166,436</subfield>
+      <subfield code="y">1986</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">43</subfield>
       <subfield code="h">Amaldi et al.</subfield>
       <subfield code="s">Phys.Rev.,D36,1385</subfield>
+      <subfield code="y">1987</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">43</subfield>
       <subfield code="h">Hayward and Yellow et al.</subfield>
       <subfield code="s">Phys.Lett.,B245,669</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">43</subfield>
       <subfield code="s">Nucl.Phys.,B342,15</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
 </record>""")
 
@@ -1537,24 +1706,115 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">15</subfield>
       <subfield code="s">Nucl.Phys.,B372,3</subfield>
+      <subfield code="y">1992</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">15</subfield>
       <subfield code="h">T.G. Rizzo</subfield>
       <subfield code="s">Phys.Rev.,D40,3035</subfield>
+      <subfield code="y">1989</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">15</subfield>
       <subfield code="h">(E. Berger (eds.))</subfield>
       <subfield code="p">World Scientific</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="h">V. Barger, J.L. Hewett and T.G. Rizzo</subfield>
       <subfield code="s">Phys.Rev.,D42,152</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">15</subfield>
       <subfield code="h">J.L. Hewett</subfield>
       <subfield code="s">Phys.Lett.,B238,98</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
 </record>""")
+
+    def test_merging(self):
+        """Test how references are merged together
+
+        We may choose to merge invalid references to the previous one"""
+        ref_line = u"""[15] Nucl. Phys., B372, 3 (1992); T.G. Rizzo, Phys. Rev. D40, 3035 (1989); Proceedings of the 1990 Summer Study on High Energy Physics; ed E. Berger; V. Barger, J.L. Hewett and T.G. Rizzo  ; Phys. Rev. D42, 152 (1990); J.L. Hewett, Phys. Lett. B238, 98 (1990)"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="s">Nucl.Phys.,B372,3</subfield>
+      <subfield code="y">1992</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="h">T.G. Rizzo</subfield>
+      <subfield code="s">Phys.Rev.,D40,3035</subfield>
+      <subfield code="y">1989</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="m">Proceedings of the 1990 Summer Study on High Energy Physics</subfield>
+      <subfield code="h">(E. Berger (eds.))</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="h">V. Barger, J.L. Hewett and T.G. Rizzo</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="s">Phys.Rev.,D42,152</subfield>
+      <subfield code="y">1990</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="h">J.L. Hewett</subfield>
+      <subfield code="s">Phys.Lett.,B238,98</subfield>
+      <subfield code="y">1990</subfield>
+   </datafield>
+</record>""", ignore_misc=False)
+
+    def test_merging2(self):
+        ref_line = u"""[15] Nucl. Phys., B372, 3 (1992); hello world"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="m">hello world</subfield>
+      <subfield code="s">Nucl.Phys.,B372,3</subfield>
+      <subfield code="y">1992</subfield>
+   </datafield>
+</record>""", ignore_misc=False)
+
+    def test_merging3(self):
+        ref_line = u"""[15] Nucl. Phys., B372, 3 (1992); hello world T.G. Rizzo foo"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="s">Nucl.Phys.,B372,3</subfield>
+      <subfield code="y">1992</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="h">T.G. Rizzo</subfield>
+      <subfield code="m">hello world  foo</subfield>
+   </datafield>
+</record>""", ignore_misc=False)
+
+    def test_merging4(self):
+        ref_line = u"""[15] T.G. Rizzo; Nucl. Phys., B372, 3 (1992)"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="h">T.G. Rizzo</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">15</subfield>
+      <subfield code="s">Nucl.Phys.,B372,3</subfield>
+      <subfield code="y">1992</subfield>
+   </datafield>
+</record>""", ignore_misc=False)
 
     def test_extra_blank_reference(self):
         ref_line = u"""[26] U. Gursoy and E. Kiritsis, “Exploring improved holographic theories for QCD: Part I,” JHEP 0802 (2008) 032 [ArXiv:0707.1324][hep-th]; U. Gursoy, E. Kiritsis and F. Nitti, “Exploring improved holographic theories for QCD: Part II,” JHEP 0802 (2008) 019 [ArXiv:0707.1349][hep-th];"""
@@ -1566,6 +1826,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="t">Exploring improved holographic theories for QCD Part I</subfield>
       <subfield code="s">JHEP,0802,032</subfield>
       <subfield code="r">arXiv:0707.1324</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">26</subfield>
@@ -1573,6 +1834,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="t">Exploring improved holographic theories for QCD Part II</subfield>
       <subfield code="s">JHEP,0802,019</subfield>
       <subfield code="r">arXiv:0707.1349</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1587,6 +1849,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="t">qq \u0304 Potential at Finite T and Weak Coupling in N = 4</subfield>
       <subfield code="s">Phys.Rev.,C83,045204</subfield>
       <subfield code="r">arXiv:1011.6618</subfield>
+      <subfield code="y">2011</subfield>
    </datafield>
 </record>""")
 
@@ -1601,6 +1864,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="t">DIS from the AdS/CFT correspondence</subfield>
       <subfield code="s">Nucl.Phys.,A830,299C</subfield>
       <subfield code="r">arXiv:0907.4204</subfield>
+      <subfield code="y">2009</subfield>
    </datafield>
 </record>""")
 
@@ -1684,6 +1948,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="p">Wiley-VCH</subfield>
       <subfield code="t">Introduction to elementary particles</subfield>
       <subfield code="xbook" />
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1707,6 +1972,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="h">D. R. Tovey</subfield>
       <subfield code="s">JHEP,0804,034</subfield>
       <subfield code="r">arXiv:0802.2879</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1719,6 +1985,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="h">D. R. Tovey</subfield>
       <subfield code="s">JHEP,0804,034</subfield>
       <subfield code="r">arXiv:9112.2879</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1731,6 +1998,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="h">D. R. Tovey</subfield>
       <subfield code="s">JHEP,0804,034</subfield>
       <subfield code="r">arXiv:1212.2879</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1742,6 +2010,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">178</subfield>
       <subfield code="h">D. R. Tovey</subfield>
       <subfield code="s">JHEP,0804,034</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1753,6 +2022,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">178</subfield>
       <subfield code="h">D. R. Tovey</subfield>
       <subfield code="s">JHEP,0804,034</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1764,6 +2034,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">178</subfield>
       <subfield code="h">D. R. Tovey</subfield>
       <subfield code="s">JHEP,0804,034</subfield>
+      <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
 
@@ -1777,6 +2048,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="t">On correspondences between toric singularities and (p,q) webs</subfield>
       <subfield code="s">Nucl.Phys.,B701,334</subfield>
       <subfield code="r">hep-th/0403133</subfield>
+      <subfield code="y">2004</subfield>
    </datafield>
 </record>""")
 
@@ -1790,6 +2062,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="t">Branes at conical singularities and holography</subfield>
       <subfield code="s">Adv.Theor.Math.Phys.,2,1249</subfield>
       <subfield code="r">hep-th/9808014</subfield>
+      <subfield code="y">1999</subfield>
    </datafield>
 </record>""")
 
@@ -1801,6 +2074,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">23</subfield>
       <subfield code="h">M. A. Donnellan, et al.</subfield>
       <subfield code="s">PoS,LAT2007,369</subfield>
+      <subfield code="y">2007</subfield>
    </datafield>
 </record>""")
 
@@ -1812,6 +2086,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">23</subfield>
       <subfield code="h">M. A. Donnellan, et al.</subfield>
       <subfield code="s">PoS,LAT2007,369</subfield>
+      <subfield code="y">2007</subfield>
    </datafield>
 </record>""")
 
@@ -1823,6 +2098,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">23</subfield>
       <subfield code="h">M. A. Donnellan, et al.</subfield>
       <subfield code="s">PoS,LAT2005,239</subfield>
+      <subfield code="y">2005</subfield>
    </datafield>
 </record>""")
 
@@ -1867,6 +2143,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">39</subfield>
       <subfield code="h">Dan V. Schroeder</subfield>
       <subfield code="s">Dokl.Akad.Nauk Ser.Fiz.,B701,334</subfield>
+      <subfield code="y">2004</subfield>
    </datafield>
 </record>""")
 
@@ -1889,6 +2166,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">77</subfield>
       <subfield code="h">J. M. Butterworth et al.</subfield>
       <subfield code="s">Z.Phys.,C72,637</subfield>
+      <subfield code="y">1996</subfield>
    </datafield>
 </record>""")
 
@@ -1900,6 +2178,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">1</subfield>
       <subfield code="h">I.M. Gregor et al.</subfield>
       <subfield code="s">Z.Phys.,465,131</subfield>
+      <subfield code="y">2001</subfield>
    </datafield>
 </record>""")
 
@@ -1910,6 +2189,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">1</subfield>
       <subfield code="s">Phys.Rev.,56,569</subfield>
+      <subfield code="y">2006</subfield>
    </datafield>
 </record>""")
 
@@ -1921,6 +2201,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">19</subfield>
       <subfield code="h">D. Page and C. Pope</subfield>
       <subfield code="s">Commun.Math.Phys.,6,529</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
 </record>""")
 
@@ -1932,6 +2213,7 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">6</subfield>
       <subfield code="h">Sivers D. W.</subfield>
       <subfield code="s">Phys.Rev.,D41,83</subfield>
+      <subfield code="y">1990</subfield>
    </datafield>
 </record>""")
 
@@ -1976,8 +2258,65 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">6</subfield>
       <subfield code="h">Sivers D. W.</subfield>
       <subfield code="s">Nucl.Phys.Proc.Suppl.,21,334</subfield>
+      <subfield code="y">2004</subfield>
    </datafield>
 </record>""")
+
+    def test_citations_splitting(self):
+        ref_line = u"""[6] Sivers D. W., CERN-EX-0106015, D. Page, CERN-EX-0104007"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">Sivers D. W.</subfield>
+      <subfield code="r">CERN-EX-0106015</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">D. Page</subfield>
+      <subfield code="r">CERN-EX-0104007</subfield>
+   </datafield>
+</record>""")
+
+    def test_citations_splitting2(self):
+        ref_line = u"""[6] Sivers D. W., hep-ex/0201013, D. Page, CERN-EP-2001-094"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">Sivers D. W.</subfield>
+      <subfield code="r">hep-ex/0201013</subfield>
+      <subfield code="r">CERN-EP-2001-094</subfield>
+   </datafield>
+</record>""")
+
+    def test_arxiv_report_number(self):
+        """Should be recognized by arxiv regexps list
+
+        (not in report-numbers.kb)
+        """
+        ref_line = u"""[6] Sivers D. W., math.AA/8888888"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">Sivers D. W.</subfield>
+      <subfield code="r">math.AA/8888888</subfield>
+   </datafield>
+</record>""")
+
+    def test_arxiv_report_number_replacement(self):
+        """Should be replaced by a valid arxiv report number"""
+        ref_line = u"""[6] Sivers D. W., astro-phy/8888888"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">Sivers D. W.</subfield>
+      <subfield code="r">astro-ph/8888888</subfield>
+   </datafield>
+</record>""")
+
 
 if __name__ == '__main__':
     test_suite = make_test_suite(RefextractTest)

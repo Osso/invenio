@@ -62,6 +62,7 @@ CFG_REFEXTRACT_SUBFIELD_AUTH             = "h"      # ref author subfield
 CFG_REFEXTRACT_SUBFIELD_QUOTED           = "t"      # ref title subfield
 CFG_REFEXTRACT_SUBFIELD_ISBN             = "i"      # ref isbn subfield
 CFG_REFEXTRACT_SUBFIELD_PUBLISHER        = "p"      # ref publisher subfield
+CFG_REFEXTRACT_SUBFIELD_YEAR             = "y"      # ref publisher subfield
 CFG_REFEXTRACT_SUBFIELD_BOOK             = "xbook"  # ref book subfield
 
 ## refextract statistics fields:

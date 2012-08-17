@@ -1538,19 +1538,6 @@ def begin_extraction(daemon_cli_options=None):
             extract_lines = []
             processed_lines = []
 
-        # 4. Display the extracted references, status codes, etc:
-        if cli_opts['output_raw']:
-            # now write the raw references to the stream:
-            raw_file = str(recid) + '.rawrefs'
-            try:
-                rawfilehdl = open(raw_file, 'w')
-                write_raw_references_to_stream(recid, extract_lines, rawfilehdl)
-                rawfilehdl.close()
-            except:
-                write_message("***%s\n\n" % raw_file, \
-                                  sys.stderr, verbose=0)
-                halt(err=IOError, msg="Error: Unable to write to '%s'" \
-                              % raw_file, exit_code=1)
         # If found ref section by a weaker method and only found misc/urls then junk it
         # studies show that such cases are ~ 100% rubbish. Also allowing only
         # urls found greatly increases the level of rubbish accepted..

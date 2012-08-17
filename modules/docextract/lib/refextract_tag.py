@@ -60,7 +60,8 @@ from invenio.refextract_re import \
     re_arxiv, \
     re_new_arxiv, \
     re_pos, \
-    re_pos_year_num
+    re_pos_year_num, \
+    RE_OLD_ARXIV
 
 from invenio.authorextract_re import re_auth, \
                                      re_extra_auth, \
@@ -121,6 +122,9 @@ def tag_reference_line(line, kbs, record_titles_count):
 
     # Identify arxiv reports
     working_line1 = tag_arxiv(working_line1)
+    working_line1 = tag_arxiv_more(working_line1)
+    # Identify volume for POS journal
+    working_line1 = tag_pos_volume(working_line1)
 
     # Identify journals with regular expression
     # Some journals need to match exact regexps because they can
@@ -393,6 +397,16 @@ def tag_arxiv(line):
 
     line = re_arxiv.sub(tagger, line)
     line = re_new_arxiv.sub(tagger, line)
+    return line
+
+
+def tag_arxiv_more(line):
+    """Tag old arxiv report numbers"""
+    for report_re, report_repl in RE_OLD_ARXIV:
+        report_number = report_repl + ur"\g<num>"
+        line = report_re.sub(u'<cds.REPORTNUMBER>' + report_number \
+                                                     + u'</cds.REPORTNUMBER>',
+                             line)
     return line
 
 
