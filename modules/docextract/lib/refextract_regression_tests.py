@@ -941,16 +941,8 @@ class RefextractTest(unittest.TestCase):
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">50</subfield>
-      <subfield code="h">M. Gell-Mann, P. Ramon ans R. Slansky</subfield>
-   </datafield>
-   <datafield tag="999" ind1="C" ind2="5">
-      <subfield code="o">50</subfield>
-      <subfield code="h">P. van Niewenhuizen and D. Freedman (O. Sawaga and A. Sugamoto (eds.))</subfield>
+      <subfield code="h">M. Gell-Mann, P. Ramon ans R. Slansky P. van Niewenhuizen and D. Freedman</subfield>
       <subfield code="p">North-Holland</subfield>
-   </datafield>
-   <datafield tag="999" ind1="C" ind2="5">
-      <subfield code="o">50</subfield>
-      <subfield code="h">R.N. Mohapatra and G. Senjanovic</subfield>
       <subfield code="s">Phys.Rev.Lett.,44,912</subfield>
    </datafield>
 </record>""")
@@ -1553,7 +1545,7 @@ Rev. D 80 034030 1-25"""
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">15</subfield>
-      <subfield code="h">(E. Berger (eds.)) V. Barger, J.L. Hewett and T.G. Rizzo</subfield>
+      <subfield code="h">(E. Berger (eds.))</subfield>
       <subfield code="p">World Scientific</subfield>
       <subfield code="s">Phys.Rev.,D42,152</subfield>
    </datafield>
@@ -1656,7 +1648,6 @@ Rev. D 80 034030 1-25"""
       <subfield code="o">20</subfield>
       <subfield code="h">G. Duckeck</subfield>
       <subfield code="t">ATLAS computing Technical design report</subfield>
-      <subfield code="s">JHEP,8803,1</subfield>
    </datafield>
 </record>""")
 

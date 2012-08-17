@@ -173,6 +173,8 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
     elements_processed = 0
 
     for num, element in enumerate(citation_elements):
+        print 'element', repr(element)
+
         ## Before going onto checking 'what' the next element is, handle misc text and semi-colons
         ## Multiple misc text subfields will be compressed later
         ## This will also be the only part of the code that deals with MISC tag_typed elements
@@ -377,45 +379,23 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
 
         # AUTHOR
         elif element['type'] == "AUTH":
+            value = element['auth_txt']
+            if element['auth_type'] == 'incl':
+                value = "(%s)" % value
 
-            if element['auth_type'] != 'incl':
-                auth_choice = dump_or_split_author(element['misc_txt'],
-                                                   line_elements)
-                if auth_choice == "dump":
-                    # This author is no good, place it into misc text
-                    xml_line += '\n      <subfield code="' \
-                        '%(sf-code-ref-misc)s">%(auth-txt)s</subfield>' % {
-                        'sf-code-ref-misc' : CFG_REFEXTRACT_SUBFIELD_MISC,
-                        'auth-txt'         : encode_for_xml(element['auth_txt']),
-                    }
-                else:
-                    # Either the author denotes a new citation, or it is the first in this reference
-                    if auth_choice == "split":
-                        ## This author triggered the creation of a new datafield
-                        if element['auth_type'] == 'etal' or \
-                            element['auth_type'] == 'stnd':
-                            ## %%%%% Set as NEW citation line %%%%%
-                            xml_line, auth_for_ibid = append_datafield_element(
-                                line_marker, citation_structure, line_elements,
-                                auth_for_ibid, xml_line)
-                    # Add the author subfield with the author text
-                    xml_line += '\n      <subfield code="' \
-                        '%(sf-code-ref-auth)s">%(authors)s</subfield>' % {
-                        'authors'           : encode_for_xml(element['auth_txt']),
-                        'sf-code-ref-auth'  : CFG_REFEXTRACT_SUBFIELD_AUTH,
-                    }
-
-                    line_elements.append(element)
-
-            elif element['auth_type'] == 'incl':
-                # Always include the matched author from the knowledge base into the datafield,
-                # No splitting heuristics are used here. It is purely so that it can be included
-                # with any previously found authors for this datafield.
+            if is_in_line_elements("AUTH", line_elements) and line_elements[-1]['type'] != "AUTH":
                 xml_line += '\n      <subfield code="' \
-                    '%(sf-code-ref-auth)s">(%(authors)s)</subfield>' % {
-                    'authors'           : encode_for_xml(element['auth_txt']),
+                    '%(subfield-code)s">%(misc_txt)s</subfield>' % {
+                    'misc_txt'      : encode_for_xml(value),
+                    'subfield-code' : CFG_REFEXTRACT_SUBFIELD_MISC,
+                }
+            else:
+                xml_line += '\n      <subfield code="' \
+                    '%(sf-code-ref-auth)s">%(authors)s</subfield>' % {
+                    'authors'           : encode_for_xml(value),
                     'sf-code-ref-auth'  : CFG_REFEXTRACT_SUBFIELD_AUTH,
                 }
+                line_elements.append(element)
 
         elif element['type'] == "QUOTED":
             xml_line += '\n      <subfield code="' \
@@ -423,6 +403,7 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
                 'title'         : encode_for_xml(element['title']),
                 'subfield-code' : CFG_REFEXTRACT_SUBFIELD_QUOTED,
             }
+            line_elements.append(element)
 
         elif element['type'] == "ISBN":
             xml_line += '\n      <subfield code="' \
@@ -430,6 +411,7 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
                 'title'         : encode_for_xml(element['ISBN']),
                 'subfield-code' : CFG_REFEXTRACT_SUBFIELD_ISBN,
             }
+            line_elements.append(element)
 
         elif element['type'] == "BOOK":
             xml_line += '\n      <subfield code="' \
@@ -439,6 +421,7 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
             }
             xml_line += '\n      <subfield code="%s" />' % \
                 CFG_REFEXTRACT_SUBFIELD_BOOK
+            line_elements.append(element)
 
         elif element['type'] == "PUBLISHER":
             xml_line += '\n      <subfield code="' \
@@ -446,6 +429,7 @@ def build_formatted_xml_citation(citation_elements, line_marker, inspire_format)
                 'title'         : encode_for_xml(element['publisher']),
                 'subfield-code' : CFG_REFEXTRACT_SUBFIELD_PUBLISHER,
             }
+            line_elements.append(element)
 
         # The number of elements processed
         elements_processed += 1
