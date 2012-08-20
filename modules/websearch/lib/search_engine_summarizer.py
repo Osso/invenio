@@ -153,8 +153,8 @@ def render_extended_citation_summary(req, ln, recids, initial_collections,
     def coll_not_rpp(name):
         return name + '<br />excluding RPP'
 
-    # Add self cites sets and "not rpp" sets
-    notrpp_searchpattern = searchpattern + ' not t rpp'
+    # Add self cites sets and "-title:rpp" sets
+    notrpp_searchpattern = searchpattern + ' -title:rpp'
     notrpp_recids = intbitset(perform_request_search(p=notrpp_searchpattern))
     for coll, coll_recids in list(d_recids.iteritems()):
         d_recids[coll_self_cites(coll)] = coll_recids
@@ -307,7 +307,7 @@ def summarize_records(recids, of, ln, searchpattern="", searchfield="",
         citedbylist = get_cited_by_list(recids)
         return render_citation_summary_xml(citedbylist)
 
-    excluding_rpp = 'not t rpp' in searchpattern.lower()
+    excluding_rpp = '-title:rpp' in searchpattern.lower()
     has_req = req is not None
     if not has_req:
         req = StringIO()
