@@ -239,6 +239,24 @@ CMS NOTE               ---CMS-NOTE
 LHCB                   ---LHCB
 SN ATLAS               ---SN-ATLAS
 PAS SUSY               ---CMS-PAS-SUS
+CMS PAS EXO            ---CMS-PAS-EXO
+CMS PAS HIN            ---CMS-PAS-HIN
+CMS PAS QCD            ---CMS-PAS-QCD
+CMS PAS TOP            ---CMS-PAS-TOP
+CMS PAS SUS            ---CMS-PAS-SUS
+CMS PAS BPH            ---CMS-PAS-BPH
+CMS PAS SMP            ---CMS-PAS-SMP
+CMS PAS HIG            ---CMS-PAS-HIG
+CMS PAS EWK            ---CMS-PAS-EWK
+CMS PAS BTV            ---CMS-PAS-BTV
+CMS PAS FWD            ---CMS-PAS-FWD
+CMS PAS TRK            ---CMS-PAS-TRK
+CMS PAS SMP            ---CMS-PAS-SMP
+CMS PAS PFT            ---CMS-PAS-PFT
+CMS PAS MUO            ---CMS-PAS-MUO
+CMS PAS JME            ---CMS-PAS-JME
+CMS PAS EGM            ---CMS-PAS-EGM
+CMS PAS DIF            ---CMS-PAS-DIF
 ATLTILECAL PUB         ---ATLTILECAL-PUB
 ATLAS TECH PUB         ---ATLAS-TECH-PUB
 TLCOM MAGNET           ---TLCOM-MAGNET
