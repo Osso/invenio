@@ -334,7 +334,10 @@ def split_citations(citation_elements):
 
 def valid_citation(citation):
     els_to_remove = ('MISC', )
-    return not all(el['type'] in els_to_remove for el in citation)
+    for el in citation:
+        if el['type'] not in els_to_remove:
+            return True
+    return False
 
 
 def remove_invalid_references(splitted_citations):
@@ -370,8 +373,9 @@ def remove_invalid_references(splitted_citations):
 
 def add_year_elements(splitted_citations):
     for citation in splitted_citations:
-        if any(el['type'] == 'YEAR' for el in citation):
-            continue
+        for el in citation:
+            if el['type'] == 'YEAR':
+                continue
 
         year = None
         for el in citation:
