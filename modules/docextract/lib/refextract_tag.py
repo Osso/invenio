@@ -89,7 +89,7 @@ def tag_reference_line(line, kbs, record_titles_count):
     # matched preprint report number items
     found_pprint_repnum_matchlens = {}  # lengths of given matches of
                                         # preprint report numbers
-    found_pprint_repnum_replstr   = {}  # standardised replacement
+    found_pprint_repnum_replstr = {}    # standardised replacement
                                         # strings for preprint report
                                         # numbers to be substituted into
                                         # a line
@@ -143,7 +143,7 @@ def tag_reference_line(line, kbs, record_titles_count):
 
     # Remove multiple spaces from the line, recording
     # information about their coordinates:
-    (removed_spaces, working_line2) = \
+    removed_spaces, working_line2 = \
          remove_and_record_multiple_spaces_in_line(working_line2)
 
     # Identify and record coordinates of institute preprint report numbers:
@@ -163,9 +163,8 @@ def tag_reference_line(line, kbs, record_titles_count):
     if (working_line2.upper().find(u"IBID") != -1):
         # there is at least one IBID in the line - try to
         # identify its meaning:
-        (found_ibids_len, \
-         found_ibids_matchtext, \
-         working_line2) = identify_ibids(working_line2)
+        found_ibids_len, found_ibids_matchtext, working_line2 = \
+            identify_ibids(working_line2)
         # now update the dictionary of matched title lengths with the
         # matched IBID(s) lengths information:
         found_title_len.update(found_ibids_len)
@@ -294,19 +293,16 @@ def process_reference_line(working_line,
 
             if replacement_types[replacement_index] == u"journal":
                 # Add a tagged periodical TITLE into the line:
-                (rebuilt_chunk, startpos, previous_match) = \
-                    add_tagged_journal(reading_line=working_line,
-                                     len_title=\
-                                       found_title_len[replacement_index],
-                                     matched_title=\
-                                       found_title_matchtext[replacement_index],
-                                     previous_match=previous_match,
-                                     startpos=startpos,
-                                     true_replacement_index=\
-                                       true_replacement_index,
-                                     extras=extras,
-                                     standardised_titles=\
-                                       standardised_titles)
+                rebuilt_chunk, startpos, previous_match = \
+                    add_tagged_journal(
+                        reading_line=working_line,
+                        len_title=found_title_len[replacement_index],
+                        matched_title=found_title_matchtext[replacement_index],
+                        previous_match=previous_match,
+                        startpos=startpos,
+                        true_replacement_index=true_replacement_index,
+                        extras=extras,
+                        standardised_titles=standardised_titles)
                 tagged_line += rebuilt_chunk
 
             elif replacement_types[replacement_index] == u"reportnumber":
@@ -505,7 +501,7 @@ def add_tagged_report_number(reading_line,
 
     # Add the tagged REPORT-NUMBER into the rebuilt-line segment:
     rebuilt_line += u"<cds.REPORTNUMBER>%(reportnum)s</cds.REPORTNUMBER>" \
-                        % { 'reportnum' : reportnum }
+                        % {'reportnum' : reportnum}
 
     # Move the pointer in the reading-line past the current match:
     startpos = true_replacement_index + len_reportnum + extras
@@ -520,7 +516,7 @@ def add_tagged_report_number(reading_line,
 
     # return the rebuilt-line segment and the pointer to the next position in
     # the reading-line from  which to start rebuilding up to the next match:
-    return (rebuilt_line, startpos)
+    return rebuilt_line, startpos
 
 
 def add_tagged_journal_in_place_of_IBID(previous_match,
@@ -554,7 +550,7 @@ def add_tagged_journal_in_place_of_IBID(previous_match,
                 previous_match['series'] = ibid_series
 
             rebuilt_line += IBID_start_tag + "%(previous-match)s" \
-                            % { 'previous-match' : previous_match['title'] } + \
+                            % {'previous-match' : previous_match['title']} + \
                             CFG_REFEXTRACT_MARKER_CLOSING_TITLE_IBID + \
                             " : " + previous_match['series']
         else:
@@ -562,7 +558,7 @@ def add_tagged_journal_in_place_of_IBID(previous_match,
             # the series letter to the end of the previous match.
             previous_match['series'] = ibid_series
             rebuilt_line += IBID_start_tag + "%(previous-match)s" \
-                           % { 'previous-match' : previous_match['title'] } + \
+                           % {'previous-match' : previous_match['title']} + \
                            CFG_REFEXTRACT_MARKER_CLOSING_TITLE_IBID + \
                            " : " + previous_match['series']
 
@@ -570,17 +566,17 @@ def add_tagged_journal_in_place_of_IBID(previous_match,
         if previous_match['series'] is not None:
             # Both the previous match & this IBID have the same series
             rebuilt_line += IBID_start_tag + "%(previous-match)s" \
-                            % { 'previous-match' : previous_match['title'] } + \
+                            % {'previous-match' : previous_match['title']} + \
                             CFG_REFEXTRACT_MARKER_CLOSING_TITLE_IBID + \
                             " : " + previous_match['series']
         else:
             # This IBID has no series letter.
             # If a previous series is present append it.
             rebuilt_line += IBID_start_tag + "%(previous-match)s" \
-                           % { 'previous-match' : previous_match['title'] } + \
+                           % {'previous-match' : previous_match['title']} + \
                            CFG_REFEXTRACT_MARKER_CLOSING_TITLE_IBID
 
-    return (rebuilt_line, previous_match)
+    return rebuilt_line, previous_match
 
 
 def add_tagged_journal(reading_line,
@@ -656,7 +652,7 @@ def add_tagged_journal(reading_line,
     else:
         # This is a normal title, not an IBID
         rebuilt_line += "<cds.JOURNAL>%(title)s</cds.JOURNAL>" \
-                        % { 'title' : standardised_titles[matched_title] }
+                        % {'title' : standardised_titles[matched_title]}
         previous_title = standardised_titles[matched_title]
         startpos = true_replacement_index + len_title + extras
 
@@ -701,7 +697,7 @@ def add_tagged_journal(reading_line,
     # which the next part of the rebuilt line should be started, and the newly
     # updated previous match.
 
-    return (rebuilt_line, startpos, previous_match)
+    return rebuilt_line, startpos, previous_match
 
 
 def add_tagged_publisher(reading_line,
@@ -737,7 +733,7 @@ def add_tagged_publisher(reading_line,
     rebuilt_line = reading_line[startpos:true_replacement_index]
     # This is a normal title, not an IBID
     rebuilt_line += "<cds.PUBLISHER>%(title)s</cds.PUBLISHER>" \
-                    % { 'title' : kb_publishers[matched_publisher] }
+                    % {'title' : kb_publishers[matched_publisher]}
     # Compute new start pos
     startpos = true_replacement_index + len(matched_publisher) + extras
 
@@ -856,7 +852,7 @@ def account_for_stripped_whitespace(spaces_keys,
 
     # return the new values for replacement indices with stripped
     # whitespace accounted for:
-    return (true_replacement_index, extras)
+    return true_replacement_index, extras
 
 
 def strip_tags(line):
@@ -1136,7 +1132,7 @@ def identify_ibids(line):
         line = line[0:m_ibid.start(2)] + "_"*len(m_ibid.group(2)) + \
                line[m_ibid.end(2):]
 
-    return (ibid_match_len, ibid_match_txt, line)
+    return ibid_match_len, ibid_match_txt, line
 
 
 def find_all(string, sub):
@@ -1214,7 +1210,7 @@ def identify_journals(line, kb_journals):
 
     # return recorded information about matched periodical titles,
     # along with the newly changed working line:
-    return (title_matches_matchlen, title_matches_matchtext, line, titles_count)
+    return title_matches_matchlen, title_matches_matchtext, line, titles_count
 
 
 def identify_report_numbers(line, kb_reports):
@@ -1301,7 +1297,7 @@ def identify_report_numbers(line, kb_reports):
 
     # return recorded information about matched report numbers, along with
     # the newly changed working line:
-    return (repnum_matches_matchlen, repnum_matches_repl_str, line)
+    return repnum_matches_matchlen, repnum_matches_repl_str, line
 
 
 def identify_publishers(line, kb_publishers):
@@ -1426,7 +1422,7 @@ def identify_and_tag_URLs(line):
     assert len(identified_urls) == len(found_url_positions), msg
 
     # return the line containing the tagged URLs:
-    return (line, identified_urls)
+    return line, identified_urls
 
 
 def identify_and_tag_DOI(line):
@@ -1454,4 +1450,4 @@ def identify_and_tag_DOI(line):
         # Add the single DOI string to the list of DOI strings
         doi_strings.append(doi_phrase)
 
-    return (line, doi_strings)
+    return line, doi_strings

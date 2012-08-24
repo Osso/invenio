@@ -2375,22 +2375,8 @@ Rev. D 80 034030 1-25"""
         """
         from invenio.refextract_api import extract_references_from_string_xml
         ref_line = u"""[1] D. Adams, S. Asai, D. Cavalli, K. Edmonds,
-        a
-        a
-        a
-        a
-        a
-        a
-        a
-        a
-        a
-        a
-        a
-        a
-        a
-        a
-        a
-        a
+        a\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\n
+        a\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\na\n
         The ATLFAST-II performance in release 14,
         Tech. Rep. ATL-PHYS-INT-2009-110, CERN, Geneva, Dec, 2009.
         [2] D. Adams, ATL-PHYS-INT-2009-111"""
