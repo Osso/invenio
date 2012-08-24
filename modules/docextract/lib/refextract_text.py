@@ -26,7 +26,7 @@ from invenio.docextract_text import join_lines, \
                                     repair_broken_urls, \
                                     re_multiple_space, \
                                     remove_page_boundary_lines
-
+from invenio.refextract_config import CFG_REFEXTRACT_MAX_LINES
 from invenio.refextract_find import find_end_of_reference_section, \
                                     get_reference_section_beginning
 
@@ -207,10 +207,12 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
     # Work backwards, starting from the last 'broken' reference line
     # Append each fixed reference line to rebuilt_references
     current_ref = None
+    line_counter = 0
+
     for line in reversed(ref_sectn):
+        # Try to find the marker for the reference line
         if strip_before:
             current_string = line.strip()
-            # Try to find the marker for the reference line
             m_ref_line_marker = p_ref_line_marker.match(current_string)
         else:
             m_ref_line_marker = p_ref_line_marker.match(line)
@@ -226,27 +228,18 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
             # Append current working line to the refs list
             working_line = working_line.rstrip()
             working_line = wash_and_repair_reference_line(working_line)
-            rebuilt_references.append(working_line)
+            if line_counter < CFG_REFEXTRACT_MAX_LINES:
+                rebuilt_references.append(working_line)
             try:
                 current_ref = int(m_ref_line_marker.group('num'))
             except IndexError:
                 pass  # this line doesn't have numbering
             working_line = u''
-        else:
-            if current_string != u'':
-                # Continuation of line
-                if current_string[-1] == u'-':
-                    # hyphenated word at the end of the
-                    # line - don't add in a space
-                    working_line = current_string[:-1] + working_line
-                elif current_string[-1] == u' ':
-                    # space at the end of the
-                    # line - don't add in a space
-                    working_line = current_string + working_line
-                else:
-                    # no space or hyphenated word at the end of this
-                    # line - add in a space
-                    working_line = current_string + u' ' + working_line
+            line_counter = 0
+        elif current_string != u'':
+            # Continuation of line
+            working_line = join_lines(current_string, working_line)
+            line_counter += 1
 
     if working_line != u'':
         # Append last line

@@ -2330,6 +2330,51 @@ Rev. D 80 034030 1-25"""
    </datafield>
 </record>""")
 
+    def test_reference_size_limit_check_valid_in_one_line(self):
+        from invenio.refextract_api import extract_references_from_string_xml
+        ref_line = u"""[1] D. Adams, S. Asai, D. Cavalli, K. Edmonds,
+        The ATLFAST-II performance in release 14,
+        Tech. Rep. ATL-PHYS-INT-2009-110, CERN, Geneva, Dec, 2009.
+        [2] D. Adams, ATL-PHYS-INT-2009-111"""
+        refs = extract_references_from_string_xml(ref_line)
+        compare_references(self, refs, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">1</subfield>
+      <subfield code="h">D. Adams, S. Asai, D. Cavalli, K. Edmonds</subfield>
+      <subfield code="r">ATL-PHYS-INT-2009-110</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">2</subfield>
+      <subfield code="h">D. Adams</subfield>
+      <subfield code="r">ATL-PHYS-INT-2009-111</subfield>
+   </datafield>
+</record>""")
+
+    def test_reference_size_limit_but_removed_as_invalid(self):
+        """Test the removal of references that are more than n lines long
+
+        Needs to match test_reference_size_limit_check_valid_in_one_line
+        above but be on multiple lines
+        """
+        from invenio.refextract_api import extract_references_from_string_xml
+        ref_line = u"""[1] D. Adams, S. Asai, D. Cavalli, K. Edmonds,
+        a
+        a
+        a
+        The ATLFAST-II performance in release 14,
+        Tech. Rep. ATL-PHYS-INT-2009-110, CERN, Geneva, Dec, 2009.
+        [2] D. Adams, ATL-PHYS-INT-2009-111"""
+        refs = extract_references_from_string_xml(ref_line)
+        compare_references(self, refs, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">2</subfield>
+      <subfield code="h">D. Adams</subfield>
+      <subfield code="r">ATL-PHYS-INT-2009-111</subfield>
+   </datafield>
+</record>""")
+
 
 class TaskTest(unittest.TestCase):
     def setUp(self):

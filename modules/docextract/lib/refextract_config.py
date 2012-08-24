@@ -111,3 +111,6 @@ CGF_REFEXTRACT_SEMI_COLON_MISC_TEXT_SENSITIVITY = 60
 ## than this value is found, then the latter author group is dumped into misc.
 ## (A higher value will increase splitting strictness. i.e. Fewer splits)
 CGF_REFEXTRACT_ADJACENT_AUTH_MISC_SEPARATION = 10
+
+## Maximum number of lines for a citation before it is considered invalid
+CFG_REFEXTRACT_MAX_LINES = 3

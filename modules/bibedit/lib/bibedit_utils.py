@@ -715,7 +715,7 @@ def replace_references(recid, txt=None, uid=None):
     if not txt:
         references_xml = extract_references_from_record_xml(recid)
     else:
-        references_xml = extract_references_from_string_xml(txt)
+        references_xml = extract_references_from_string_xml(txt, is_only_references=True)
     references = create_record(references_xml.encode('utf-8'))
 
     dummy1, dummy2, record, dummy3, dummy4, dummy5, dummy6 = get_cache_file_contents(recid, uid)
