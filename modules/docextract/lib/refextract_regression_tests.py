@@ -142,6 +142,7 @@ class RefextractTest(unittest.TestCase):
             ("PHYS REV D", "Phys.Rev.;D"),
             ("PHYS REV", "Phys.Rev."),
             ("PHYS REV LETT", "Phys.Rev.Lett."),
+            ("PHYS LETT", "Phys.Lett."),
             ("J PHYS", "J.Phys."),
             ("JOURNAL OF PHYSICS", "J.Phys."),
             ("J PHYS G", "J.Phys.;G"),
@@ -1546,6 +1547,18 @@ Rev. D 80 034030 1-25"""
       <subfield code="t">Experimental study of rf pulsed heat- ing on oxygen free electronic copper</subfield>
       <subfield code="s">Phys.Rev.ST Accel.Beams,5,1</subfield>
       <subfield code="y">2002</subfield>
+   </datafield>
+</record>""")
+
+    def test_journal_not_recognized5(self):
+        ref_line = u"""[128] D. P. Pritzkau and R. H. Siemann, Phys.Lett. 100B (1981), 117"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">128</subfield>
+      <subfield code="h">D. P. Pritzkau and R. H. Siemann</subfield>
+      <subfield code="s">Phys.Lett.,B100,117</subfield>
+      <subfield code="y">1981</subfield>
    </datafield>
 </record>""")
 

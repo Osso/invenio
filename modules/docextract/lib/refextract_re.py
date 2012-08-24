@@ -313,8 +313,8 @@ re_volume_sub_number_opt = u'(?:' + re_sep + u'(?P<vol_sub>' + \
 # Volume
 re_volume_prefix = ur"(?:[Vv]o?l?\.?|[Nn][oO°]\.?)"  # Optional Vol./No.
 re_volume_suffix = ur"(?:\s*\(\d{1,2}(?:-\d)?\))?"
-re_volume_num = ur"\d+|" + "(?P<roman>(?<!\w)" + re_roman_numbers + "(?!\w))"
-re_volume_id = ur"(?P<vol>(?:(?:[A-Za-z]\s?)?(?P<vol_num>%s))|(?:(?:[A-Za-z]\s?)?\d+\s*\-\s*(?:[A-Za-z]\s?)?\d+))" % re_volume_num
+re_volume_num = ur"\d+|" + "(?:(?<!\w)" + re_roman_numbers + "(?!\w))"
+re_volume_id = ur"(?P<vol>(?:(?:[A-Za-z]\s?)?(?P<vol_num>%(volume_num)s))|(?:(?:%(volume_num)s)(?:[A-Za-z]))|(?:(?:[A-Za-z]\s?)?\d+\s*\-\s*(?:[A-Za-z]\s?)?\d+))" % {'volume_num': re_volume_num}
 re_volume_check = ur"(?<![\/\d])"
 re_volume = ur"\b" + u"(?:" + re_volume_prefix + u")?\s*" + re_volume_check + \
     re_volume_id + re_volume_suffix

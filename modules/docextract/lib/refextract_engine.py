@@ -254,6 +254,22 @@ def remove_b_for_nucl_phys(citation_elements):
                 el['volume'] = el['volume'][1:]
     return citation_elements
 
+
+def mangle_volume(citation_elements):
+    """Make sure the volume letter is before the volume number
+
+    e.g. transforms 100B to B100
+    """
+    volume_re = re.compile(ur"(\d+)([A-Z])", re.U|re.I)
+    for el in citation_elements:
+        if el['type'] == 'JOURNAL':
+            matches = volume_re.match(el['volume'])
+            if matches:
+                el['volume'] = matches.group(2) + matches.group(1)
+
+    return citation_elements
+
+
 def balance_authors(splitted_citations, new_elements):
     if not splitted_citations:
         return
@@ -444,6 +460,7 @@ def parse_reference_line(ref_line, kbs, bad_titles_count={}):
     citation_elements = look_for_books(citation_elements, kbs)
     citation_elements = format_hep(citation_elements)
     citation_elements = remove_b_for_nucl_phys(citation_elements)
+    citation_elements = mangle_volume(citation_elements)
 
     # Split the reference in multiple ones if needed
     splitted_citations = split_citations(citation_elements)
