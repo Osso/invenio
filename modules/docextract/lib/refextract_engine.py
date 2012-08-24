@@ -400,7 +400,7 @@ def print_citations(splitted_citations):
     for citation in splitted_citations:
         write_message("  * citation", verbose=9)
         for el in citation:
-            write_message('    * el')
+            write_message('    * el', verbose=9)
             for t in el.iteritems():
                 write_message('      * %s: %s' % t, verbose=9)
 
