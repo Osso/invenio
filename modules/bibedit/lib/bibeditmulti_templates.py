@@ -92,6 +92,11 @@ div .pagebody td{
     width: 14px;
 }
 
+.textBoxValue{
+    margin-right: 1px;
+    margin-bottom: 1px;
+}
+
 .msg {
     color:red;
     background-color: #E0ECFF;
@@ -750,7 +755,7 @@ div .boxleft_2 {
         return header
 
 
-    def search_results(self, records, number_of_records, current_page, records_per_page, language, output_format):
+    def search_results(self, records, number_of_records, current_page, records_per_page, language, output_format, checked_records):
         """Retrurns the content of search resutls.
 
         @param records: list records to be displayed in the results.
@@ -767,11 +772,20 @@ div .boxleft_2 {
         for (record_id, record) in records:
             result += """
             <span class="resultItem" id="recordid_%(record_id)s">
-            %(record)s
-            </span><br><hr>
-            """ % {"record_id" : record_id,
-                  "record" : record
+            <div class="divRecordCheckbox">
+            <input type="checkbox" name="recordCheckbox" class="recordCheckbox" value="%(record_id)s"
+            """ % {"record_id": record_id,
+                  "record": record
                   }
+            if record_id in checked_records:
+                result += ' checked="checked"'
+            result += """
+            /></div>
+            <div class="divRecordPreview">
+            %(record)s
+            </div>
+            </span><br><hr>
+            """ % {"record": record}
 
         result_header = self._search_results_header(number_of_records = number_of_records,
                                                     current_page = current_page,

@@ -74,6 +74,7 @@ var gCurrentFieldID = 0;
 var gCurrentSubfieldID = 0;
 var gFieldDisplayIDPrefix = "fieldDisplayID";
 var gSubfieldDisplayIDPrefix = "subfieldDisplayID";
+var gCheckedRecords = [];
 
 var gSubfieldActionTypes = {
     addSubfield : 0,
@@ -207,6 +208,22 @@ function onButtonSubmitChangesClick(){
 	}
 }
 
+function onRecordCheckboxClick() {
+    /*
+     * Updates the gCheckedRecords array when a checkbox is beeing checked/unchecked
+    */
+    var checked = $(this).is(':checked');
+    var value = parseInt($(this).val(), 10);
+    if(checked){
+        gCheckedRecords.push(value);
+    } else {
+        var index = gCheckedRecords.indexOf(value);
+        if (index !== -1) {
+            gCheckedRecords.splice(index, 1);
+        }
+    }
+}
+
 function rebindControls() {
 	/*
 	 * Binds controls with the appropriate events
@@ -226,12 +243,14 @@ function rebindControls() {
     $(".buttonGoToFirstPage").live("click", onButtonGoToFirstPageClick);
 	$(".buttonGoToPreviousPage").live("click", onButtonGoToPreviousPageClick);
 	$(".buttonGoToNextPage").live("click", onButtonGoToNextPageClick);
+    $(".recordCheckbox").live("click", onRecordCheckboxClick);
 }
 
 function onAjaxSuccess(json) {
         var display_info_box = json['display_info_box'];
         var info_html = json['info_html'];
         var search_html = json['search_html'];
+        gCheckedRecords = json['checked_records']
         if (display_info_box === 1) {
             $("#info_area").html(info_html);
             gComputeModifications = 0;
@@ -259,9 +278,10 @@ function createJSONData() {
 	var currentRecordID = gCurrentRecordID;
 	var outputFormat = gOutputFormat;
 	var pageToDisplay = gPageToDiplay;
-        var collection = $("#collection").val();
+    var collection = $("#collection").val();
 	var commands = createCommandsList();
-        var compute_modifications = gComputeModifications;
+    var compute_modifications = gComputeModifications;
+    var checked_records = gCheckedRecords;
 
 	var data = {
 		language : language,
@@ -273,7 +293,8 @@ function createJSONData() {
 		outputFormat : outputFormat,
 		pageToDisplay : pageToDisplay,
 		collection : collection,
-                compute_modifications : compute_modifications
+        compute_modifications : compute_modifications,
+        checked_records : checked_records
 	};
 
 	return JSON.stringify(data);
@@ -888,6 +909,12 @@ function onSelectConditionExactMatchValueDisplayChange(){
     }
 }
 
+function onSearchCriteriaChange() {
+    // if the serach criteria has been changed, reset the array with record IDs
+    gCheckedRecords = [];
+
+}
+
 function rebindActionsRelatedControls() {
     /*
     * lives controls with the appropriate events
@@ -914,6 +941,7 @@ function rebindActionsRelatedControls() {
     $("#textBoxConditionFieldDisplay").live("change", onTextBoxConditionFieldDisplayChange);
     $("#textBoxConditionSubfieldDisplay").live("change", onTextBoxConditionSubfieldDisplayChange);
     $(".selectConditionExactMatch").live("change", onSelectConditionExactMatchValueDisplayChange);
+    $("#textBoxSearchCriteria").live("change", onSearchCriteriaChange);
     // Cancel text boxes
     $(".txtTag, .txtInd").live("keyup", onPressEsc);
     // Submit form when pressing Enter
