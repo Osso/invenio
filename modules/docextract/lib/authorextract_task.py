@@ -109,7 +109,7 @@ def task_run_core():
         task_update_progress(msg)
         write_message(msg)
         try:
-            update_references(recid, task_get_option('inspire'))
+            update_references(recid)
             write_message("Extracted references for %s" % recid)
         except FullTextNotAvailable:
             write_message("No full text available for %s" % recid)

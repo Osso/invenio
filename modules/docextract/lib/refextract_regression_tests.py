@@ -2318,6 +2318,15 @@ Rev. D 80 034030 1-25"""
 </record>""")
 
 
+class TaskTest(unittest.TestCase):
+    def setUp(self):
+        setup_loggers(verbosity=9)
+
+    def test_task_run_core(self):
+        from invenio.refextract_task import task_run_core
+        task_run_core(1)
+
+
 if __name__ == '__main__':
     test_suite = make_test_suite(RefextractTest)
     run_test_suite(test_suite)

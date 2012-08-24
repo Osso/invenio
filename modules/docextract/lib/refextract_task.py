@@ -148,11 +148,6 @@ def create_ticket(recid, bibcatalog_system, queue=CFG_REFEXTRACT_TICKET_QUEUE):
 
 
 def task_run_core(recid, bibcatalog_system=None, _arxiv=False):
-    if task_get_option('inspire'):
-        inspire = True
-    else:
-        inspire = CFG_INSPIRE_SITE
-
     if _arxiv:
         overwrite = True
     else:
@@ -160,7 +155,6 @@ def task_run_core(recid, bibcatalog_system=None, _arxiv=False):
 
     try:
         update_references(recid,
-                          inspire=inspire,
                           overwrite=overwrite)
         msg = "Extracted references for %s" % recid
         if overwrite:

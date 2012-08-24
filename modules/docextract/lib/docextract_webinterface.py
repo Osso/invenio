@@ -55,7 +55,7 @@ def check_url(url):
            not url.startswith('ftp://')
 
 
-def extract_from_pdf_string(pdf, inspire=CFG_INSPIRE_SITE):
+def extract_from_pdf_string(pdf):
     """Extract references from a pdf stored in a string
 
     Given a string representing a pdf, this function writes the string to
@@ -67,7 +67,7 @@ def extract_from_pdf_string(pdf, inspire=CFG_INSPIRE_SITE):
     try:
         tf.write(pdf)
         tf.flush()
-        refs = extract_references_from_file_xml(tf.name, inspire=inspire)
+        refs = extract_references_from_file_xml(tf.name)
     finally:
         # Also deletes the file
         tf.close()
