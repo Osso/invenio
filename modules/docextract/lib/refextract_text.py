@@ -209,6 +209,8 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
     current_ref = None
     line_counter = 0
 
+    print 'ref_line_marker_ptn', ref_line_marker_ptn
+
     for line in reversed(ref_sectn):
         # Try to find the marker for the reference line
         if strip_before:
@@ -219,7 +221,7 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
             current_string = line.strip()
 
         if m_ref_line_marker and (not current_ref \
-                or current_ref == int(m_ref_line_marker.group('num')) + 1):
+                or current_ref == int(m_ref_line_marker.group('marknum')) + 1):
             # Reference line marker found! : Append this reference to the
             # list of fixed references and reset the working_line to 'blank'
             if current_string != '':
@@ -231,7 +233,7 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
             if line_counter < CFG_REFEXTRACT_MAX_LINES:
                 rebuilt_references.append(working_line)
             try:
-                current_ref = int(m_ref_line_marker.group('num'))
+                current_ref = int(m_ref_line_marker.group('marknum'))
             except IndexError:
                 pass  # this line doesn't have numbering
             working_line = u''
@@ -252,8 +254,8 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
 
     # Make sure mulitple markers within references are correctly
     # in place (compare current marker num with current marker num +1)
-    rebuilt_references = correct_rebuilt_lines(rebuilt_references, \
-                                               p_ref_line_marker)
+    # rebuilt_references = correct_rebuilt_lines(rebuilt_references, \
+    #                                            p_ref_line_marker)
 
     # For each properly formated reference line, try to identify cases
     # where there is more than one citation in a single line. This is
