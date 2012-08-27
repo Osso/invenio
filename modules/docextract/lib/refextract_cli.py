@@ -212,7 +212,7 @@ def extract_one(config, pdf_path):
     # the document body is not empty:
     # 2. If necessary, locate the reference section:
     if config.treat_as_reference_section:
-        docbody = open(pdf_path).read().decode('utf-8').split(u'\n')
+        docbody = open(pdf_path).read().decode('utf-8')
         out = extract_references_from_string_xml(docbody)
     else:
         write_message("* processing pdffile: %s" % pdf_path, verbose=2)

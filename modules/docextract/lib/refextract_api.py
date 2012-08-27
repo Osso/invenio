@@ -114,7 +114,7 @@ def extract_references_from_string_xml(source, is_only_references=True):
     else:
         refs_info = get_reference_section_beginning(docbody)
         if not refs_info:
-            refs_info = find_numeration_in_body(docbody)
+            refs_info, dummy = find_numeration_in_body(docbody)
             refs_info['start_line'] = 0
             refs_info['end_line'] = len(docbody) - 1,
 

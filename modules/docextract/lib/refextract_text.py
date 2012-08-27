@@ -209,15 +209,13 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
     current_ref = None
     line_counter = 0
 
-    print 'ref_line_marker_ptn', ref_line_marker_ptn
-
     for line in reversed(ref_sectn):
         # Try to find the marker for the reference line
         if strip_before:
             current_string = line.strip()
-            m_ref_line_marker = p_ref_line_marker.match(current_string)
+            m_ref_line_marker = p_ref_line_marker.search(current_string)
         else:
-            m_ref_line_marker = p_ref_line_marker.match(line)
+            m_ref_line_marker = p_ref_line_marker.search(line)
             current_string = line.strip()
 
         if m_ref_line_marker and (not current_ref \
