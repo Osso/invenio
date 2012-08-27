@@ -56,7 +56,7 @@ HELP_MESSAGE = """
 
 def task_run_core():
     write_message('generating global citesummary')
-    recids = search_pattern('collection:citable')
+    recids = search_pattern(p='collection:citeable')
     html = summarize_records(recids, of='hcs', ln='en')
     write_message('md5: %s' % md5.new(html).hexdigest())
     r = perform_request_save_file(filename='/hep/citation-stats.webdoc',
