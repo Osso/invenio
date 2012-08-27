@@ -300,7 +300,6 @@ class Template:
             % (CFG_SITE_URL, )
         hepDataAdditions += """<link rel="stylesheet" href="%s/img/hepdata.css" type="text/css" />""" \
             % (CFG_SITE_URL, )
-
         # load the right message language
         _ = gettext_set_language(ln)
 
