@@ -23,14 +23,13 @@ Citations Stats Task
 Recomputes the global citesummary (typically every 24 hours)
 """
 
-import os
 import md5
 
 from invenio.bibtask import task_init, write_message
 from invenio.config import CFG_VERSION
 from invenio.search_engine_summarizer import summarize_records
-from invenio.search_engine import search_pattern
 from invenio.webdoc_info_webinterface import perform_request_save_file
+from invenio.search_engine import get_collection_reclist
 
 DESCRIPTION = ""
 
@@ -56,7 +55,7 @@ HELP_MESSAGE = """
 
 def task_run_core():
     write_message('generating global citesummary')
-    recids = search_pattern(p='collection:citeable')
+    recids = get_collection_reclist('HEP')
     html = summarize_records(recids, of='hcs', ln='en')
     write_message('md5: %s' % md5.new(html).hexdigest())
     r = perform_request_save_file(filename='/hep/citation-stats.webdoc',
