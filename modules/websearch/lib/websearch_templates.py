@@ -4505,7 +4505,7 @@ class Template:
                   'p': quote(searchpattern),
                   'of': 'hcs2'}
         url = CFG_SITE_URL + '/search?' + \
-                          '&'.join(['='.join(i) for i in params.iteritems()])
+                       '&amp;'.join(['='.join(i) for i in params.iteritems()])
         out += msg % {'url': url,
                       'msg': _('Exclude self-citations or RPP')}
 
@@ -4517,11 +4517,15 @@ class Template:
         """HTML citesummary format, prologue. A part of HCS format suite."""
         _ = gettext_set_language(ln)
         out = _('<p>Generated on %s</p>') % datetime.now().strftime('%Y-%m-%d')
-        out += '<p>' + _('%(total_count)s papers found,' \
-            ' %(citable_count)s of them citeable (published or arXiv)' % \
-            {'total_count': total_count, 'citable_count': len(citable_recids)})
+        out += '<p>' + _('%(total_count)s papers found, %(citable_count)s ' \
+                         'of them citeable (published or arXiv)') % \
+            {'total_count': total_count, 'citable_count': len(citable_recids)}
+        out += '</p>'
         out += """<table id="citesummary">
-                  <tr><td><strong class="headline">%(msg_title)s</strong></td>""" % \
+                  <tr>
+                    <td>
+                      <strong class="headline">%(msg_title)s</strong>
+                    </td>""" % \
                {'msg_title': _("Citation summary results"), }
         for coll, dummy in collections:
             out += '<td align="right">%s</td>' % _(coll)
@@ -4606,7 +4610,6 @@ class Template:
         _ = gettext_set_language(ln)
         return """<tr><td><strong>%(msg_breakdown)s</strong></td></tr>""" % \
                {'msg_breakdown': _("Breakdown of papers by citations:"), }
-
 
     def tmpl_citesummary_breakdown_by_fame(self, d_cites, low, high, fame,
                                            l_colls, searchpatterns,
