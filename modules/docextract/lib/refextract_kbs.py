@@ -338,14 +338,14 @@ def build_reportnum_kb(fpath):
                                                      # read from the KB
 
     # pattern to recognise an institute name line in the KB
-    re_institute_name = re.compile(r'^\#{5}\s*(.+)\s*\#{5}$', re.UNICODE)
+    re_institute_name = re.compile(ur'^\*{5}\s*(.+)\s*\*{5}$', re.UNICODE)
 
     # pattern to recognise an institute preprint categ line in the KB
     re_preprint_classification = \
-                re.compile(r'^\s*(\w.*)\s*---\s*(\w.*)\s*$', re.UNICODE)
+                re.compile(ur'^\s*(\w.*)\s*---\s*(\w.*)\s*$', re.UNICODE)
 
     # pattern to recognise a preprint numeration-style line in KB
-    re_numeration_pattern = re.compile(r'^\<(.+)\>$', re.UNICODE)
+    re_numeration_pattern = re.compile(ur'^\<(.+)\>$', re.UNICODE)
 
     kb_line_num = 0    # when making the dictionary of patterns, which is
                        # keyed by the category search string, this counter

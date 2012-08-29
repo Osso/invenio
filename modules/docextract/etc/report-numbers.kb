@@ -1,7 +1,4 @@
-%%%%% $Id$ %%%%%
-
-
-#####LANL#####
+*****LANL*****
 <s/syymm999>
 <syymm999>
 
@@ -28,7 +25,7 @@ NEURO SCI	---neuro-sci
 PATT SOL	---patt-sol
 
 
-#####FermiLab#####
+*****FermiLab*****
 < 9999>
 < 999>
 < yy 999 [AET ]>
@@ -43,12 +40,12 @@ FERMILAB DESIGN ---FERMILAB-Design
 FERMILAB THESIS ---FERMILAB-Thesis
 FERMILAB MASTERS---FERMILAB-Masters
 
-#####Fermilab DØ notes#####
+*****Fermilab DØ notes*****
 < 9999>
 
 DØ NOTE---DØ-Note
 
-#####CERN#####
+*****CERN*****
 < yy 999>
 <syyyy 999>
 
@@ -167,7 +164,7 @@ ATLAS TECH PUB         ---ATLAS-TECH-PUB
 TLCOM MAGNET           ---TLCOM-MAGNET
 ATLLARG                ---ATL-LARG
 
-#####CERN MORE#####
+*****CERN MORE*****
 < yyyy 999>
 < yyyy 99>
 < yyyy 9>
@@ -178,18 +175,18 @@ CERN LHCC       ---CERN-LHCC
 CERN PHESS      ---CERN-PHESS
 
 
-#####CERN EVEN MORE#####
+*****CERN EVEN MORE*****
 < 9>
 
 CMS UG TP       ---CMS-UG-TP
 
 
-#####CERN DIFFERENT FORMAT#####
+*****CERN DIFFERENT FORMAT*****
 < 9999999>
 CERN GE         ---CERN-GE
 
 
-#####LHC#####
+*****LHC*****
 < 999>
 < 9999>
 
@@ -204,7 +201,7 @@ ATC TT ID               ---ATC-TT-ID
 ATC TT IN               ---ATC-TT-IN
 LHCCP                   ---LHCCP
 
-#####KEK#####
+*****KEK*****
 < 9999>
 < yy 999>
 < yyyy 999>
@@ -216,7 +213,7 @@ KEK PREPRINT  ---KEK-Preprint
 KEK TH	      ---KEK-TH
 
 
-#####DESY#####
+*****DESY*****
 < yy 999>
 < yyyy 999>
 
@@ -224,7 +221,7 @@ DESY		---DESY
 DESY M		---DESY M
 
 
-#####SLAC#####
+*****SLAC*****
 < 999>
 < 9999>
 < yy 99>

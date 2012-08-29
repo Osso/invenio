@@ -128,6 +128,22 @@ class RefextractInvenioTest(unittest.TestCase):
    </datafield>
 </record>""")
 
+    def test_extra_a_in_report_number(self):
+        ref_line = u"""[6] ATL-PHYS-INT-2009-110 Atlas"""
+        ref_line = u'[14] CMS Collaboration, CMS-PAS-HIG-12-002. CMS Collaboration, CMS-PAS-HIG-12-008. CMS Collaboration, CMS-PAS-HIG-12-022. ATLAS Collaboration, arXiv:1205.0701. ATLAS Collaboration, ATLAS-CONF-2012-078.'
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">14</subfield>
+      <subfield code="h">(CMS Collaboration)</subfield>
+      <subfield code="r">CMS-PAS-HIG-12-002</subfield>
+      <subfield code="r">CMS-PAS-HIG-12-008</subfield>
+      <subfield code="r">CMS-PAS-HIG-12-022</subfield>
+      <subfield code="r">arXiv:1205.0701</subfield>
+      <subfield code="r">ATL-CONF-2012-078</subfield>
+   </datafield>
+</record>""")
+
 
 class RefextractTest(unittest.TestCase):
     """Testing output of refextract"""
