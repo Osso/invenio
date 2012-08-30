@@ -111,6 +111,8 @@ def parse_option(key, value, opts, args):
 
 
 def create_ticket(recid, bibcatalog_system, queue=CFG_REFEXTRACT_TICKET_QUEUE):
+    write_message('bibcatalog_system %s' % bibcatalog_system, verbose=1)
+    write_message('queue %s' % queue, verbose=1)
     if bibcatalog_system and queue:
 
         subject = "Refs for #%s" % recid
@@ -127,11 +129,13 @@ def create_ticket(recid, bibcatalog_system, queue=CFG_REFEXTRACT_TICKET_QUEUE):
 
         # Only create tickets for HEP
         if not in_hep:
+            write_message("not in hep", verbose=1)
             return
 
         for report_tag in record_get_field_instances(record, "037"):
             for category in field_get_subfield_values(report_tag, 'c'):
                 if category.startswith('astro-ph'):
+                    write_message("astro-ph", verbose=1)
                     # We do not curate astro-ph
                     return
 
@@ -165,6 +169,7 @@ def task_run_core(recid, bibcatalog_system=None, _arxiv=False):
         # Create a RT ticket if necessary
         if not _arxiv and task_get_option('new') \
                                     or task_get_option('create-ticket'):
+            write_message("Checking if we should create a ticket", verbose=1)
             create_ticket(recid, bibcatalog_system)
     except FullTextNotAvailable:
         write_message("No full text available for %s" % recid)
