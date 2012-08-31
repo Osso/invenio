@@ -152,7 +152,7 @@ def process_records(name, records, func, extra_vars):
         msg = "Extracting for %s (%d/%d)" % (recid, count, total)
         task_update_progress(msg)
         write_message(msg)
-        func(recid)
+        func(recid, **extra_vars)
         if date:
             store_last_updated(recid, date, name)
         count += 1
