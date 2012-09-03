@@ -209,6 +209,7 @@ class WebInterfaceMultiEditPages(WebInterfaceDirectory):
             action = current_subfield["action"]
             subfield_code = current_subfield["subfieldCode"]
             value = current_subfield["value"]
+            additional_values = current_subfield["additionalValues"] if "additionalValues" in current_subfield else []
             new_value = current_subfield["newValue"]
             condition = current_subfield["condition"]
             condition_exact_match = False
@@ -227,7 +228,7 @@ class WebInterfaceMultiEditPages(WebInterfaceDirectory):
             elif action == self._subfield_action_types.replace_content:
                 subfield_command = multi_edit_engine.ReplaceSubfieldContentCommand(subfield_code, value, condition=condition, condition_exact_match=condition_exact_match, condition_does_not_exist=condition_does_not_exist, condition_subfield=condition_subfield)
             elif action == self._subfield_action_types.replace_text:
-                subfield_command = multi_edit_engine.ReplaceTextInSubfieldCommand(subfield_code, value, new_value, condition=condition, condition_exact_match=condition_exact_match, condition_does_not_exist=condition_does_not_exist, condition_subfield=condition_subfield)
+                subfield_command = multi_edit_engine.ReplaceTextInSubfieldCommand(subfield_code, value, new_value, condition=condition, condition_exact_match=condition_exact_match, condition_does_not_exist=condition_does_not_exist, condition_subfield=condition_subfield, additional_values=additional_values)
             else:
                 subfield_command = multi_edit_engine.BaseFieldCommand(subfield_code, value, new_value)
 

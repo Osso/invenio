@@ -146,6 +146,14 @@ div .pagebody td{
     cursor: pointer;
 }
 
+.buttonNewValue{
+    cursor: pointer;
+}
+
+.buttonDeleteValue{
+    cursor: pointer;
+}
+
 .buttonDeleteField{
     cursor: pointer;
 }
@@ -489,7 +497,11 @@ div .boxleft_2 {
         <span class="action colActionType">%(text_replace_text)s</span>&nbsp;
     </td>
     <td>
-        <input id="textBoxValueDisplay" class="txtValue textBoxValue valueParameters" type="text"/>&nbsp;
+        <input id="textBoxValueDisplay" class="txtValue textBoxValue valueParameters" type="text"/>
+        <span class="additionalValueParameters">
+            <strong> or </strong>
+            <input id="textBoxValueDisplay" class="txtValue textBoxValue valueParameters" type="text"/>
+        </span>
 
         <span class="newValueParameters"><strong> %(text_with)s </strong></span>
         <input id="textBoxNewValueDisplay" class="txtValue textBoxNewValue newValueParameters" type="text" value="%(text_new_value)s"/>
@@ -523,8 +535,22 @@ div .boxleft_2 {
     </tr>
     <tr class="valueParameters">
         <td /><td /><td /><td />
-        <td colspan="3">
+        <td>
             <input id="textBoxValue" class="txtValue textBoxValue" type="text" placeholder="%(text_value)s"/>
+        </td>
+        <td class="buttonCell">
+            <img src="%(site_url)s/img/add.png" class="buttonNewValue" alt="Add new value"/>
+            <span class="buttonNewValue linkButton">%(text_add_value)s</span>
+        </td>
+    </tr>
+    <tr class="additionalValueParametersTmp">
+        <td /><td /><td /><td />
+        <td>
+            <input id="textBoxValue" class="txtValue textBoxValue" type="text" placeholder="%(text_value)s"/>
+        </td>
+        <td class="buttonCell">
+            <img src="%(site_url)s/img/delete.png" class="buttonDeleteValue" alt="Delete this condition value"/>
+            <span class="buttonDeleteValue linkButton">%(text_delete_value)s</span>
         </td>
     </tr>
     <tr class="newValueParameters">
@@ -577,6 +603,8 @@ div .boxleft_2 {
               "text_define_changes_explanation" : _("Specify fields and their subfields that should be changed in every record matching the search criteria."),
               "text_define_field" : _("Define new field action"),
               "text_define_subfield" : _("Define new subfield action"),
+              "text_add_value" : _("Add new condition value"),
+              "text_delete_value" : _("Remove this condition value"),
               "text_field" : _("Field"),
               "text_select_action" : _("Select action"),
               "text_add_field" : _("Add field"),

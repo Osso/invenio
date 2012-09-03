@@ -61,10 +61,13 @@ multiedit_templates = template.load('bibeditmulti')
 # base command for subfields
 class BaseSubfieldCommand:
     """Base class for commands manipulating subfields"""
-    def __init__(self, subfield, value = "", new_value = "", condition = "", condition_exact_match=True , condition_does_not_exist=False, condition_subfield = ""):
+    def __init__(self, subfield, value = "", new_value = "", condition = "", condition_exact_match=True , condition_does_not_exist=False, condition_subfield = "", additional_values = None):
         """Initialization."""
+        if additional_values is None:
+            additional_values = []
         self._subfield = subfield
         self._value = value
+        self._additional_values = additional_values
         self._new_value = new_value
         self._condition = condition
         self._condition_subfield = condition_subfield
@@ -218,6 +221,8 @@ class ReplaceTextInSubfieldCommand(BaseSubfieldCommand):
                     (field_code, field_value) = subfields[subfield_index]
             #replace text
             new_value = field_value.replace(self._value, self._new_value)
+            for val in self._additional_values:
+                new_value = new_value.replace(val, self._new_value)
             #update the subfield if needed
             if new_value != field_value:
                 bibrecord.record_modify_subfield(record, tag,

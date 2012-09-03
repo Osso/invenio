@@ -97,10 +97,22 @@ function showLoading() {
     $('#preview_area').html('<span class="multiedit_loading">Loading...</span><br /><img src=/img/ajax-loader.gif>').css("text-align", "center");
 }
 
+function storeAdditionalValues() {
+    // this function is used to collect alle the additional variables for "replace substring"
+    // and return them as an array
+    var additionalValues = [];
+    $.each($(".additionalValueParameters #textBoxValueDisplay"), function(){
+        if ($(this).val() != "")
+            additionalValues.push($(this).val());
+    });
+
+    return additionalValues;
+}
+
 function createCommandsList(){
-	/*
-	 * Creates structure with information about the commands
-	 */
+    /*
+     * Creates structure with information about the commands
+     */
 	var commands = Array();
 
 	var fieldID = "";
@@ -112,9 +124,13 @@ function createCommandsList(){
 		var subfieldID = "";
 		for (subfieldID in subfields) {
                     currentSubfield = subfields[subfieldID];
+                    //create list with additional values for replace substring
+                    if (currentSubfield.action == "3") {
+                        currentSubfield.additionalValues = storeAdditionalValues();
+                    }
                     if (currentSubfield != "None")
                         subfieldsList.push(currentSubfield);
-		}
+        }
 
 		var field = {
             tag : currentField.tag,
@@ -174,9 +190,9 @@ function onButtonTestSearchClick() {
 
 function onButtonPreviewResultsClick() {
 	/*
-	 * Displays preview of the results of the search All the changes defined
-	 * with the commands are reflected in the results
-	 */
+     * Displays preview of the results of the search All the changes defined
+     * with the commands are reflected in the results
+     */
 	gActionToPerform = gActionTypes.previewResults;
 	gOutputFormat = gOutputFormatPreview;
 	gPageToDiplay = 1;
@@ -406,9 +422,11 @@ function cleanIndicator(indicator) {
 
 function displayProperSubfieldInformation(actionParentElement, actionType, displayCondition) {
     actionParentElement.find(".valueParameters").hide();
+    actionParentElement.find(".additionalValueParameters").hide();
     actionParentElement.find(".newValueParameters").hide();
     actionParentElement.find(".conditionParameters").hide();
     actionParentElement.find(".conditionSubfieldParameters").hide();
+    actionParentElement.find(".buttonCell").hide();
 
     if (actionType == null){
         actionType = actionParentElement.find(".subfieldActionType").eq(0).val();
@@ -419,6 +437,11 @@ function displayProperSubfieldInformation(actionParentElement, actionType, displ
     }
 
     if(actionType == gSubfieldActionTypes.replaceText) {
+        actionParentElement.find(".buttonCell").show();
+        // remove the first additionalValueParameters element - it has empty "value" field
+        // and it was used only as a template to clone
+        actionParentElement.find(".additionalValueParameters").eq(0).remove();
+        actionParentElement.find(".additionalValueParameters").show();
         actionParentElement.find(".newValueParameters").show();
     }
 
@@ -636,10 +659,26 @@ function onButtonNewSubfieldClick(instance) {
     // add the new subfield to the UI
     var templateNewSubfield = $("#displayTemplates .templateNewSubfield").clone();
     templateNewSubfield.attr("id", subfieldDisplayID);
+    templateNewSubfield.find(".newValueButtonCell").hide();
     displayProperSubfieldInformation(templateNewSubfield);
     templateField.after(templateNewSubfield);
 
     initTextBoxes();
+}
+
+function onButtonNewValueClick() {
+    // add new input field for substring to replace
+    var valueNewField = $("#displayTemplates .templateNewSubfield .additionalValueParametersTmp").clone();
+    // remove template class
+    valueNewField.removeClass("additionalValueParametersTmp");
+    valueNewField.addClass("additionalValueParameters");
+    valueNewField.show();
+    //place button in the correct place
+    $(this).parents(".valueParameters").siblings(".newValueParameters").before(valueNewField);
+}
+
+function onButtonDeleteValueClick() {
+    $(this).parents(".additionalValueParameters").remove();
 }
 
 function onButtonCancelNewSubfieldClick() {
@@ -706,6 +745,13 @@ function onButtonSaveNewSubfieldClick() {
     templateDisplaySubfield.find(".textBoxNewValue").eq(0).attr("value", currentSubfield.newValue);
     templateDisplaySubfield.find(".conditionExact").eq(0).text(conditionExactText);
     templateDisplaySubfield.find(".textBoxCondition").eq(0).attr("value", currentSubfield.condition);
+
+    templateNewSubfield.find(".additionalValueParameters .textBoxValue").each(function(){
+        var additionalSubfield = templateDisplaySubfield.find(".additionalValueParameters").eq(0).clone();
+        additionalSubfield.find(".textBoxValue").attr("value",$(this).val());
+        additionalSubfield.insertBefore(templateDisplaySubfield.find("span.newValueParameters"));
+    });
+
     if (currentSubfield.conditionSubfield){
         templateDisplaySubfield.find(".textBoxConditionSubfield").eq(0).attr("value", currentSubfield.conditionSubfield);
     }
@@ -942,6 +988,9 @@ function rebindActionsRelatedControls() {
     $("#textBoxConditionSubfieldDisplay").live("change", onTextBoxConditionSubfieldDisplayChange);
     $(".selectConditionExactMatch").live("change", onSelectConditionExactMatchValueDisplayChange);
     $("#textBoxSearchCriteria").live("change", onSearchCriteriaChange);
+    // Add new "value" field and remove "value" field
+    $(".buttonNewValue").live("click", onButtonNewValueClick);
+    $(".buttonDeleteValue").live("click", onButtonDeleteValueClick);
     // Cancel text boxes
     $(".txtTag, .txtInd").live("keyup", onPressEsc);
     // Submit form when pressing Enter
