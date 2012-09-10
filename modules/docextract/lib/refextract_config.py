@@ -66,12 +66,12 @@ CFG_REFEXTRACT_SUBFIELD_YEAR             = "y"      # ref publisher subfield
 CFG_REFEXTRACT_SUBFIELD_BOOK             = "xbook"  # ref book subfield
 
 ## refextract statistics fields:
-CFG_REFEXTRACT_TAG_ID_EXTRACTION_STATS   = "999"  # ref-stats tag
-CFG_REFEXTRACT_IND1_EXTRACTION_STATS     = "C"    # ref-stats ind1
-CFG_REFEXTRACT_IND2_EXTRACTION_STATS     = "6"    # ref-stats ind2
-CFG_REFEXTRACT_SUBFIELD_EXTRACTION_STATS = "a"    # ref-stats subfield
-
-
+CFG_REFEXTRACT_TAG_ID_EXTRACTION_STATS     = "999" # ref-stats tag
+CFG_REFEXTRACT_IND1_EXTRACTION_STATS       = "C"   # ref-stats ind1
+CFG_REFEXTRACT_IND2_EXTRACTION_STATS       = "6"   # ref-stats ind2
+CFG_REFEXTRACT_SUBFIELD_EXTRACTION_STATS   = "a"   # ref-stats subfield
+CFG_REFEXTRACT_SUBFIELD_EXTRACTION_TIME    = "t"   # ref-stats time subfield
+CFG_REFEXTRACT_SUBFIELD_EXTRACTION_VERSION = "v"   # ref-stats version subfield
 ## Internal tags are used by refextract to mark-up recognised citation
 ## information. These are the "closing tags:
 CFG_REFEXTRACT_MARKER_CLOSING_REPORT_NUM = r"</cds.REPORTNUMBER>"

@@ -20,7 +20,7 @@
 import re
 
 from xml.sax.saxutils import escape as encode_for_xml
-from time import mktime, localtime
+from datetime import datetime
 
 from invenio.refextract_re import re_num
 from invenio.docextract_utils import write_message
@@ -40,6 +40,8 @@ from invenio.refextract_config import \
     CFG_REFEXTRACT_IND1_EXTRACTION_STATS, \
     CFG_REFEXTRACT_IND2_EXTRACTION_STATS, \
     CFG_REFEXTRACT_SUBFIELD_EXTRACTION_STATS, \
+    CFG_REFEXTRACT_SUBFIELD_EXTRACTION_TIME, \
+    CFG_REFEXTRACT_SUBFIELD_EXTRACTION_VERSION, \
     CFG_REFEXTRACT_VERSION, \
     CFG_REFEXTRACT_XML_RECORD_CLOSE, \
     CFG_REFEXTRACT_SUBFIELD_URL_DESCR, \
@@ -122,21 +124,25 @@ def create_xml_record(counts, recid, xml_lines, status_code=0):
 
     ## add the 999C6 status subfields:
     out += u"""   <datafield tag="%(df-tag-ref-stats)s" ind1="%(df-ind1-ref-stats)s" ind2="%(df-ind2-ref-stats)s">
-      <subfield code="%(sf-code-ref-stats)s">%(version)s %(timestamp)s-%(status)s-%(reportnum)s-%(title)s-%(author)s-%(url)s-%(doi)s-%(misc)s</subfield>
+      <subfield code="%(sf-code-ref-stats)s">%(status)s-%(reportnum)s-%(title)s-%(author)s-%(url)s-%(doi)s-%(misc)s</subfield>
+      <subfield code="%(sf-code-ref-time)s">%(timestamp)s</subfield>
+      <subfield code="%(sf-code-ref-version)s">%(version)s</subfield>
    </datafield>\n""" \
-        % {'df-tag-ref-stats'  : CFG_REFEXTRACT_TAG_ID_EXTRACTION_STATS,
-           'df-ind1-ref-stats' : CFG_REFEXTRACT_IND1_EXTRACTION_STATS,
-           'df-ind2-ref-stats' : CFG_REFEXTRACT_IND2_EXTRACTION_STATS,
-           'sf-code-ref-stats' : CFG_REFEXTRACT_SUBFIELD_EXTRACTION_STATS,
-           'version'           : CFG_REFEXTRACT_VERSION,
-           'timestamp'         : str(int(mktime(localtime()))),
-           'status'            : status_code,
-           'reportnum'         : counts['reportnum'],
-           'title'             : counts['title'],
-           'author'            : counts['auth_group'],
-           'url'               : counts['url'],
-           'doi'               : counts['doi'],
-           'misc'              : counts['misc'],
+        % {'df-tag-ref-stats'   : CFG_REFEXTRACT_TAG_ID_EXTRACTION_STATS,
+           'df-ind1-ref-stats'  : CFG_REFEXTRACT_IND1_EXTRACTION_STATS,
+           'df-ind2-ref-stats'  : CFG_REFEXTRACT_IND2_EXTRACTION_STATS,
+           'sf-code-ref-stats'  : CFG_REFEXTRACT_SUBFIELD_EXTRACTION_STATS,
+           'sf-code-ref-time'   : CFG_REFEXTRACT_SUBFIELD_EXTRACTION_TIME,
+           'sf-code-ref-version': CFG_REFEXTRACT_SUBFIELD_EXTRACTION_VERSION,
+           'version'            : CFG_REFEXTRACT_VERSION,
+           'timestamp'          : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+           'status'             : status_code,
+           'reportnum'          : counts['reportnum'],
+           'title'              : counts['title'],
+           'author'             : counts['auth_group'],
+           'url'                : counts['url'],
+           'doi'                : counts['doi'],
+           'misc'               : counts['misc'],
           }
 
     ## Now add the closing tag to the record:
