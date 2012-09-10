@@ -209,7 +209,10 @@ class WebInterfaceMultiEditPages(WebInterfaceDirectory):
             action = current_subfield["action"]
             subfield_code = current_subfield["subfieldCode"]
             value = current_subfield["value"]
-            additional_values = current_subfield["additionalValues"] if "additionalValues" in current_subfield else []
+            if "additionalValues" in current_subfield:
+                additional_values = current_subfield["additionalValues"]
+            else:
+                additional_values = []
             new_value = current_subfield["newValue"]
             condition = current_subfield["condition"]
             condition_exact_match = False

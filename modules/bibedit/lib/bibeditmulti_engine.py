@@ -37,6 +37,7 @@ base class.
 __revision__ = "$Id"
 
 import subprocess
+import re
 from invenio import search_engine
 from invenio import bibrecord
 from invenio import bibformat
@@ -219,10 +220,11 @@ class ReplaceTextInSubfieldCommand(BaseSubfieldCommand):
                 if field[4] == field_number:
                     subfields = field[0]
                     (field_code, field_value) = subfields[subfield_index]
-            #replace text
-            new_value = field_value.replace(self._value, self._new_value)
+            replace_string = self._value
             for val in self._additional_values:
-                new_value = new_value.replace(val, self._new_value)
+                replace_string += "|" + val
+            #replace text
+            new_value = re.sub(replace_string, self._new_value, field_value)
             #update the subfield if needed
             if new_value != field_value:
                 bibrecord.record_modify_subfield(record, tag,

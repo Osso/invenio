@@ -88,6 +88,13 @@ div .pagebody td{
     width: 200px;
 }
 
+.pagebody td .beforeValueInput, span.beforeValueInput{
+    color: green;
+    font-size: 12px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
 .textBoxConditionSubfield {
     width: 14px;
 }
@@ -95,6 +102,10 @@ div .pagebody td{
 .textBoxValue{
     margin-right: 1px;
     margin-bottom: 1px;
+}
+
+.additionalValueParametersTmp{
+    display: none;
 }
 
 .msg {
@@ -499,11 +510,11 @@ div .boxleft_2 {
     <td>
         <input id="textBoxValueDisplay" class="txtValue textBoxValue valueParameters" type="text"/>
         <span class="additionalValueParameters">
-            <strong> or </strong>
+            <span class="beforeValueInput"> %(text_or)s </span>
             <input id="textBoxValueDisplay" class="txtValue textBoxValue valueParameters" type="text"/>
         </span>
 
-        <span class="newValueParameters"><strong> %(text_with)s </strong></span>
+        <span class="newValueParameters"><span class="beforeValueInput"> %(text_with)s </span></span>
         <input id="textBoxNewValueDisplay" class="txtValue textBoxNewValue newValueParameters" type="text" value="%(text_new_value)s"/>
 
         <span class="conditionParameters"><strong> %(text_with_condition)s</strong></span>
@@ -544,7 +555,7 @@ div .boxleft_2 {
         </td>
     </tr>
     <tr class="additionalValueParametersTmp">
-        <td /><td /><td /><td />
+        <td /><td /><td /><td class="beforeValueInput">OR</td >
         <td>
             <input id="textBoxValue" class="txtValue textBoxValue" type="text" placeholder="%(text_value)s"/>
         </td>
@@ -554,7 +565,7 @@ div .boxleft_2 {
         </td>
     </tr>
     <tr class="newValueParameters">
-        <td /><td /><td /><td />
+        <td /><td /><td /><td class="beforeValueInput">WITH</td>
         <td colspan="3">
             <input id="textBoxNewValue" class="txtValue textBoxNewValue" type="text" placeholder="%(text_new_value)s"/>
         </td>
@@ -616,6 +627,7 @@ div .boxleft_2 {
               "text_cancel" : _("Cancel"),
               "text_replace_text" : _("Replace substring"),
               "text_replace_content" : _("Replace full content"),
+              "text_or" : _("or"),
               "text_with" : _("with"),
               "text_with_condition": _("when subfield $$"),
               "text_new_value" : _("new value"),
