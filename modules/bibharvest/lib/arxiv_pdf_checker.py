@@ -237,9 +237,10 @@ def process_one(recid):
             if count != 0:
                 time.sleep(60)
             url_for_pdf = build_arxiv_url(arxiv_id)
+            filename_arxiv_id = arxiv_id.replace('/', '_')
             temp_fd, temp_path = mkstemp(prefix="arxiv-pdf-checker",
                                          dir=CFG_TMPSHAREDDIR,
-                                         suffix="%s.pdf" % arxiv_id)
+                                         suffix="%s.pdf" % filename_arxiv_id)
             try:
                 os.close(temp_fd)
                 write_message('downloading pdf from %s' % url_for_pdf)
@@ -249,7 +250,7 @@ def process_one(recid):
                 docs = BibRecDocs(recid)
                 docs.add_new_file(path,
                                   doctype="arXiv",
-                                  docname="arXiv:%s" % arxiv_id)
+                                  docname="arXiv:%s" % filename_arxiv_id)
             except:
                 if os.path.isfile(temp_path):
                     os.unlink(temp_path)
