@@ -8,6 +8,7 @@ from invenio.testutils import make_test_suite, run_test_suite
 from invenio.docextract_utils import setup_loggers
 from invenio import bibupload
 from invenio import bibtask
+from invenio.dbquery import run_sql
 from invenio.search_engine_utils import get_fieldvalues
 
 
@@ -90,6 +91,7 @@ class TestTask(unittest.TestCase):
     def test_download_external_url(self):
         from invenio.arxiv_pdf_checker import download_external_url, \
                                               InvenioFileDownloadError
+
         temp_fd, temp_path = mkstemp()
         try:
             try:
@@ -105,8 +107,14 @@ class TestTask(unittest.TestCase):
         from invenio import arxiv_pdf_checker
         from invenio.arxiv_pdf_checker import process_one, \
                                               look_for_fulltext, \
-                                              FoundExistingPdf
+                                              FoundExistingPdf, \
+                                              fetch_arxiv_pdf_status, \
+                                              STATUS_OK, \
+                                              AlreadyHarvested
         arxiv_pdf_checker.ARXIV_URL_PATTERN = EXAMPLE_PDF_URL + "?%s"
+
+        # Make sure there is no harvesting state stored or this test will fail
+        run_sql('DELETE FROM bibARXIVPDF WHERE id_bibrec = %s', [self.recid])
 
         # Remove all pdfs from record 3
         for doc, docfile in look_for_fulltext(self.recid):
@@ -119,6 +127,18 @@ class TestTask(unittest.TestCase):
         docs = list(look_for_fulltext(self.recid))
         if not docs:
             self.fail()
+
+        # Check that harvesting state is stored
+        status = fetch_arxiv_pdf_status(self.recid)
+        if status != STATUS_OK:
+            self.fail('found status %s' % status)
+
+        try:
+            process_one(self.recid)
+            self.fail()
+        except AlreadyHarvested:
+            run_sql('DELETE FROM bibARXIVPDF WHERE id_bibrec = %s',
+                    [self.recid])
 
         # We know the PDF is attached, run process_one again
         # and it needs to raise an error

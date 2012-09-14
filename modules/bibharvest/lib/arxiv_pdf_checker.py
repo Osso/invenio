@@ -39,7 +39,8 @@ from invenio.bibtask import task_init, \
                             write_message, \
                             task_update_progress, \
                             task_get_option, \
-                            task_set_option
+                            task_set_option, \
+                            task_sleep_now_if_required
 from invenio.search_engine_utils import get_fieldvalues
 from invenio.config import CFG_VERSION, \
                            CFG_TMPSHAREDDIR
@@ -52,8 +53,18 @@ NAME = 'arxiv-pdf-checker'
 ARXIV_URL_PATTERN = "http://export.arxiv.org/pdf/%s.pdf"
 
 
+STATUS_OK = 'ok'
+STATUS_MISSING = 'missing'
+
+
 class InvenioFileDownloadError(Exception):
     """A generic download exception."""
+    def __init__(self, msg, code=None):
+        super(InvenioFileDownloadError, self).__init__(msg)
+        self.code = code
+
+
+class PdfNotAvailable(Exception):
     pass
 
 
@@ -63,6 +74,12 @@ class InvalidReportNumber(Exception):
 
 class FoundExistingPdf(Exception):
     pass
+
+
+class AlreadyHarvested(Exception):
+    def __init__(self, status):
+        super(AlreadyHarvested, self).__init__()
+        self.status = status
 
 
 def build_arxiv_url(arxiv_id):
@@ -82,6 +99,11 @@ def extract_arxiv_ids_from_recid(recid):
 
 
 def look_for_fulltext(recid):
+    """Look for fulltext pdf (bibdocfile) for a given recid
+
+    Function that was missing from refextract when arxiv-pdf-checker
+    was implemented. It should be switched to using the refextract version
+    when it is merged to master"""
     rec_info = BibRecDocs(recid)
     docs = rec_info.list_bibdocs()
 
@@ -95,15 +117,8 @@ def look_for_fulltext(recid):
 
 
 def shellquote(s):
+    """Quote a string to use it safely as a shell argument"""
     return "'" + s.replace("'", "'\\''") + "'"
-
-
-def check_options():
-    """ Reimplement this method for having the possibility to check options
-    before submitting the task, in order for example to provide default
-    values. It must return False if there are errors in the options.
-    """
-    return True
 
 
 def cb_parse_option(key, value, opts, args):
@@ -121,6 +136,24 @@ def cb_parse_option(key, value, opts, args):
         recids.update(split_cli_ids_arg(value))
 
     return True
+
+
+def store_arxiv_pdf_status(recid, status):
+    """Store pdf harvesting status in the database"""
+    valid_status = (STATUS_OK, STATUS_MISSING)
+    if status not in valid_status:
+        raise ValueError('invalid status %s' % status)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    run_sql("""REPLACE INTO bibARXIVPDF (id_bibrec, status, date_harvested)
+            VALUES (%s, %s, %s)""", (recid, status, now))
+
+
+def fetch_arxiv_pdf_status(recid):
+    ret = run_sql("""SELECT status FROM bibARXIVPDF
+                     WHERE id_bibrec = %s""", [recid])
+    if ret:
+        return ret[0][0]
+    return None
 
 
 ### File utils temporary acquisition
@@ -170,10 +203,12 @@ def download_external_url(url, download_to_file, content_type=None,
     # 1. Attempt to download the external file
     attempts = 0
     error_str = ""
+    error_code = None
     while attempts < retry_count:
         try:
             request = open_url(url)
         except urllib2.HTTPError, e:
+            error_code = e.code
             error_str = str(e)
             attempts += 1
             if e.code == 503:
@@ -195,7 +230,7 @@ def download_external_url(url, download_to_file, content_type=None,
         return download_to_file
     else:
         # All the attempts were used, but no successfull download - so raise error
-        raise InvenioFileDownloadError('URL could not be opened: %s' % (error_str,))
+        raise InvenioFileDownloadError('URL could not be opened: %s' % (error_str,), code=error_code)
 
 
 def finalize_download(url, download_to_file, content_type, request):
@@ -217,6 +252,14 @@ def finalize_download(url, download_to_file, content_type, request):
     if os.path.getsize(download_to_file) == 0:
         raise InvenioFileDownloadError("%s seems to be empty" % (url,))
 
+    f = open(download_to_file)
+    try:
+        for line in f:
+            if 'PDF unavailable' in line:
+                raise PdfNotAvailable()
+    finally:
+        f.close()
+
     # 4. If format is given, a format check is performed.
     if content_type and content_type not in request.headers['content-type']:
         raise InvenioFileDownloadError('The downloaded file is not of the desired format')
@@ -228,33 +271,48 @@ def finalize_download(url, download_to_file, content_type, request):
 ### End of file utils temporary acquisition
 
 
+def download_one(recid):
+    write_message('fetching %s' % recid)
+    for count, arxiv_id in enumerate(extract_arxiv_ids_from_recid(recid)):
+        if count != 0:
+            time.sleep(60)
+        url_for_pdf = build_arxiv_url(arxiv_id)
+        filename_arxiv_id = arxiv_id.replace('/', '_')
+        temp_fd, temp_path = mkstemp(prefix="arxiv-pdf-checker",
+                                     dir=CFG_TMPSHAREDDIR,
+                                     suffix="%s.pdf" % filename_arxiv_id)
+        try:
+            os.close(temp_fd)
+            write_message('downloading pdf from %s' % url_for_pdf)
+            path = download_external_url(url_for_pdf,
+                                         temp_path,
+                                         content_type='pdf')
+            docs = BibRecDocs(recid)
+            docs.add_new_file(path,
+                              doctype="arXiv",
+                              docname="arXiv:%s" % filename_arxiv_id)
+        except:
+            if os.path.isfile(temp_path):
+                os.unlink(temp_path)
+            raise
+
+
 def process_one(recid):
+    write_message('checking %s' % recid)
+
+    harvest_status = fetch_arxiv_pdf_status(recid)
+    if harvest_status:
+        raise AlreadyHarvested(status=harvest_status)
+
     if record_has_fulltext(recid):
         raise FoundExistingPdf()
-    else:
-        write_message('fetching %s' % recid)
-        for count, arxiv_id in enumerate(extract_arxiv_ids_from_recid(recid)):
-            if count != 0:
-                time.sleep(60)
-            url_for_pdf = build_arxiv_url(arxiv_id)
-            filename_arxiv_id = arxiv_id.replace('/', '_')
-            temp_fd, temp_path = mkstemp(prefix="arxiv-pdf-checker",
-                                         dir=CFG_TMPSHAREDDIR,
-                                         suffix="%s.pdf" % filename_arxiv_id)
-            try:
-                os.close(temp_fd)
-                write_message('downloading pdf from %s' % url_for_pdf)
-                path = download_external_url(url_for_pdf,
-                                             temp_path,
-                                             content_type='pdf')
-                docs = BibRecDocs(recid)
-                docs.add_new_file(path,
-                                  doctype="arXiv",
-                                  docname="arXiv:%s" % filename_arxiv_id)
-            except:
-                if os.path.isfile(temp_path):
-                    os.unlink(temp_path)
-                raise
+
+    try:
+        download_one(recid)
+        store_arxiv_pdf_status(recid, STATUS_OK)
+    except PdfNotAvailable:
+        store_arxiv_pdf_status(recid, STATUS_MISSING)
+        raise
 
 
 def fetch_updated_arxiv_records(date):
@@ -289,13 +347,25 @@ def task_run_core(name=NAME):
         if count % 50 == 0:
             write_message('done %s of %s' % (count, len(recids)))
 
+        task_sleep_now_if_required(can_stop_too=True)
+
+        if count != 0:
+            time.sleep(60)
+
         write_message('processing %s' % recid, verbose=9)
         try:
             process_one(recid)
-            if count + 1 != len(recids):
-                time.sleep(60)
+        except AlreadyHarvested, e:
+            if e.status == STATUS_OK:
+                write_message('already harvested successfully')
+            if e.status == STATUS_MISSING:
+                write_message('already harvested and pdf is missing')
+            else:
+                write_message('already harvested: %s' % e.status)
         except FoundExistingPdf:
             write_message('found existing pdf')
+        except PdfNotAvailable:
+            write_message("no pdf available")
         except InvenioFileDownloadError, e:
             write_message("failed to download: %s" % e)
 
@@ -324,5 +394,4 @@ def main():
         version="Invenio v%s" % CFG_VERSION,
         specific_params=("i:", ["id="]),
         task_submit_elaborate_specific_parameter_fnc=cb_parse_option,
-        task_submit_check_options_fnc=check_options,
         task_run_fnc=task_run_core)
