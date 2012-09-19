@@ -52,7 +52,7 @@ from invenio.refextract_config import \
     CFG_REFEXTRACT_SUBFIELD_ISBN, \
     CFG_REFEXTRACT_SUBFIELD_PUBLISHER, \
     CFG_REFEXTRACT_SUBFIELD_YEAR, \
-    CFG_REFEXTRACT_SUBFIELD_BOOK
+    CFG_REFEXTRACT_SUBFIELD_COLLABORATION
 
 from invenio import config
 CFG_INSPIRE_SITE = getattr(config, 'CFG_INSPIRE_SITE', False)
@@ -328,8 +328,6 @@ def build_xml_citation(citation_elements, line_marker, inspire_format=None):
             xml_line = append_subfield_element(xml_line,
                                                CFG_REFEXTRACT_SUBFIELD_QUOTED,
                                                element['title'])
-            xml_line += '\n      <subfield code="%s" />' % \
-                CFG_REFEXTRACT_SUBFIELD_BOOK
             line_elements.append(element)
 
         elif element['type'] == "PUBLISHER":
@@ -342,6 +340,12 @@ def build_xml_citation(citation_elements, line_marker, inspire_format=None):
             xml_line = append_subfield_element(xml_line,
                                                CFG_REFEXTRACT_SUBFIELD_YEAR,
                                                element['year'])
+            line_elements.append(element)
+
+        elif element['type'] == "COLLABORATION":
+            xml_line = append_subfield_element(xml_line,
+                                               CFG_REFEXTRACT_SUBFIELD_COLLABORATION,
+                                               element['collaboration'])
             line_elements.append(element)
 
         # The number of elements processed

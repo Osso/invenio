@@ -44,7 +44,11 @@ from invenio.refextract_config import \
 from invenio.config import CFG_PATH_GFILE
 
 from invenio.refextract_tag import tag_reference_line, \
-    sum_2_dictionaries, identify_and_tag_DOI, identify_and_tag_URLs
+                                   sum_2_dictionaries, \
+                                   identify_and_tag_DOI, \
+                                   identify_and_tag_URLs, \
+                                   find_numeration, \
+                                   extract_series_from_volume
 from invenio.refextract_xml import create_xml_record, \
                                    build_xml_citations
 from invenio.docextract_pdf import convert_PDF_to_plaintext
@@ -294,6 +298,10 @@ def split_citations(citation_elements):
     current_recid = None
 
     def check_ibid(current_elements, trigger_el):
+        for el in new_elements:
+            if el['type'] == 'AUTH':
+                return
+
         # Check for ibid
         if trigger_el.get('is_ibid', False):
             if splitted_citations:
@@ -329,9 +337,15 @@ def split_citations(citation_elements):
             start_new_citation()
             # Some authors may be found in the previous citation
             balance_authors(splitted_citations, new_elements)
-        elif ';' in el['misc_txt'] and valid_citation(new_elements):
-            el['misc_txt'], to_merge = el['misc_txt'].rsplit(';', 1)
+        elif ';' in el['misc_txt']:
+            el['misc_txt'], to_merge = el['misc_txt'].split(';', 1)
             start_new_citation()
+            while ';' in to_merge:
+                misc_txt, to_merge = to_merge.split(';', 1)
+                new_elements.append({'type': 'MISC',
+                                     'misc_txt': misc_txt,
+                                    })
+                start_new_citation()
 
         if el_recid:
             current_recid = el_recid
@@ -408,17 +422,70 @@ def add_year_elements(splitted_citations):
     return splitted_citations
 
 
+def look_for_implied_ibids(splitted_citations):
+    def look_for_journal(els):
+        for el in citation:
+            if el['type'] == 'JOURNAL':
+                return True
+        return False
+
+    current_journal = None
+    for citation in splitted_citations:
+        if current_journal and not look_for_journal(citation):
+            for el in citation:
+                if el['type'] == 'MISC':
+                    numeration = find_numeration(el['misc_txt'])
+                    if numeration:
+                        if not numeration['series']:
+                            numeration['series'] = extract_series_from_volume(current_journal['volume'])
+                        if numeration['series']:
+                            volume = numeration['series'] + numeration['volume']
+                        else:
+                            volume = numeration['volume']
+                        ibid_el = {'type'       : 'JOURNAL',
+                                   'misc_txt'   : '',
+                                   'title'      : current_journal['title'],
+                                   'volume'     : volume,
+                                   'year'       : numeration['year'],
+                                   'page'       : numeration['page'],
+                                   'is_ibid'    : True,
+                                   'extra_ibids': []
+                                  }
+                        citation.append(ibid_el)
+                        el['misc_txt'] = el['misc_txt'][numeration['len']:]
+
+        current_journal = None
+        for el in citation:
+            if el['type'] == 'JOURNAL':
+                current_journal = el
+
+    return splitted_citations
+
+
+def remove_duplicated_authors(splitted_citations):
+    for citation in splitted_citations:
+        found_author = False
+        for el in citation:
+            if el['type'] == 'AUTH':
+                if found_author:
+                    el['type'] = 'MISC'
+                    el['misc_txt'] = el['auth_txt'] + el['misc_txt']
+                else:
+                    found_author = True
+
+    return splitted_citations
+
+
 ## End of elements transformations
 
 
-def print_citations(splitted_citations):
+def print_citations(splitted_citations, line_marker):
     write_message('* splitted_citations', verbose=9)
+    write_message('  * line marker %s' % line_marker, verbose=9)
     for citation in splitted_citations:
-        write_message("  * citation", verbose=9)
+        write_message("  * elements", verbose=9)
         for el in citation:
-            write_message('    * el', verbose=9)
-            for t in el.iteritems():
-                write_message('      * %s: %s' % t, verbose=9)
+            write_message('    * %s %s' % (el['type'], repr(el)), verbose=9)
 
 
 def parse_reference_line(ref_line, kbs, bad_titles_count={}):
@@ -464,13 +531,16 @@ def parse_reference_line(ref_line, kbs, bad_titles_count={}):
 
     # Split the reference in multiple ones if needed
     splitted_citations = split_citations(citation_elements)
-
+    # Look for implied ibids
+    splitted_citations = look_for_implied_ibids(splitted_citations)
     # Remove references with only misc text
     splitted_citations = remove_invalid_references(splitted_citations)
     # Find year
     splitted_citations = add_year_elements(splitted_citations)
+    # Remove duplicate authors
+    splitted_citations = remove_duplicated_authors(splitted_citations)
     # For debugging puposes
-    print_citations(splitted_citations)
+    print_citations(splitted_citations, line_marker)
 
     return splitted_citations, line_marker, counts, bad_titles_count
 
@@ -866,6 +936,13 @@ def parse_tagged_reference_line(line_marker,
                                     processed_line[tag_match_end:],
                                     cur_misc_txt,
                                     'publisher')
+
+        elif tag_type == "COLLABORATION":
+            identified_citation_element, processed_line, cur_misc_txt = \
+                map_tag_to_subfield(tag_type,
+                                    processed_line[tag_match_end:],
+                                    cur_misc_txt,
+                                    'collaboration')
 
         if identified_citation_element:
             # Append the found tagged data and current misc text

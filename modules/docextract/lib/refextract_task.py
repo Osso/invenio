@@ -33,6 +33,7 @@ from invenio.config import CFG_VERSION, \
                            CFG_BIBCATALOG_SYSTEM, \
                            CFG_REFEXTRACT_TICKET_QUEUE
 from invenio.dbquery import run_sql
+from invenio.search_engine import perform_request_search
 # Help message is the usage() print out of how to use Refextract
 from invenio.refextract_cli import HELP_MESSAGE, DESCRIPTION
 from invenio.refextract_api import update_references, \
@@ -100,7 +101,8 @@ def parse_option(key, value, opts, args):
         if not collections:
             collections = set()
             task_set_option('collections', collections)
-        collections.update(split_ids(value))
+        for v in value.split(","):
+            collections.update(perform_request_search(c=v))
     elif key in ('-r', '--recids'):
         recids = task_get_option('recids')
         if not recids:

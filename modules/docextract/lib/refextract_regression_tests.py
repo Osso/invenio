@@ -135,11 +135,15 @@ class RefextractInvenioTest(unittest.TestCase):
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">14</subfield>
-      <subfield code="h">(CMS Collaboration)</subfield>
+      <subfield code="c">CMS Collaboration</subfield>
       <subfield code="r">CMS-PAS-HIG-12-002</subfield>
+      <subfield code="c">CMS Collaboration</subfield>
       <subfield code="r">CMS-PAS-HIG-12-008</subfield>
+      <subfield code="c">CMS Collaboration</subfield>
       <subfield code="r">CMS-PAS-HIG-12-022</subfield>
+      <subfield code="c">ATLAS Collaboration</subfield>
       <subfield code="r">arXiv:1205.0701</subfield>
+      <subfield code="c">ATLAS Collaboration</subfield>
       <subfield code="r">ATL-CONF-2012-078</subfield>
    </datafield>
 </record>""")
@@ -149,6 +153,9 @@ class RefextractTest(unittest.TestCase):
     """Testing output of refextract"""
 
     def setUp(self):
+        self.old_inspire = refextract_xml.CFG_INSPIRE_SITE
+        refextract_xml.CFG_INSPIRE_SITE = True
+
         self.inspire = True
         self.kb_books = [
             ('Griffiths, David', 'Introduction to elementary particles', '2008')
@@ -188,6 +195,7 @@ class RefextractTest(unittest.TestCase):
             ("REVIEWS OF MODERN PHYSICS", "Rev.Mod.Phys."),
             ("NUCL INSTRUM METHODS", "Nucl.Instrum.Meth."),
             ("Z PHYS", "Z.Phys."),
+            ("Eur. Phys. J.", "Eur.Phys.J."),
         ]
         self.kb_journals_re = [
             "DAN---Dokl.Akad.Nauk Ser.Fiz.",
@@ -221,6 +229,9 @@ class RefextractTest(unittest.TestCase):
         ]
         setup_loggers(verbosity=9)
         self.maxDiff = 2500
+
+    def tearDown(self):
+        refextract_xml.CFG_INSPIRE_SITE = self.old_inspire
 
     def test_year_title_volume_page(self):
         ref_line = u"[14] L. Randall and R. Sundrum, (1999) Phys. Rev. Lett. B83  S08004 More text"
@@ -308,6 +319,22 @@ class RefextractTest(unittest.TestCase):
       <subfield code="o">3</subfield>
       <subfield code="r">hep-th/9802109</subfield>
       <subfield code="u">http://cdsweb.cern.ch/search.py?AGE=hello-world&amp;ln=en</subfield>
+   </datafield>
+</record>""")
+
+    def test_url5(self):
+        ref_line = u"""[9] H. J. Drescher and Y. Nara, Phys. Rev. C 75, 034905 (2007); MC-KLN 3.46 at http://www.aiu.ac.jp/ynara/mckln/."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">9</subfield>
+      <subfield code="h">H. J. Drescher and Y. Nara</subfield>
+      <subfield code="s">Phys.Rev.,C75,034905</subfield>
+      <subfield code="y">2007</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">9</subfield>
+      <subfield code="u">http://www.aiu.ac.jp/ynara/mckln/</subfield>
    </datafield>
 </record>""")
 
@@ -996,6 +1023,7 @@ class RefextractTest(unittest.TestCase):
 </record>""")
 
     def test_ibid(self):
+        """Simple ibid test"""
         ref_line = u"""[46] E. Schrodinger, Sitzungsber. Preuss. Akad. Wiss. Phys. Math. Kl. 24, 418(1930); ibid, 3, 1(1931)"""
         reference_test(self, ref_line, u"""<record>
    <controlfield tag="001">1</controlfield>
@@ -1010,6 +1038,74 @@ class RefextractTest(unittest.TestCase):
       <subfield code="h">E. Schrodinger</subfield>
       <subfield code="s">Sitzungsber.Preuss.Akad.Wiss.Berlin (Math.Phys.),3,1</subfield>
       <subfield code="y">1931</subfield>
+   </datafield>
+</record>""")
+
+    def test_ibid2(self):
+        "Series has to be recognized for ibid to work properly"
+        ref_line = u"""[46] E. Schrodinger, J.Phys. G 24, 418 (1930); ibid, 3, 1(1931)"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">46</subfield>
+      <subfield code="h">E. Schrodinger</subfield>
+      <subfield code="s">J.Phys.,G24,418</subfield>
+      <subfield code="y">1930</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">46</subfield>
+      <subfield code="h">E. Schrodinger</subfield>
+      <subfield code="s">J.Phys.,G3,1</subfield>
+      <subfield code="y">1931</subfield>
+   </datafield>
+</record>""")
+
+    def test_ibid3(self):
+        "Series after volume has to be recognized for ibid to work properly"
+        ref_line = u"""[46] E. Schrodinger, J.Phys. G 24, 418 (1930); ibid, 3, 1(1931)"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">46</subfield>
+      <subfield code="h">E. Schrodinger</subfield>
+      <subfield code="s">J.Phys.,G24,418</subfield>
+      <subfield code="y">1930</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">46</subfield>
+      <subfield code="h">E. Schrodinger</subfield>
+      <subfield code="s">J.Phys.,G3,1</subfield>
+      <subfield code="y">1931</subfield>
+   </datafield>
+</record>""")
+
+    def test_ibid4(self):
+        "Series has to be recognized for ibid to work properly"
+        ref_line = u"""[46] E. Schrodinger, J.Phys. G 24, 418 (1930); ibid, A 3, 1(1931)"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">46</subfield>
+      <subfield code="h">E. Schrodinger</subfield>
+      <subfield code="s">J.Phys.,G24,418</subfield>
+      <subfield code="y">1930</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">46</subfield>
+      <subfield code="h">E. Schrodinger</subfield>
+      <subfield code="s">J.Phys.,A3,1</subfield>
+      <subfield code="y">1931</subfield>
+   </datafield>
+</record>""")
+
+    def test_invalid_ibid(self):
+        "Ibid with no preceding journals, needs to go to misc text"
+        ref_line = u"""[46] E. Schrodinger, ibid, 3, 1(1931)"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">46</subfield>
+      <subfield code="h">E. Schrodinger</subfield>
    </datafield>
 </record>""")
 
@@ -1043,6 +1139,16 @@ class RefextractTest(unittest.TestCase):
    </datafield>
 </record>""")
 
+    def test_doi2(self):
+        ref_line = u"""[1] http://dx.doi.org/10.1175/1520-0442(2000)013<2671:TAORTT>2.0.CO;2"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">1</subfield>
+      <subfield code="a">10.1175/1520-0442(2000)013&lt;2671:TAORTT&gt;2.0.CO;2</subfield>
+   </datafield>
+</record>""")
+
     def test_misc3(self):
         ref_line = u"""[49] M. I. Trofimov, N. De Filippis and E. A. Smolenskii. Application of the electronegativity indices of organic molecules to tasks of chemical informatics. Russ. Chem. Bull., 54:2235-2246, 2005. http://dx.doi.org/10.1007/s11172-006-0105-6."""
         reference_test(self, ref_line, u"""<record>
@@ -1060,12 +1166,12 @@ class RefextractTest(unittest.TestCase):
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">50</subfield>
-      <subfield code="h">M. Gell-Mann, P. Ramon ans R. Slansky P. van Niewenhuizen and D. Freedman</subfield>
+      <subfield code="h">M. Gell-Mann, P. Ramon ans R. Slansky</subfield>
       <subfield code="p">North-Holland</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">50</subfield>
-      <subfield code="h">T. Yanagida (O. Sawaga and A. Sugamoto (eds.))</subfield>
+      <subfield code="h">T. Yanagida</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">50</subfield>
@@ -1176,7 +1282,7 @@ class RefextractTest(unittest.TestCase):
    </datafield>
 </record>""")
 
-    def test_ibidem(self):
+    def test_ibid_two_journals(self):
         """IBIDEM test
 
         ibidem must copy the previous reference journal and not
@@ -1203,13 +1309,14 @@ class RefextractTest(unittest.TestCase):
 </record>""")
 
     def test_collaboration(self):
-        """collabration"""
+        """collaboration"""
         ref_line = u"""[60] HERMES Collaboration, Airapetian A et al. 2005 Phys. Rev. D 71 012003 1-36"""
         reference_test(self, ref_line, u"""<record>
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">60</subfield>
-      <subfield code="h">(HERMES Collaboration) Airapetian A et al.</subfield>
+      <subfield code="c">HERMES Collaboration</subfield>
+      <subfield code="h">Airapetian A et al.</subfield>
       <subfield code="s">Phys.Rev.,D71,012003</subfield>
       <subfield code="y">2005</subfield>
    </datafield>
@@ -1438,7 +1545,8 @@ Rev. D 80 034030 1-25"""
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">1</subfield>
-      <subfield code="h">(ATLAS Collaboration) G. Aad et al.</subfield>
+      <subfield code="c">ATLAS Collaboration</subfield>
+      <subfield code="h">G. Aad et al.</subfield>
       <subfield code="s">JINST,3,S08003</subfield>
       <subfield code="y">2008</subfield>
    </datafield>
@@ -1450,7 +1558,8 @@ Rev. D 80 034030 1-25"""
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">28</subfield>
-      <subfield code="h">(Particle Data Group Collaboration) K. Nakamura et al.</subfield>
+      <subfield code="c">Particle Data Group Collaboration</subfield>
+      <subfield code="h">K. Nakamura et al.</subfield>
       <subfield code="s">J.Phys.,G37,075021</subfield>
       <subfield code="y">2010</subfield>
    </datafield>
@@ -1499,7 +1608,7 @@ Rev. D 80 034030 1-25"""
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">32</subfield>
-      <subfield code="h">(The ATLAS Collaboration)</subfield>
+      <subfield code="c">The ATLAS Collaboration</subfield>
       <subfield code="u">http://cdsweb.cern.ch/record/1266235/files/ATLAS-COM-CONF-2010-031.pdf</subfield>
       <subfield code="r">ATL-CONF-2010-031</subfield>
    </datafield>
@@ -1512,7 +1621,8 @@ Rev. D 80 034030 1-25"""
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">19</subfield>
-      <subfield code="h">(ATLAS Inner Detector software group Collaboration) T. Cornelissen, M. Elsing, I. Gavilenko, W. Liebig, E. Moyse, and A. Salzburger</subfield>
+      <subfield code="c">ATLAS Inner Detector software group Collaboration</subfield>
+      <subfield code="h">T. Cornelissen, M. Elsing, I. Gavilenko, W. Liebig, E. Moyse, and A. Salzburger</subfield>
       <subfield code="s">J.Phys.,119,032014</subfield>
       <subfield code="y">2008</subfield>
    </datafield>
@@ -1631,7 +1741,8 @@ Rev. D 80 034030 1-25"""
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">28</subfield>
-      <subfield code="h">(Particle Data Group Collaboration) K. Nakamura et al.</subfield>
+      <subfield code="c">Particle Data Group Collaboration</subfield>
+      <subfield code="h">K. Nakamura et al.</subfield>
       <subfield code="s">J.Phys.,G37,075021</subfield>
       <subfield code="y">2010</subfield>
    </datafield>
@@ -1777,12 +1888,12 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">15</subfield>
       <subfield code="h">T.G. Rizzo</subfield>
+      <subfield code="m">Proceedings of the 1990 Summer Study on High Energy Physics</subfield>
       <subfield code="s">Phys.Rev.,D40,3035</subfield>
       <subfield code="y">1989</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">15</subfield>
-      <subfield code="m">Proceedings of the 1990 Summer Study on High Energy Physics</subfield>
       <subfield code="h">(E. Berger (eds.))</subfield>
    </datafield>
    <datafield tag="999" ind1="C" ind2="5">
@@ -1852,7 +1963,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">26</subfield>
       <subfield code="h">U. Gursoy and E. Kiritsis</subfield>
-      <subfield code="t">Exploring improved holographic theories for QCD Part I</subfield>
+      <subfield code="t">Exploring improved holographic theories for QCD: Part I</subfield>
       <subfield code="s">JHEP,0802,032</subfield>
       <subfield code="r">arXiv:0707.1324</subfield>
       <subfield code="y">2008</subfield>
@@ -1860,7 +1971,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">26</subfield>
       <subfield code="h">U. Gursoy, E. Kiritsis and F. Nitti</subfield>
-      <subfield code="t">Exploring improved holographic theories for QCD Part II</subfield>
+      <subfield code="t">Exploring improved holographic theories for QCD: Part II</subfield>
       <subfield code="s">JHEP,0802,019</subfield>
       <subfield code="r">arXiv:0707.1349</subfield>
       <subfield code="y">2008</subfield>
@@ -1904,7 +2015,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">20</subfield>
       <subfield code="h">G. Duckeck et al.</subfield>
-      <subfield code="t">ATLAS computing Technical design report</subfield>
+      <subfield code="t">ATLAS computing: Technical design report</subfield>
       <subfield code="r">CERN-LHCC-2005-022</subfield>
    </datafield>
 </record>""")
@@ -1916,7 +2027,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">20</subfield>
       <subfield code="h">G. Duckeck et al.</subfield>
-      <subfield code="t">ATLAS computing Technical design report</subfield>
+      <subfield code="t">ATLAS computing: Technical design report</subfield>
       <subfield code="r">CERN-LHCC-2005-022</subfield>
    </datafield>
 </record>""")
@@ -1928,7 +2039,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">20</subfield>
       <subfield code="h">G. Duckeck, (ed.) et al.</subfield>
-      <subfield code="t">ATLAS computing Technical design report</subfield>
+      <subfield code="t">ATLAS computing: Technical design report</subfield>
       <subfield code="r">CERN-LHCC-2005-022</subfield>
    </datafield>
 </record>""")
@@ -1940,7 +2051,7 @@ Rev. D 80 034030 1-25"""
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">20</subfield>
       <subfield code="h">G. Duckeck</subfield>
-      <subfield code="t">ATLAS computing Technical design report</subfield>
+      <subfield code="t">ATLAS computing: Technical design report</subfield>
    </datafield>
 </record>""")
 
@@ -1976,7 +2087,6 @@ Rev. D 80 034030 1-25"""
       <subfield code="h">D. Griffiths</subfield>
       <subfield code="p">Wiley-VCH</subfield>
       <subfield code="t">Introduction to elementary particles</subfield>
-      <subfield code="xbook" />
       <subfield code="y">2008</subfield>
    </datafield>
 </record>""")
@@ -2131,6 +2241,18 @@ Rev. D 80 034030 1-25"""
    </datafield>
 </record>""")
 
+    def test_pos4(self):
+        ref_line = u"""[23] PoS CHARGED 2010, 030 (2010)"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">23</subfield>
+      <subfield code="s">PoS,CHARGED2010,030</subfield>
+      <subfield code="y">2010</subfield>
+   </datafield>
+</record>""")
+
+
     def test_complex_author(self):
         ref_line = u"""[39] Michael E. Peskin, Michael E. Peskin and Michael E. Peskin “An Introduction To Quantum Field Theory,” Westview Press, 1995."""
         reference_test(self, ref_line, u"""<record>
@@ -2182,7 +2304,7 @@ Rev. D 80 034030 1-25"""
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">69</subfield>
-      <subfield code="h">(ATLAS Collaboration)</subfield>
+      <subfield code="c">ATLAS Collaboration</subfield>
       <subfield code="u">http://indico.cern.ch/getFile.py/access?contribId=9&amp;resId=1&amp;materialId=slides&amp;confId=35502</subfield>
    </datafield>
 </record>""")
@@ -2324,25 +2446,65 @@ Rev. D 80 034030 1-25"""
 
         (not in report-numbers.kb)
         """
-        ref_line = u"""[6] Sivers D. W., math.AA/8888888"""
+        ref_line = u"""[6] Sivers D. W., math.AA/0101888"""
         reference_test(self, ref_line, u"""<record>
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">6</subfield>
       <subfield code="h">Sivers D. W.</subfield>
-      <subfield code="r">math.AA/8888888</subfield>
+      <subfield code="r">math.AA/0101888</subfield>
+   </datafield>
+</record>""")
+
+    def test_arxiv_report_number2(self):
+        """: instead of / in arxiv report number"""
+        ref_line = u"""[12] C. T. Hill and E. H. Simmons, Phys. Rept. 381: 235-402 (2003), Erratum-ibid. 390: 553-554 (2004) [arXiv: hep-ph:0203079]."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">12</subfield>
+      <subfield code="h">C. T. Hill and E. H. Simmons</subfield>
+      <subfield code="r">hep-ph/0203079</subfield>
+   </datafield>
+</record>""")
+
+    def test_arxiv_report_number3(self):
+        """: instead of / in arxiv report number"""
+        ref_line = u"""[12] hep-ph/0203079v1"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">12</subfield>
+      <subfield code="r">hep-ph/0203079</subfield>
+   </datafield>
+</record>""")
+
+    def test_arxiv_report_number4(self):
+        """: instead of / in arxiv report number"""
+        ref_line = u"""[12] hep-ph/0203079invalid"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+</record>""")
+
+    def test_arxiv_not_parsed(self):
+        ref_line = u"""[12] arXiv: 0701034 [hep-ph]"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">12</subfield>
+      <subfield code="r">hep-ph/0701034</subfield>
    </datafield>
 </record>""")
 
     def test_arxiv_report_number_replacement(self):
         """Should be replaced by a valid arxiv report number"""
-        ref_line = u"""[6] Sivers D. W., astro-phy/8888888"""
+        ref_line = u"""[6] Sivers D. W., astro-phy/0101888"""
         reference_test(self, ref_line, u"""<record>
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">6</subfield>
       <subfield code="h">Sivers D. W.</subfield>
-      <subfield code="r">astro-ph/8888888</subfield>
+      <subfield code="r">astro-ph/0101888</subfield>
    </datafield>
 </record>""")
 
@@ -2384,11 +2546,254 @@ Rev. D 80 034030 1-25"""
         compare_references(self, refs, u"""<record>
    <controlfield tag="001">1</controlfield>
    <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o"> </subfield>
+      <subfield code="r">ATL-PHYS-INT-2009-110</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">2</subfield>
       <subfield code="h">D. Adams</subfield>
       <subfield code="r">ATL-PHYS-INT-2009-111</subfield>
    </datafield>
 </record>""")
+
+    def test_author_tag_inside_quoted(self):
+        """Tests embeded tags in quoted text
+
+        We want to avoid this
+        <cds.QUOTED>Electroweak parameters of the Z0 resonance and the Standard
+        Model <cds.AUTHincl>the LEP Collaborations</cds.AUTHincl></cds.QUOTED>
+        """
+        ref_line = u"""[10] LEP Collaboration, G. Alexander et al., “Electroweak parameters of the Z0 resonance and the Standard Model: the LEP Collaborations,” Phys. Lett. B276 (1992) 247–253."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">10</subfield>
+      <subfield code="c">LEP Collaboration</subfield>
+      <subfield code="h">G. Alexander et al.</subfield>
+      <subfield code="t">Electroweak parameters of the Z0 resonance and the Standard Model: the LEP Collaborations</subfield>
+      <subfield code="s">Phys.Lett.,B276,247</subfield>
+      <subfield code="y">1992</subfield>
+   </datafield>
+</record>""")
+
+    def test_misparsing_arxiv(self):
+        ref_line = u"""[21] R. Barlow, Asymmetric errors, eConf C030908 (2003), arXiv:physics/0401042."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">21</subfield>
+      <subfield code="h">R. Barlow</subfield>
+      <subfield code="r">physics/0401042</subfield>
+   </datafield>
+</record>""")
+
+    def test_no_volume(self):
+        ref_line = u"""[6] Owen F.N., Rudnick L., 1976, Phys. Rev., 205L, 1"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">Owen F.N., Rudnick L.</subfield>
+      <subfield code="s">Phys.Rev.,L205,1</subfield>
+      <subfield code="y">1976</subfield>
+   </datafield>
+</record>""")
+
+    def test_numeration_detached(self):
+        """Numeration detection check
+
+        At some point was reporting two journals, detecting twice the same
+        numeration
+        """
+        ref_line = u"""[6] B. Friman, in The CBM Phys. Rev. book: Compressed baryonic matter in laboratory, Phys. Rev. 814, 1 (2011)."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">B. Friman</subfield>
+      <subfield code="s">Phys.Rev.,814,1</subfield>
+      <subfield code="y">2011</subfield>
+   </datafield>
+</record>""")
+
+    def test_no_volume2(self):
+        """At some point failed to report volume correctly"""
+        ref_line = u"""[3] S. Sarkar, Nucl. Phys. A 862-863, 13 (2011)."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">3</subfield>
+      <subfield code="h">S. Sarkar</subfield>
+      <subfield code="s">Nucl.Phys.,A862,13</subfield>
+      <subfield code="y">2011</subfield>
+   </datafield>
+</record>""")
+
+    def test_journal_title_mangled(self):
+        """Makes sure this journal gets confused with an author"""
+        ref_line = u"""[12] K. G. Chetyrkin and A. Khodjamirian, Eur. Phys. J. C46 (2006)
+721"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">12</subfield>
+      <subfield code="h">K. G. Chetyrkin and A. Khodjamirian</subfield>
+      <subfield code="s">Eur.Phys.J.,C46,721</subfield>
+      <subfield code="y">2006</subfield>
+   </datafield>
+</record>""")
+
+    def test_volume_letter_goes_missing(self):
+        ref_line = u"""[6] N. Cabibbo and G. Parisi, Phys. Lett. 59 B (1975) 67."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">N. Cabibbo and G. Parisi</subfield>
+      <subfield code="s">Phys.Lett.,B59,67</subfield>
+      <subfield code="y">1975</subfield>
+   </datafield>
+</record>""")
+
+    def test_removed_dot_in_authors(self):
+        ref_line = u"""[6] Cabibbo N. and Parisi G.: Phys. Lett. 59 B (1975) 67."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">6</subfield>
+      <subfield code="h">Cabibbo N. and Parisi G.</subfield>
+      <subfield code="s">Phys.Lett.,B59,67</subfield>
+      <subfield code="y">1975</subfield>
+   </datafield>
+</record>""")
+
+    def test_author_with_accents(self):
+        ref_line = u"""[1] Ôrlo A., Eur. Phys. J. C46 (2006) 721"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">1</subfield>
+      <subfield code="h">Ôrlo A.</subfield>
+      <subfield code="s">Eur.Phys.J.,C46,721</subfield>
+      <subfield code="y">2006</subfield>
+   </datafield>
+</record>""")
+
+    def test_implied_ibid(self):
+            ref_line = u"""[4] S. F. King and G. G. Ross, Phys. Lett. B 520, 243 (2001); 574, 239 (2003)"""
+            reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">4</subfield>
+      <subfield code="h">S. F. King and G. G. Ross</subfield>
+      <subfield code="s">Phys.Lett.,B520,243</subfield>
+      <subfield code="y">2001</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">4</subfield>
+      <subfield code="s">Phys.Lett.,B574,239</subfield>
+      <subfield code="y">2003</subfield>
+   </datafield>
+</record>""")
+
+    def test_implied_ibid2(self):
+            ref_line = u"""[4] S. F. King and G. G. Ross, Phys. Lett. B 520, 243 (2001); C574, 239 (2003)"""
+            reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">4</subfield>
+      <subfield code="h">S. F. King and G. G. Ross</subfield>
+      <subfield code="s">Phys.Lett.,B520,243</subfield>
+      <subfield code="y">2001</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">4</subfield>
+      <subfield code="s">Phys.Lett.,C574,239</subfield>
+      <subfield code="y">2003</subfield>
+   </datafield>
+</record>""")
+
+    def test_implied_ibid3(self):
+            ref_line = u"""[4] S. F. King and G. G. Ross, Phys. Lett. B 520, 243 (2001); 574, 239 (2003); 575, 240 (2004); 576, 241 (2005)"""
+            reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">4</subfield>
+      <subfield code="h">S. F. King and G. G. Ross</subfield>
+      <subfield code="s">Phys.Lett.,B520,243</subfield>
+      <subfield code="y">2001</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">4</subfield>
+      <subfield code="s">Phys.Lett.,B574,239</subfield>
+      <subfield code="y">2003</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">4</subfield>
+      <subfield code="s">Phys.Lett.,B575,240</subfield>
+      <subfield code="y">2004</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">4</subfield>
+      <subfield code="s">Phys.Lett.,B576,241</subfield>
+      <subfield code="y">2005</subfield>
+   </datafield>
+</record>""")
+
+    def test_implied_ibid4(self):
+            ref_line = u"""[10] R. Foot, H.N. Long and T.A. Tran, Phys. Rev. D50, R34 (1994); H.N. Long, ibid. 53, 437 (1996); 54, 4691 (1996)."""
+            reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">10</subfield>
+      <subfield code="h">R. Foot, H.N. Long and T.A. Tran</subfield>
+      <subfield code="s">Phys.Rev.,D50,R34</subfield>
+      <subfield code="y">1994</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">10</subfield>
+      <subfield code="h">H.N. Long</subfield>
+      <subfield code="s">Phys.Rev.,D53,437</subfield>
+      <subfield code="y">1996</subfield>
+   </datafield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">10</subfield>
+      <subfield code="s">Phys.Rev.,D54,4691</subfield>
+      <subfield code="y">1996</subfield>
+   </datafield>
+</record>""")
+
+    def test_report_number(self):
+        ref_line = u"""[10] [physics.plasm-ph/0409093]."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">10</subfield>
+      <subfield code="r">physics.plasm-ph/0409093</subfield>
+   </datafield>
+</record>""")
+
+    def test_journal2(self):
+        ref_line = u"""[1] Phys.Rev. A, : 78 (2008) 012115"""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">1</subfield>
+      <subfield code="s">Phys.Rev.,A78,012115</subfield>
+      <subfield code="y">2008</subfield>
+   </datafield>
+</record>""")
+
+    def test_authors_merge(self):
+        ref_line = u"""[44] R. Baier et al., Invalid. Hello. Lett. B 345 (1995)."""
+        reference_test(self, ref_line, u"""<record>
+   <controlfield tag="001">1</controlfield>
+   <datafield tag="999" ind1="C" ind2="5">
+      <subfield code="o">44</subfield>
+      <subfield code="h">R. Baier et al.</subfield>
+      <subfield code="m">Lett. B Invalid. Hello 345 (1995)</subfield>
+   </datafield>
+</record>""", ignore_misc=False)
 
 
 class TaskTest(unittest.TestCase):

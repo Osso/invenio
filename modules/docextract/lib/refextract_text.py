@@ -131,19 +131,20 @@ def get_reference_lines(docbody,
 
     if ref_sect_title:
         ref_lines = strip_footer(ref_lines, ref_sect_title)
-    if not ref_line_marker or not ref_line_marker.isdigit():
-        ref_lines = strip_pagination(ref_lines)
     # Now rebuild reference lines:
     # (Go through each raw reference line, and format them into a set
     # of properly ordered lines based on markers)
     return rebuild_reference_lines(ref_lines, ref_line_marker_ptn)
 
 
-def strip_pagination(ref_lines):
+def match_pagination(ref_line):
     """Remove footer pagination from references lines"""
-    pattern = ur'\(?\[?\d{0,3}\]?\)?\.?\s*$'
+    pattern = ur'\(?\[?(\d{1,4})\]?\)?\.?\s*$'
     re_footer = re.compile(pattern, re.UNICODE)
-    return [l for l in ref_lines if not re_footer.match(l)]
+    match = re_footer.match(ref_line)
+    if match:
+        return int(match.group(1))
+    return None
 
 
 def strip_footer(ref_lines, section_title):
@@ -183,7 +184,6 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
     rebuilt_references = []
     working_ref = []
 
-    strip_before = True
     if ref_line_marker_ptn is None or \
            type(ref_line_marker_ptn) not in (str, unicode):
         if test_for_blank_lines_separating_reference_lines(ref_sectn):
@@ -200,51 +200,58 @@ def rebuild_reference_lines(ref_sectn, ref_line_marker_ptn):
             #      etc
             # We split when there's no identation
             ref_line_marker_ptn = ur'^[^\s]'
-            strip_before = False
 
     write_message('* references separator %s' % ref_line_marker_ptn, verbose=2)
     p_ref_line_marker = re.compile(ref_line_marker_ptn, re.I|re.UNICODE)
     # Work backwards, starting from the last 'broken' reference line
     # Append each fixed reference line to rebuilt_references
     current_ref = None
-    line_counter = 0
 
     def prepare_ref(working_ref):
+        working_ref = working_ref[:CFG_REFEXTRACT_MAX_LINES]
         working_line = ""
         for l in reversed(working_ref):
-            working_line = join_lines(working_line, l)
+            working_line = join_lines(working_line, l.strip())
         working_line = working_line.rstrip()
         return wash_and_repair_reference_line(working_line)
 
     for line in reversed(ref_sectn):
+        # Can't find a good way to distinguish between
+        # pagination and the page number of a journal numeration that
+        # happens to be alone in a new line
+        # m = match_pagination(line)
+        # if m and current_ref and current_ref != m + 1:
+        #     continue
+
         # Try to find the marker for the reference line
-        if strip_before:
-            current_string = line.strip()
-            m_ref_line_marker = p_ref_line_marker.search(current_string)
-        else:
-            m_ref_line_marker = p_ref_line_marker.search(line)
-            current_string = line.strip()
+        m_ref_line_marker = p_ref_line_marker.search(line)
 
         if m_ref_line_marker and (not current_ref \
                 or current_ref == int(m_ref_line_marker.group('marknum')) + 1):
             # Reference line marker found! : Append this reference to the
             # list of fixed references and reset the working_line to 'blank'
-            if current_string != '':
-                ## If it's not a blank line to separate refs
-                working_ref.append(current_string)
+            start = m_ref_line_marker.start()
+            if line[start:]:
+                # If it's not a blank line to separate refs
+                # Only append from the start of the marker
+                # For this case:
+                # [1] hello
+                # hello2 [2] foo
+                working_ref.append(line[start:])
+
             # Append current working line to the refs list
-            if line_counter < CFG_REFEXTRACT_MAX_LINES:
-                rebuilt_references.append(prepare_ref(working_ref))
+            rebuilt_references.append(prepare_ref(working_ref))
             try:
                 current_ref = int(m_ref_line_marker.group('marknum'))
             except IndexError:
                 pass  # this line doesn't have numbering
             working_ref = []
-            line_counter = 0
-        elif current_string != u'':
+            if line[:start]:
+                working_ref.append(line[:start])
+
+        elif line:
             # Continuation of line
-            working_ref.append(current_string)
-            line_counter += 1
+            working_ref.append(line)
 
     if working_ref:
         # Append last line
