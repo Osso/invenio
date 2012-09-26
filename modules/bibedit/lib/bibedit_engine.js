@@ -480,7 +480,6 @@ function resetBibeditState(){
   gBibCircUrl = null;
 
   clearWarnings();
-  updateInterfaceAccordingToMode();
   updateRevisionsHistory();
   updateUrView();
   updateBibCirculationPanel();
@@ -1683,11 +1682,9 @@ function onCancelClick(){
       gBibCircUrl = null;
       // making the changes visible
       updateBibCirculationPanel();
-      updateInterfaceAccordingToMode();
       updateRevisionsHistory();
       updateUrView();
       updateToolbar(false);
-
     }
     else {
       updateStatus('ready');
@@ -1703,9 +1700,10 @@ function onCloneRecordClick(){
     updateStatus('ready');
     return;
   }
-  else if (!gRecordDirty)
+  else if (!gRecordDirty) {
     // If the record is unchanged, erase the cache.
     createReq({recID: gRecID, requestType: 'deleteRecordCache'});
+  }
   createReq({requestType: 'newRecord', newType: 'clone', recID: gRecID},
     function(json){
       var newRecID = json['newRecID'];
