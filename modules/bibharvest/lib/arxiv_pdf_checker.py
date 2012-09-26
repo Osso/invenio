@@ -57,10 +57,10 @@ STATUS_OK = 'ok'
 STATUS_MISSING = 'missing'
 
 
-class InvenioFileDownloadError(Exception, object):
+class InvenioFileDownloadError(Exception):
     """A generic download exception."""
     def __init__(self, msg, code=None):
-        super(InvenioFileDownloadError, self).__init__(msg)
+        Exception.__init__(self, msg)
         self.code = code
 
 
@@ -76,9 +76,9 @@ class FoundExistingPdf(Exception):
     pass
 
 
-class AlreadyHarvested(Exception, object):
+class AlreadyHarvested(Exception):
     def __init__(self, status):
-        super(AlreadyHarvested, self).__init__()
+        Exception.__init__(self)
         self.status = status
 
 
