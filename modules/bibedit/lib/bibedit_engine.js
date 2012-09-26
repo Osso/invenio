@@ -2369,9 +2369,9 @@ function onAddFieldChange(event){
             var fieldTagID = ('#' + $(this).attr('id').replace('SubfieldCode', 'Tag')).split('_');
             fieldTagID.pop();
             fieldTagID = fieldTagID.join('_');
-            var fieldTag = $(this).parent().prev().prev().children().eq(0).val(),
-                fieldInd1 = $(this).parent().prev().prev().children().eq(1).val(),
-                fieldInd2 = $(this).parent().prev().prev().children().eq(2).val();
+            var fieldTag = $('body').find("#txtAddFieldTag_" + fieldTmpNo).val(),
+                fieldInd1 = $('body').find("#txtAddFieldInd1_" + fieldTmpNo).val(),
+                fieldInd2 = $('body').find("#txtAddFieldInd2_" + fieldTmpNo).val();
             if (fieldInd1 == '') {
                 fieldInd1 = '_';
             }
