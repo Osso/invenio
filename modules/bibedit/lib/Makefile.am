@@ -25,6 +25,7 @@ pylib_DATA = bibrecord_config.py \
              bibedit_config.py \
              bibedit_dblayer.py \
              bibedit_engine.py \
+             bibedit_tests.py \
              bibedit_regression_tests.py \
              bibedit_templates.py \
              bibeditcli.py \
