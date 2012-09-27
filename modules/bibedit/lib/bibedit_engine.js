@@ -1308,6 +1308,11 @@ function onSubmitClick() {
    */
   updateStatus('updating');
 
+  /* Save the content in all textareas that are currently opened before submission
+  */
+  $(".edit_area textarea").trigger($.Event( 'keydown', {which:$.ui.keyCode.ENTER, keyCode:$.ui.keyCode.ENTER}));
+  $(".bibEditTxtValue:input").trigger($.Event( 'keyup', {which:$.ui.keyCode.ENTER, keyCode:$.ui.keyCode.ENTER}));
+
   var dialogPreview = createDialog("Loading...", "Retrieving preview...", 750, 700, true);
 
   // Get preview of the record and let the user confirm submit
@@ -2274,6 +2279,7 @@ function onAddFieldClick(){
    */
   if (failInReadOnly())
     return;
+  activateSubmitButton();
   createAddFieldInterface();
 }
 
