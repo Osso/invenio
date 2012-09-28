@@ -220,9 +220,9 @@ class ReplaceTextInSubfieldCommand(BaseSubfieldCommand):
                 if field[4] == field_number:
                     subfields = field[0]
                     (field_code, field_value) = subfields[subfield_index]
-            replace_string = self._value
+            replace_string = re.escape(self._value)
             for val in self._additional_values:
-                replace_string += "|" + val
+                replace_string += "|" + re.escape(val)
             #replace text
             new_value = re.sub(replace_string, self._new_value, field_value)
             #update the subfield if needed
