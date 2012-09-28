@@ -32,6 +32,8 @@ from bibauthorid_prob_matrix import prepare_matirx
 from bibauthorid_scheduler import schedule, matrix_coefs
 from bibauthorid_least_squares import to_function as create_approx_func
 
+#python2.4 compatibility
+from bibauthorid_general_utils import bai_all as all
 
 '''
     There are three main entry points to tortoise

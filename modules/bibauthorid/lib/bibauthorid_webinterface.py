@@ -65,6 +65,8 @@ from invenio.bibedit_utils import get_bibrecord
 from invenio.bibrecord import record_get_field_value, record_get_field_values, \
                               record_get_field_instances, field_get_subfield_values
 
+#python2.4 compatibility
+from bibauthorid_general_utils import bai_all as all
 
 TEMPLATE = load('bibauthorid')
 
@@ -1018,10 +1020,10 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
             #enough information, needs debug info dump in order to be fixable. This performs the dump,
             #so we know what to look for.
             if not webapi.is_valid_bibref(t['bibref']):
-                import pickle,datetime
-                date=str(datetime.datetime.now()).replace(" ",'.')
-                o = open("/tmp/BibAuthorID-temporary-dbg-%s" %date,'w')
-                pickle.dump(session,o)
+                import pickle, datetime
+                date = str(datetime.datetime.now()).replace(" ", '.')
+                o = open("/tmp/BibAuthorID-temporary-dbg-%s" % date, 'w')
+                pickle.dump(session, o)
                 o.close()
 
             t['status'] = webapi.check_transaction_permissions(uid,
@@ -2396,7 +2398,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
             recids = perform_request_search(p="001:%s" % argd['IRN'], cc="HepNames")
         else:
             redirect_to_url(req, "%s/collection/HepNames" % (CFG_SITE_URL))
-            
+
         if not recids:
             redirect_to_url(req, "%s/collection/HepNames" % (CFG_SITE_URL))
         else:
@@ -2440,7 +2442,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                                              experiment_list, web_page, keynumber)
         title = "HEPNames"
         return page(title=title,
-                    metaheaderadd = TEMPLATE.tmpl_update_hep_name_headers(),
+                    metaheaderadd=TEMPLATE.tmpl_update_hep_name_headers(),
                     body=body,
                     req=req,
                     )

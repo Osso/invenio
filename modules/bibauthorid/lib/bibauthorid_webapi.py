@@ -68,7 +68,7 @@ def update_person_canonical_name(person_id, canonical_name, userinfo=''):
         uid = userinfo.split('||')[0]
     else:
         uid = ''
-    dbapi.update_personID_canonical_names((person_id,), overwrite=True, suggested=canonical_name)
+    dbapi.update_personID_canonical_names(person_id, overwrite=True, suggested=canonical_name)
     dbapi.insert_user_log(userinfo, person_id, 'data_update', 'CMPUI_changecanonicalname', '', 'Canonical name manually updated.', userid=uid)
 
 def get_canonical_id_from_person_id(person_id):
@@ -507,122 +507,6 @@ def is_valid_canonical_id(cid):
     else:
         return False
 
-
-#def confirm_person_bibref_assignments(person_id, bibrefs, uid):
-#    '''
-#    Confirms a bibref-bibrec assignment to a person. That internally
-#    raises the flag of the entry to 2, which means 'user confirmed' and
-#    sets the user level to the highest level of the user provided as param
-#
-#    @param person_id: the id of the person to confirm the assignment to
-#    @type person_id: int
-#    @param bibrefs: the bibref-bibrec pairs that unambiguously identify records
-#    @type bibrefs: list of strings
-#    @param uid: the id of the user that arranges the confirmation
-#    @type uid: int
-#
-#    @return: True if the process ran smoothly, False if there was an error
-#    @rtype: boolean
-#    '''
-#    pid = wash_integer_id(person_id)
-#    refs = []
-#
-#    if pid < 0:
-#        return False
-#
-#    if not isinstance(bibrefs, list) or not len(bibrefs):
-#        return False
-#    else:
-#        for bibref in bibrefs:
-#            if is_valid_bibref(bibref):
-#                refs.append((bibref,))
-#            else:
-#                return False
-#
-#    try:
-#        dbapi.confirm_papers_to_person((pid,), refs, get_user_level(uid))
-#    except OperationalError:
-#        return False
-#
-#    return True
-#
-#
-#def repeal_person_bibref_assignments(person_id, bibrefs, uid):
-#    '''
-#    Repeals a bibref-bibrec assignment from a person. That internally
-#    sets the flag of the entry to -2, which means 'user repealed' and
-#    sets the user level to the highest level of the user provided as param
-#
-#    @param person_id: the id of the person to repeal the assignment from
-#    @type person_id: int
-#    @param bibrefs: the bibref-bibrec pairs that unambiguously identify records
-#    @type bibrefs: list of strings
-#    @param uid: the id of the user that arranges the repulsion
-#    @type uid: int
-#
-#    @return: True if the process ran smoothly, False if there was an error
-#    @rtype: boolean
-#    '''
-#    pid = wash_integer_id(person_id)
-#    refs = []
-#
-#    if pid < 0:
-#        return False
-#
-#    if not isinstance(bibrefs, list) or not len(bibrefs):
-#        return False
-#    else:
-#        for bibref in bibrefs:
-#            if is_valid_bibref(bibref):
-#                refs.append((bibref,))
-#            else:
-#                return False
-#
-#    try:
-#        dbapi.reject_papers_from_person((pid,), refs, get_user_level(uid))
-#    except OperationalError:
-#        return False
-#
-#    return True
-#
-#
-#def reset_person_bibref_decisions(person_id, bibrefs):
-#    '''
-#    Resets a bibref-bibrec assignment of a person. That internally
-#    sets the flag of the entry to 0, which means 'no user interaction' and
-#    sets the user level to 0 to give the record free for claiming/curation
-#
-#    @param person_id: the id of the person to reset the assignment from
-#    @type person_id: int
-#    @param bibrefs: the bibref-bibrec pairs that unambiguously identify records
-#    @type bibrefs: list of strings
-#
-#    @return: True if the process ran smoothly, False if there was an error
-#    @rtype: boolean
-#    '''
-#    pid = wash_integer_id(person_id)
-#    refs = []
-#
-#    if pid < 0:
-#        return False
-#
-#    if not isinstance(bibrefs, list) or not len(bibrefs):
-#        return False
-#    else:
-#        for bibref in bibrefs:
-#            if is_valid_bibref(bibref):
-#                refs.append((bibref,))
-#            else:
-#                return False
-#
-#    try:
-#        dbapi.reset_papers_flag((person_id,), refs)
-#    except OperationalError:
-#        return False
-#
-#    return True
-#
-#
 def add_person_comment(person_id, message):
     '''
     Adds a comment to a person after enriching it with meta-data (date+time)
@@ -1365,13 +1249,13 @@ def execute_action(action, pid, bibref, uid, userinfo='', comment=''):
 
     if action in ['confirm', 'assign']:
         dbapi.insert_user_log(userinfo, pid, 'assign', 'CMPUI_ticketcommit', bibref, comment, userid=uid)
-        dbapi.confirm_papers_to_person((str(pid),), [[bibref]], user_level)
+        dbapi.confirm_papers_to_person(pid, [bibref], user_level)
     elif action in ['repeal']:
         dbapi.insert_user_log(userinfo, pid, 'repeal', 'CMPUI_ticketcommit', bibref, comment, userid=uid)
-        dbapi.reject_papers_from_person((str(pid),), [[bibref]], user_level)
+        dbapi.reject_papers_from_person(pid, [bibref], user_level)
     elif action in ['reset']:
         dbapi.insert_user_log(userinfo, pid, 'reset', 'CMPUI_ticketcommit', bibref, comment, userid=uid)
-        dbapi.reset_papers_flag((str(pid),), [[bibref]])
+        dbapi.reset_papers_flag(pid, [bibref])
     else:
         return False
 

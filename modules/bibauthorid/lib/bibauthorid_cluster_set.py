@@ -28,6 +28,9 @@ from bibauthorid_backinterface import get_signatures_from_bibrefs
 from bibauthorid_name_utils import generate_last_name_cluster_str
 
 
+#python2.4 compatibility
+from bibauthorid_general_utils import bai_all as all
+
 class Blob(object):
     def __init__(self, personid_records):
         '''
@@ -94,7 +97,7 @@ def group_blobs(blobs):
 
 class ClusterSet(object):
     class Cluster(object):
-        def __init__(self, bibs, hate = []):
+        def __init__(self, bibs, hate=[]):
             # hate is a symetrical relation
             self.bibs = set(bibs)
             self.hate = set(hate)
@@ -136,7 +139,7 @@ class ClusterSet(object):
         self.clusters = cluster_dict.values()
 
         for i, cl in enumerate(self.clusters):
-            cl.hate = set(chain(self.clusters[:i], self.clusters[i+1:]))
+            cl.hate = set(chain(self.clusters[:i], self.clusters[i + 1:]))
 
         for ind in independent:
             bad_clusters = [cluster_dict[i] for i in ind[2] if i in cluster_dict]
@@ -243,7 +246,7 @@ def delayed_cluster_sets_from_marktables():
 
     all_refs = ((name, refs, len(list(get_signatures_from_bibrefs(refs))))
                 for name, refs in name_buket.items())
-    all_refs = sorted(all_refs, key = itemgetter(2))
+    all_refs = sorted(all_refs, key=itemgetter(2))
     return ([delayed_create_from_mark(refs, name) for name, refs, size in all_refs],
              map(itemgetter(0), all_refs),
              map(itemgetter(2), all_refs))

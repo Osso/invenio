@@ -30,6 +30,9 @@ from cPickle import UnpicklingError
 import os
 import gc
 
+#python2.4 compatibility
+from bibauthorid_general_utils import bai_all as all
+
 from itertools import groupby, count, ifilter, chain, imap
 from operator import itemgetter
 
@@ -432,7 +435,7 @@ def get_persons_from_recids(recids, return_alt_names=False,
         #because it was not fully processed by it's creator. Anyway it's safe to try to create one
         #before failing miserably
         if not canonical:
-            update_personID_canonical_names([pid])
+            update_personID_canonical_names(pid)
         canonical = get_canonical_name(pid)
 
         #assert len(canonical) == 1
@@ -792,11 +795,11 @@ def confirm_papers_to_person(pid, papers, user_level=0):
     '''
 
     new_pid = get_new_personid()
-    pids_to_update = set(pid)
+    pids_to_update = set([pid])
 
 
     for p in papers:
-        bibref, rec = p[0].split(",")
+        bibref, rec = p.split(",")
         rec = int(rec)
         table, ref = bibref.split(":")
         ref = int(ref)
@@ -808,13 +811,13 @@ def confirm_papers_to_person(pid, papers, user_level=0):
                        "where personid=%s "
                        "and bibrec=%s "
                        "and flag > -2"
-                       , (pid[0], rec))
+                       , (pid, rec))
         rej_paps = run_sql("select bibref_table, bibref_value, bibrec "
                        "from aidPERSONIDPAPERS "
                        "where personid=%s "
                        "and bibrec=%s "
                        "and flag = -2"
-                       , (pid[0], rec))
+                       , (pid, rec))
 
         assert paps or rej_paps
         assert len(paps) < 2
@@ -830,7 +833,7 @@ def confirm_papers_to_person(pid, papers, user_level=0):
         run_sql("delete from aidPERSONIDPAPERS where bibref_table like %s and "
                 " bibref_value = %s and bibrec=%s"
                 , sig)
-        add_signature(sig, None, pid[0])
+        add_signature(sig, None, pid)
         run_sql("update aidPERSONIDPAPERS "
                 "set personid = %s "
                 ", flag = %s "
@@ -838,7 +841,7 @@ def confirm_papers_to_person(pid, papers, user_level=0):
                 "where bibref_table = %s "
                 "and bibref_value = %s "
                 "and bibrec = %s"
-                , (pid[0], '2', user_level,
+                , (pid, '2', user_level,
                    table, ref, rec))
 
     update_personID_canonical_names(pids_to_update)
@@ -888,7 +891,7 @@ def reset_papers_flag(pid, papers):
     @type papers: (('100:7531,9024',),)
     '''
     for p in papers:
-        bibref, rec = p[0].split(",")
+        bibref, rec = p.split(",")
         table, ref = bibref.split(":")
         sig = (table, ref, rec)
 
@@ -896,13 +899,13 @@ def reset_papers_flag(pid, papers):
                        "from aidPERSONIDPAPERS "
                        "where personid=%s "
                        "and bibrec=%s "
-                       , (pid[0], rec))
+                       , (pid, rec))
         rej_paps = run_sql("select bibref_table, bibref_value, bibrec "
                        "from aidPERSONIDPAPERS "
                        "where personid=%s "
                        "and bibrec=%s "
                        "and flag = -2"
-                       , (pid[0], rec))
+                       , (pid, rec))
 
         assert paps or rej_paps
         assert len(paps) < 2
@@ -910,7 +913,7 @@ def reset_papers_flag(pid, papers):
         run_sql("delete from aidPERSONIDPAPERS where bibref_table like %s and "
                 "bibref_value = %s and bibrec = %s",
                 (sig))
-        add_signature(sig, None, pid[0])
+        add_signature(sig, None, pid)
 
 
 def user_can_modify_data(uid, pid):

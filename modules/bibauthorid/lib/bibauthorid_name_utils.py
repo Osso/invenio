@@ -27,6 +27,9 @@ import bibauthorid_config as bconfig
 from bibauthorid_string_utils import string_partition
 from copy import deepcopy
 
+#python2.4 compatibility
+from bibauthorid_general_utils import bai_all as all
+
 from bibauthorid_general_utils import name_comparison_print
 
 try:
