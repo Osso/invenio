@@ -1390,6 +1390,8 @@ function onTextMarcClick() {
   createReq({recID: gRecID, requestType: 'getTextMarc'
        }, function(json) {
         // Request was successful.
+        $("#bibEditMessage").empty();
+
         var textmarc_box = $('<textarea>');
         textmarc_box.attr('id', 'textmarc_textbox');
         textmarc_box.html(json['textmarc']);
