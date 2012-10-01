@@ -2096,9 +2096,13 @@ function addFieldGatherInformations(fieldTmpNo){
     var ind2 = $("#txtAddFieldInd2_" + fieldTmpNo).attr("value");
     var subfieldTmpNo = $('#rowGroupAddField_' + fieldTmpNo).data('freeSubfieldTmpNo');
     var subfields = [];
-    for (i=0;i<subfieldTmpNo;i++){
+    for (i=0; i < subfieldTmpNo; i++){
       var subfieldCode = $('#txtAddFieldSubfieldCode_' + fieldTmpNo + '_' + i).attr("value");
-      var subfieldValue = $('#txtAddFieldValue_' + fieldTmpNo + '_' + i).attr("value");
+      var subfieldValueSelector = $('#txtAddFieldValue_' + fieldTmpNo + '_' + i);
+      var subfieldValue = subfieldValueSelector.attr("value");
+      if (subfieldValueSelector.hasClass("bibEditVolatileSubfield")) {
+        subfieldValue = "VOLATILE:" + subfieldValue;
+      }
       subfields.push([subfieldCode, subfieldValue]);
     }
 
