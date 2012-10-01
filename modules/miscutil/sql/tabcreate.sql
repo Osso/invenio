@@ -2679,6 +2679,14 @@ CREATE TABLE IF NOT EXISTS rnkCITATIONDATAEXT (
   KEY extcitepubinfo (extcitepubinfo)
 ) ENGINE=MyISAM;
 
+
+-- a table for storing invalid or ambiguous references encountered
+CREATE TABLE IF NOT EXISTS rnkCITATIONDATAERR (
+  type enum('multiple-matches', 'not-well-formed'),
+  citinfo varchar(255) NOT NULL,
+  PRIMARY KEY (type, citinfo)
+) ENGINE=MyISAM;
+
 -- tables for collections and collection tree:
 
 CREATE TABLE IF NOT EXISTS collection (
