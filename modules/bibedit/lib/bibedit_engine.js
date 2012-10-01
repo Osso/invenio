@@ -1302,21 +1302,85 @@ function onSubmitPreviewSuccess(dialogPreview, html_preview){
 
 }
 
+function saveOpenedFields() {
+  /* Performs the following tasks:
+   * - Remove volatile content from field templates
+   * - Save opened content from field templates
+   * - Save opened textareas
+   * returns: promise with state of all tasks to perform
+   */
+  function removeVolatileContentFieldTemplates(removingVolatilePromise) {
+    /* Deletes volatile fields from field templates */
+    $(".bibEditVolatileSubfield:input").each(function() {
+      var deleteButtonSelector = $(this).parent().parent().find('img[id^="btnAddFieldRemove_"]');
+      if (deleteButtonSelector.length === 0) {
+        /* It is the first element on the field template */
+        $(this).parent().parent().find(".bibEditCellAddSubfieldCode").remove();
+        $(this).remove();
+      }
+      else {
+        deleteButtonSelector.click();
+      }
+    });
+    removingVolatilePromise.resolve();
+  }
+
+  function removeEmptyFieldTemplates(removingEmptyFieldTemplatePromise) {
+    var addFieldInterfaceSelector = $("tbody[id^=rowGroupAddField_]");
+    addFieldInterfaceSelector.each(function() {
+      var addSubfieldSelector = $(this).find(".bibEditCellAddSubfieldCode");
+      if (addSubfieldSelector.length === 0) {
+        /* All input have been previously removed */
+        addFieldInterfaceSelector.remove();
+      }
+    });
+    removingEmptyFieldTemplatePromise.resolve();
+  }
+
+  function saveFieldTemplatesContent(savingFieldTemplatesPromise) {
+    /* Triggers click event on all open field templates */
+    $(".bibEditTxtValue:input:not(.bibEditVolatileSubfield)").trigger($.Event( 'keyup', {which:$.ui.keyCode.ENTER, keyCode:$.ui.keyCode.ENTER}));
+    savingFieldTemplatesPromise.resolve();
+  }
+
+  function saveOpenedTextareas(savingOpenedTextareasPromise) {
+    /* Saves textareas if they are opened */
+    $(".edit_area textarea").trigger($.Event( 'keydown', {which:$.ui.keyCode.ENTER, keyCode:$.ui.keyCode.ENTER}));
+    savingOpenedTextareasPromise.resolve();
+  }
+
+  var removingVolatilePromise = new $.Deferred();
+  var removingEmptyFieldTemplatePromise = new $.Deferred();
+  var savingFieldTemplatesPromise = new $.Deferred();
+  var savingOpenedTextareasPromise = new $.Deferred();
+
+  removeVolatileContentFieldTemplates(removingVolatilePromise);
+  removeEmptyFieldTemplates(removingEmptyFieldTemplatePromise);
+  saveFieldTemplatesContent(savingFieldTemplatesPromise);
+  saveOpenedTextareas(savingOpenedTextareasPromise);
+
+  var savingContent = $.when(removingVolatilePromise,
+                             removingEmptyFieldTemplatePromise,
+                             savingFieldTemplatesPromise,
+                             savingOpenedTextareasPromise);
+  return savingContent;
+}
+
 function onSubmitClick() {
   /*
    * Handle 'Submit' button (submit record).
    */
   updateStatus('updating');
 
-  /* Save the content in all textareas that are currently opened before submission
-  */
-  $(".edit_area textarea").trigger($.Event( 'keydown', {which:$.ui.keyCode.ENTER, keyCode:$.ui.keyCode.ENTER}));
-  $(".bibEditTxtValue:input").trigger($.Event( 'keyup', {which:$.ui.keyCode.ENTER, keyCode:$.ui.keyCode.ENTER}));
+  /* Save all opened fields before submitting */
+  var savingOpenedFields = saveOpenedFields(savingOpenedFields);
 
-  var dialogPreview = createDialog("Loading...", "Retrieving preview...", 750, 700, true);
+  savingOpenedFields.done(function() {
+    var dialogPreview = createDialog("Loading...", "Retrieving preview...", 750, 700, true);
 
-  // Get preview of the record and let the user confirm submit
-  getPreview(dialogPreview, onSubmitPreviewSuccess);
+    // Get preview of the record and let the user confirm submit
+    getPreview(dialogPreview, onSubmitPreviewSuccess);
+  });
 }
 
 // Enable this flag to force the next submission even if cache is outdated.
@@ -1800,6 +1864,7 @@ function cleanUp(disableRecBrowser, searchPattern, searchType,
   }
   // Clear main content area.
   $('#bibEditContentTable').empty();
+  $('#bibEditMessage').empty();
   // Clear search area.
   if (typeof(searchPattern) == 'string' || typeof(searchPattern) == 'number')
     $('#txtSearchPattern').val(searchPattern);
