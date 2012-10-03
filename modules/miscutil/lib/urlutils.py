@@ -34,12 +34,12 @@ import inspect
 from urllib import urlencode, quote_plus, quote
 from urlparse import urlparse
 from cgi import parse_qs, escape
-from md5 import md5
 
 try:
-    from hashlib import sha256, sha1
+    from hashlib import sha256, sha1, md5
     HASHLIB_IMPORTED = True
 except ImportError:
+    from md5 import md5
     HASHLIB_IMPORTED = False
 
 from invenio import webinterface_handler_config as apache
