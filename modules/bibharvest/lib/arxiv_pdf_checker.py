@@ -34,6 +34,7 @@ from invenio.docextract_task import store_last_updated, \
                                     fetch_last_updated
 from invenio.shellutils import split_cli_ids_arg
 from invenio.dbquery import run_sql
+from invenio.bibtask import task_low_level_submission
 from invenio.refextract_api import record_has_fulltext
 from invenio.bibtask import task_init, \
                             write_message, \
@@ -310,9 +311,14 @@ def process_one(recid):
     try:
         download_one(recid)
         store_arxiv_pdf_status(recid, STATUS_OK)
+        submit_refextract_task(recid)
     except PdfNotAvailable:
         store_arxiv_pdf_status(recid, STATUS_MISSING)
         raise
+
+
+def submit_refextract_task(recid):
+    return task_low_level_submission('refextract', NAME, '-r', str(recid))
 
 
 def fetch_updated_arxiv_records(date):

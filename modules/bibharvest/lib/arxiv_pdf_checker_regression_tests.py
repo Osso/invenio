@@ -45,6 +45,13 @@ class TestTask(unittest.TestCase):
         recs = bibupload.xml_marc_to_records(self.bibupload_xml)
         err, recid, msg = bibupload.bibupload(recs[0], opt_mode='delete')
 
+    def clean_bibtask(self):
+        from invenio.arxiv_pdf_checker import NAME
+        run_sql("""DELETE FROM schTASK
+           WHERE user = %s
+           ORDER BY id DESC LIMIT 1
+        """, [NAME])
+
     def test_fetch_records(self):
         from invenio.arxiv_pdf_checker import fetch_updated_arxiv_records
         date = datetime(year=1900, month=1, day=1)
@@ -54,6 +61,7 @@ class TestTask(unittest.TestCase):
     def test_task_run_core(self):
         from invenio.arxiv_pdf_checker import task_run_core
         self.assert_(task_run_core())
+        self.clean_bibtask()
 
     def test_shellquote(self):
         from invenio.arxiv_pdf_checker import shellquote
@@ -122,7 +130,11 @@ class TestTask(unittest.TestCase):
             if not doc.list_all_files():
                 doc.expunge()
 
-        process_one(self.recid)
+        try:
+            process_one(self.recid)
+        finally:
+            self.clean_bibtask()
+
         # Check for existing pdf
         docs = list(look_for_fulltext(self.recid))
         if not docs:
