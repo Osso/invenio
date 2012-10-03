@@ -208,6 +208,7 @@ img_DATA = add-small.png \
            table_row_delete.png \
            table_row_insert.png \
            table_sort.png \
+           bibedit_extract_url.png \
            bibedit_tableview.png \
            bibedit_textmarc.png \
            tick.gif \
