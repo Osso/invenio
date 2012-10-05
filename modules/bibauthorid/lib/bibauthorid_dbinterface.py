@@ -794,7 +794,7 @@ def confirm_papers_to_person(pid, papers, user_level=0):
     @type papers: (('100:7531,9024',),)
     '''
 
-    new_pid = get_new_personid()
+
     pids_to_update = set([pid])
 
 
@@ -812,6 +812,14 @@ def confirm_papers_to_person(pid, papers, user_level=0):
                        "and bibrec=%s "
                        "and flag > -2"
                        , (pid, rec))
+
+        other_paps = run_sql("select bibref_table, bibref_value, bibrec "
+                       "from aidPERSONIDPAPERS "
+                       "where personid <> %s "
+                       "and bibrec=%s "
+                       "and flag > -2"
+                       , (pid, rec))
+
         rej_paps = run_sql("select bibref_table, bibref_value, bibrec "
                        "from aidPERSONIDPAPERS "
                        "where personid=%s "
@@ -819,14 +827,26 @@ def confirm_papers_to_person(pid, papers, user_level=0):
                        "and flag = -2"
                        , (pid, rec))
 
-        assert paps or rej_paps
-        assert len(paps) < 2
+        assert paps or rej_paps or other_paps, 'There should be at least something regarding this bibrec!'
+
+        #It should not happen that a paper is assigned more then once to the same person.
+        #But sometimes it happens in rare unfortunate cases of bad concurrency circumstances,
+        #so we try to fix it directly instead of crashing here.
+        #Once a better solution for dealing with concurrency will be found, the following asserts
+        #shall be reenabled, to allow better control on what happens.
+
+        #assert len(paps) < 2, "This paper should not be assigned to this person more then once! %s" % paps
+        #assert len(other_paps) < 2, "There should not be more then one copy of this paper! %s" % other_paps
 
         #if the bibrec is present with a different bibref, the present one must be moved somwhere
         #else before we can claim the incoming one
-        if paps and sig != paps[0]:
-            pids_to_update.add(new_pid)
-            move_signature(paps[0], new_pid)
+        if paps:
+            for pap in paps:
+                #kick out all unwanted signatures
+                if  sig != pap:
+                    new_pid = get_new_personid()
+                    pids_to_update.add(new_pid)
+                    move_signature(pap, new_pid)
 
         #Make sure that the incoming claim is unique and get rid of all rejections, they are useless
         #from now on
@@ -1992,7 +2012,7 @@ def check_duplicated_papers(printer, repair=False):
             all_ok = False
             dups = sorted(bibrec)
             dups = [x for i, x in enumerate(dups[0:len(dups) - 1]) if x == dups[i + 1]]
-            printer("Person %d has duplicated papers: %s", (pid, dups))
+            printer("Person %d has duplicated papers: %s" % (pid, dups))
 
             if repair:
                 for dupbibrec in dups:
