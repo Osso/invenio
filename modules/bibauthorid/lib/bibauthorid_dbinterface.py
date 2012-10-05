@@ -1090,47 +1090,6 @@ def filter_modified_record_ids(bibrecs, date):
         , bibrecs)
 
 
-def get_cached_author_page(pageparam):
-    '''
-    Return cached authorpage
-    @param: pageparam (int personid)
-    @return (id, 'authorpage_cache', personid, authorpage_html, date_cached)
-    '''
-            #TABLE: id, tag, identifier, data, date
-    caches = run_sql("select id, object_name, object_key, object_value, last_updated \
-                      from aidCACHE \
-                      where object_name='authorpage_cache' and object_key=%s",
-                          (str(pageparam),))
-    if len(caches) >= 1:
-        return caches[0]
-    else:
-        return []
-
-def delete_cached_author_page(personid):
-    '''
-    Deletes from the author page cache the page concerning one person
-    '''
-    run_sql("delete from aidCACHE where object_name='authorpage_cache' and object_key=%s", (str(personid),))
-
-def update_cached_author_page_timestamp(pageparam):
-    '''
-    Updates cached author page timestamp
-    @param pageparam: int personid
-    '''
-    #TABLE: id, tag, identifier, data, date
-    run_sql("update aidCACHE set last_updated=now() where object_name='authorpage_cache' and object_key=%s", (str(pageparam),))
-
-
-def update_cached_author_page(pageparam, page):
-    '''
-    Updates cached author page, deleting old caches for same pageparam
-    @param pageparam: int personid
-    @param page: string html authorpage
-    '''
-            #TABLE: id, tag, identifier, data, date
-    run_sql("delete from aidCACHE where object_name='authorpage_cache' and object_key=%s", (str(pageparam),))
-    run_sql("insert into aidCACHE values (Null,'authorpage_cache',%s,%s,now())", (str(pageparam), str(page)))
-
 def get_user_log(transactionid='', userinfo='', userid='', personID='', action='', tag='', value='', comment='', only_most_recent=False):
     '''
     Get user log table entry matching all the given parameters; all of them are optional.

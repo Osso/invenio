@@ -1261,7 +1261,6 @@ def execute_action(action, pid, bibref, uid, userinfo='', comment=''):
 
     #This is the only point which modifies a person, so this can trigger the
     #deletion of a cached page
-    dbapi.delete_cached_author_page(pid)
     webauthorapi.expire_all_cache_for_personid(pid)
 
     return True

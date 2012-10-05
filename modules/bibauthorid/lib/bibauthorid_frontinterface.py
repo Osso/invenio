@@ -52,7 +52,6 @@ from bibauthorid_dbinterface import user_can_modify_paper              #emitting
 from bibauthorid_dbinterface import update_personID_canonical_names    #emitting
 from bibauthorid_dbinterface import get_possible_bibrecref             #emitting
 from bibauthorid_dbinterface import resolve_paper_access_right         #emitting
-from bibauthorid_dbinterface import delete_cached_author_page          #emitting
 from bibauthorid_dbinterface import confirm_papers_to_person           #emitting
 from bibauthorid_dbinterface import get_name_by_bibrecref              #emitting
 from bibauthorid_dbinterface import get_personids_and_papers_from_bibrecs
