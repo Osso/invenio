@@ -353,10 +353,10 @@ def task_run_core(name=NAME):
         if count % 50 == 0:
             write_message('done %s of %s' % (count, len(recids)))
 
+        # BibTask sleep
         task_sleep_now_if_required(can_stop_too=True)
-
-        if count != 0:
-            time.sleep(60)
+        # Internal sleep
+        needs_sleep = True
 
         write_message('processing %s' % recid, verbose=9)
         try:
@@ -368,8 +368,10 @@ def task_run_core(name=NAME):
                 write_message('already harvested and pdf is missing')
             else:
                 write_message('already harvested: %s' % e.status)
+            needs_sleep = False
         except FoundExistingPdf:
             write_message('found existing pdf')
+            needs_sleep = False
         except PdfNotAvailable:
             write_message("no pdf available")
         except InvenioFileDownloadError, e:
@@ -377,6 +379,9 @@ def task_run_core(name=NAME):
 
         if mod_date:
             store_last_updated(recid, start_date, name)
+
+        if needs_sleep and count + 1 != len(recids):
+            time.sleep(60)
 
     return True
 
