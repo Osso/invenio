@@ -435,7 +435,7 @@ def get_persons_from_recids(recids, return_alt_names=False,
         #because it was not fully processed by it's creator. Anyway it's safe to try to create one
         #before failing miserably
         if not canonical:
-            update_personID_canonical_names(pid)
+            update_personID_canonical_names([pid])
         canonical = get_canonical_name(pid)
 
         #assert len(canonical) == 1
