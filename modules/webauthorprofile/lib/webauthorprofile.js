@@ -18,6 +18,8 @@
  */
 
 $(document).ready(function() {
+    $("a[rel=lightbox]").lightBox();
+
     $('[class^=more-]').hide();
 
     $('[class^=lmore]').each(function() {
@@ -36,7 +38,7 @@ $(document).ready(function() {
         });
     });
 });
-    
+
 function initAjax(){
   /*
    * Initialize Ajax.

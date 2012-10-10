@@ -221,6 +221,7 @@ INSERT INTO format VALUES (20,'MODS', 'xo', 'Metadata Object Description Schema'
 INSERT INTO format VALUES (21,'HTML author claiming', 'ha', 'Very brief HTML output format for author/paper claiming facility.', 'text/html', 0);
 INSERT INTO format VALUES (22,'Podcast', 'xp', 'Sample format suitable for multimedia feeds, such as podcasts', 'application/rss+xml', 0);
 INSERT INTO format VALUES (23,'WebAuthorProfile affiliations helper','wapaff', 'cPickled dicts', 'text', 0);
+INSERT INTO format VALUES (24,'WebAuthorProfile data helper', 'wapdat', 'cPickled dicts', 'text', 0);
 
 INSERT INTO tag VALUES (1,'first author name','100__a');
 INSERT INTO tag VALUES (2,'additional author name','700__a');

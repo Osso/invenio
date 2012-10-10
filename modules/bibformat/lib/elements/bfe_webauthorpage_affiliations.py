@@ -20,7 +20,7 @@
 """
 
 from cgi import escape
-import pickle
+import cPickle as pickle
 
 def format_element(bfo):
     """
@@ -32,13 +32,10 @@ def format_element(bfo):
     recid = bfo.recID
 
     for f in fields + fields2:
-        if f.has_key('a'):
-            if f.has_key('u'):
-                u = f['u']
-            else:
-                u = ''
+        if f.has_key('a') and f.has_key('u') and f['u']:
+            u = f['u']
             try:
-                dic[f['a']] += u
+                dic[f['a']].append(u)
             except KeyError:
                 dic[f['a']] = [u]
 

@@ -569,12 +569,12 @@ def get_personids_from_bibrec(bibrec):
     Returns all the personids associated to a bibrec.
     '''
 
-    pids = run_sql("select distinct personid from aidPERSONIDPAPERS where bibrec=%s and flag > -2", (bibrec,))
+    pids = run_sql("select personid from aidPERSONIDPAPERS where bibrec=%s and flag > -2", (bibrec,))
 
     if pids:
-        return zip(*pids)[0]
+        return set((x[0] for x in pids))
     else:
-        return []
+        return set()
 
 def get_personids_and_papers_from_bibrecs(bibrecs, limit_by_name=None):
     '''

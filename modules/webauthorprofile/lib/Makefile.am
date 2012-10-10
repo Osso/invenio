@@ -19,6 +19,7 @@
 pylibdir = $(libdir)/python/invenio
 
 pylib_DATA = webauthorprofile_corefunctions.py \
+	     webauthorprofile_config.py \
 	     webauthorprofile_dbapi.py \
 	     webauthorprofile_interface.py \
 	     webauthorprofile_templates.py  \
