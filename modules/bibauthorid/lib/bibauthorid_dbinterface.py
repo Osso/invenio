@@ -827,19 +827,26 @@ def confirm_papers_to_person(pid, papers, user_level=0):
                        "and flag = -2"
                        , (pid, rec))
 
-        assert paps or rej_paps or other_paps, 'There should be at least something regarding this bibrec!'
+        # All papers that are being claimed should be present in aidPERSONIDPAPERS, thus:
+        # assert paps or rej_paps or other_paps, 'There should be at least something regarding this bibrec!'
+        # should always be valid.
+        # BUT, it usually happens that claims get done out of the browser/session cache which is hours/days old,
+        # hence it happens that papers are claimed which no longer exists in the system.
+        # For the sake of mental sanity, instead of crashing from now on we just ignore such cases.
+        if not paps or other_paps or rej_paps:
+            continue
 
-        #It should not happen that a paper is assigned more then once to the same person.
-        #But sometimes it happens in rare unfortunate cases of bad concurrency circumstances,
-        #so we try to fix it directly instead of crashing here.
-        #Once a better solution for dealing with concurrency will be found, the following asserts
-        #shall be reenabled, to allow better control on what happens.
+        # It should not happen that a paper is assigned more then once to the same person.
+        # But sometimes it happens in rare unfortunate cases of bad concurrency circumstances,
+        # so we try to fix it directly instead of crashing here.
+        # Once a better solution for dealing with concurrency will be found, the following asserts
+        # shall be reenabled, to allow better control on what happens.
 
-        #assert len(paps) < 2, "This paper should not be assigned to this person more then once! %s" % paps
-        #assert len(other_paps) < 2, "There should not be more then one copy of this paper! %s" % other_paps
+        # assert len(paps) < 2, "This paper should not be assigned to this person more then once! %s" % paps
+        # assert len(other_paps) < 2, "There should not be more then one copy of this paper! %s" % other_paps
 
-        #if the bibrec is present with a different bibref, the present one must be moved somwhere
-        #else before we can claim the incoming one
+        # if the bibrec is present with a different bibref, the present one must be moved somwhere
+        # else before we can claim the incoming one
         if paps:
             for pap in paps:
                 #kick out all unwanted signatures
@@ -848,8 +855,8 @@ def confirm_papers_to_person(pid, papers, user_level=0):
                     pids_to_update.add(new_pid)
                     move_signature(pap, new_pid)
 
-        #Make sure that the incoming claim is unique and get rid of all rejections, they are useless
-        #from now on
+        # Make sure that the incoming claim is unique and get rid of all rejections, they are useless
+        # from now on
         run_sql("delete from aidPERSONIDPAPERS where bibref_table like %s and "
                 " bibref_value = %s and bibrec=%s"
                 , sig)
@@ -884,14 +891,17 @@ def reject_papers_from_person(pid, papers, user_level=0):
         table, ref = brr.split(':')
 
         sig = (table, ref, rec)
-        #To be rejected, a record should be present!
+        # To be rejected, a record should be present!
         records = personid_name_from_signature(sig)
-        assert(records)
+        # For the sake of mental sanity (see commentis in confirm_papers_to_personid, just ignore in case this paper is no longer existent
+        # assert(records)
+        if not records:
+            continue
 
         fpid, name = records[0]
-        #If the record is assigned to a different person already, the rejection is meaningless
-        #Otherwise, we assign the paper to someone else (not important who it will eventually 
-        #get moved by tortoise) and add the rejection to the current person
+        # If the record is assigned to a different person already, the rejection is meaningless
+        # Otherwise, we assign the paper to someone else (not important who it will eventually 
+        # get moved by tortoise) and add the rejection to the current person
 
         if fpid == pid:
             move_signature(sig, new_pid)
@@ -927,7 +937,10 @@ def reset_papers_flag(pid, papers):
                        "and flag = -2"
                        , (pid, rec))
 
-        assert paps or rej_paps
+        # again, see confirm_papers_to_person for the sake of mental sanity
+        # assert paps or rej_paps
+        if not paps or rej_paps:
+            continue
         assert len(paps) < 2
 
         run_sql("delete from aidPERSONIDPAPERS where bibref_table like %s and "

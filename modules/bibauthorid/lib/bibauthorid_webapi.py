@@ -846,7 +846,7 @@ def arxiv_login(req):
 
     try:
         found_bibrecs = set(reduce(add, [perform_request_search(p='037:' + str(arx), of='id', rg=0)for arx in arxiv_p_ids]))
-    except IndexError:
+    except (IndexError, TypeError):
         found_bibrecs = set()
 
     #found_bibrecs = [567700, 567744]
