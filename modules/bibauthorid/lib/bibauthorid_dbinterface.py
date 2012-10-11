@@ -833,7 +833,7 @@ def confirm_papers_to_person(pid, papers, user_level=0):
         # BUT, it usually happens that claims get done out of the browser/session cache which is hours/days old,
         # hence it happens that papers are claimed which no longer exists in the system.
         # For the sake of mental sanity, instead of crashing from now on we just ignore such cases.
-        if not paps or other_paps or rej_paps:
+        if not (paps or other_paps or rej_paps):
             continue
 
         # It should not happen that a paper is assigned more then once to the same person.
