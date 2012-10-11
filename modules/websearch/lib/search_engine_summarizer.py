@@ -117,8 +117,7 @@ def render_citation_summary(req, ln, recids, collections, searchpattern,
                                 collections,
                                 search_patterns,
                                 searchfield,
-                                d_recids,
-                                d_recid_citers)
+                                d_recids)
     render_citesummary_overview(req,
                                 ln,
                                 collections,
@@ -183,8 +182,7 @@ def render_extended_citation_summary(req, ln, recids, initial_collections,
                                 collections,
                                 search_patterns,
                                 searchfield,
-                                d_recids,
-                                d_recid_citers)
+                                d_recids)
     render_citesummary_overview(req,
                                 ln,
                                 collections,
@@ -244,7 +242,7 @@ def get_citers(d_recids):
 
 
 def render_citesummary_prologue(req, ln, recids, collections, search_patterns,
-                          searchfield, d_recids, d_recid_citers):
+                          searchfield, d_recids):
     total_count = len(recids)
     citable_recids = recids & search_pattern(p='collection:citeable')
     prologue = websearch_templates.tmpl_citesummary_prologue(d_recids,
