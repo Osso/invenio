@@ -68,7 +68,7 @@ def update_person_canonical_name(person_id, canonical_name, userinfo=''):
         uid = userinfo.split('||')[0]
     else:
         uid = ''
-    dbapi.update_personID_canonical_names(person_id, overwrite=True, suggested=canonical_name)
+    dbapi.update_personID_canonical_names([person_id], overwrite=True, suggested=canonical_name)
     dbapi.insert_user_log(userinfo, person_id, 'data_update', 'CMPUI_changecanonicalname', '', 'Canonical name manually updated.', userid=uid)
 
 def get_canonical_id_from_person_id(person_id):
