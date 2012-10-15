@@ -807,7 +807,7 @@ def arxiv_login(req, picked_profile=None):
             pinfo = dict()
             session['personinfo'] = pinfo
             pinfo["ticket"] = []
-        session.save()
+        session.dirty = True
 
 
 
@@ -836,7 +836,7 @@ def arxiv_login(req, picked_profile=None):
     else:
         session['personinfo']['arxiv_name'] = ''
 
-    session.save()
+    session.dirty = True
 
     try:
         arxiv_p_ids = uinfo['external_arxivids'].split(';')
@@ -897,6 +897,7 @@ def arxiv_login(req, picked_profile=None):
         return ("pid assigned by user", pid)
     else:
         return ("pid", pid)
+
 
 def external_user_can_perform_action(uid):
     '''

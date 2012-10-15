@@ -225,7 +225,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         if rt_ticket_id:
             pinfo["admin_requested_ticket_id"] = rt_ticket_id
 
-        session.save()
+        session.dirty = True
 
         content = ''
         for part in ['optional_menu', 'ticket_box', 'personid_info', 'tabs', 'footer']:
@@ -343,7 +343,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                 pinfo["ln"] = 'en'
             if 'ticket' not in pinfo:
                 pinfo["ticket"] = []
-            session.save()
+            session.dirty = True
         except KeyError:
             pinfo = dict()
             session['personinfo'] = pinfo
@@ -351,7 +351,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
             pinfo["claimpaper_admin_last_viewed_pid"] = -2
             pinfo["ln"] = 'en'
             pinfo["ticket"] = []
-            session.save()
+            session.dirty = True
 
 
     def _lookup(self, component, path):
@@ -1030,7 +1030,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                                                                t['bibref'],
                                                                t['pid'],
                                                                t['action'])
-        session.save()
+        session.dirty = True
         return self._ticket_final_review(req)
 
 
@@ -1093,7 +1093,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
 
             del(pinfo["bibref_check_reviewed_bibrefs"])
             pinfo["bibref_check_required"] = False
-            session.save()
+            session.dirty = True
 
             return ""
 
@@ -1117,7 +1117,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
 
             if not needs_review:
                 pinfo["bibref_check_required"] = False
-                session.save()
+                session.dirty = True
                 return ""
 
             for transaction in needs_review:
@@ -1191,12 +1191,12 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
             else:
                 pinfo["bibref_check_required"] = False
 
-            session.save()
+            session.dirty = True
 
             if 'external_first_entry' in pinfo and pinfo['external_first_entry']:
                 del(pinfo["external_first_entry"])
                 pinfo['external_first_entry_skip_review'] = True
-                session.save()
+                session.dirty = True
                 return "" # don't bother the user the first time
 
             body = TEMPLATE.tmpl_bibref_check(bibrefs_auto_assigned,
@@ -1279,7 +1279,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                     upid = dbpid[0][0]
                     pinfo["upid"] = upid
 
-        session.save()
+        session.dirty = True
 
         if not (user_first_name or user_last_name or user_email):
             skip_checkout_page = False
@@ -1292,7 +1292,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         if 'external_first_entry_skip_review' in pinfo and pinfo['external_first_entry_skip_review']:
             del(pinfo["external_first_entry_skip_review"])
             skip_checkout_page = True
-            session.save()
+            session.dirty = True
 
         if (not ticket or skip_checkout_page
             or ("checkout_confirmed" in pinfo
@@ -1313,7 +1313,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
 #            if "user_ticket_comments" in pinfo:
 #                del(pinfo["user_ticket_comments"])
 
-            session.save()
+            session.dirty = True
             return self._ticket_dispatch_end(req)
 
         for tt in list(ticket):
@@ -1341,7 +1341,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                            if ((not str(row["pid"]) == str(upid)) and
                                row["action"] in ["repeal", "reset"])]
 
-        session.save()
+        session.dirty = True
 
         body = TEMPLATE.tmpl_ticket_final_review(req, mark_yours,
                                                  mark_not_yours,
@@ -1383,7 +1383,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         for t in ticket:
             t['execution_result'] = webapi.execute_action(t['action'], t['pid'], t['bibref'], uid,
                                                           userinfo['uid-ip'], str(userinfo))
-        session.save()
+        session.dirty = True
 
 
     def _ticket_commit_user(self, req):
@@ -1427,7 +1427,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
             t['execution_result'] = True
 
         ticket[:] = ok_tickets
-        session.save()
+        session.dirty = True
 
 
     def _ticket_commit_guest(self, req):
@@ -1458,7 +1458,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         for t in ticket:
             t['execution_result'] = True
 
-        session.save()
+        session.dirty = True
 
 
     def _ticket_dispatch_end(self, req):
@@ -1480,7 +1480,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         if "referer" in pinfo and pinfo["referer"]:
             referer = pinfo["referer"]
             del(pinfo["referer"])
-            session.save()
+            session.dirty = True
             return redirect_to_url(req, referer)
 
         return redirect_to_url(req, "%s/person/%s?open_claim=True" % (CFG_SITE_URL,
@@ -1498,7 +1498,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         for t in list(ticket):
             if 'execution_result' in t:
                 ticket.remove(t)
-        session.save()
+        session.dirty = True
 
 
     def __get_user_role(self, req):
@@ -1628,7 +1628,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
             else:
                 pinfo["user_ticket_comments"] = ""
 
-        session.save()
+        session.dirty = True
 
 
     def action(self, req, form):
@@ -1696,7 +1696,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
 
         if not "ln" in pinfo:
             pinfo["ln"] = ln
-            session.save()
+            session.dirty = True
 
         if 'confirm' in argd and argd['confirm']:
             action = 'confirm'
@@ -1762,7 +1762,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
             for tt in [row for row in ticket if 'incomplete' in row]:
                 ticket.remove(tt)
 
-            session.save()
+            session.dirty = True
 
             return self._ticket_dispatch_end(req)
 
@@ -1778,7 +1778,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
             else:
                 pinfo["checkout_confirmed"] = True
 
-            session.save()
+            session.dirty = True
             return self.adf['ticket_dispatch'][ulevel](req)
             #return self._ticket_final_review(req)
 
@@ -1791,7 +1791,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                     ticket.remove(rmt)
 
             pinfo["checkout_confirmed"] = False
-            session.save()
+            session.dirty = True
             return self.adf['ticket_dispatch'][ulevel](req)
             #return self._ticket_final_review(req)
 
@@ -1808,7 +1808,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
             if not action in ['bibref_check_submit']:
                 if "bibref_check_reviewed_bibrefs" in pinfo:
                     del(pinfo["bibref_check_reviewed_bibrefs"])
-                    session.save()
+                    session.dirty = True
 
                 return self.adf['ticket_dispatch'][ulevel](req)
 
@@ -1851,7 +1851,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                                         if (webapi.is_valid_bibref(tref) and
                                             tpid > -1):
                                             add_rev(element + "," + str(bibrec))
-            session.save()
+            session.dirty = True
 
             return self.adf['ticket_dispatch'][ulevel](req)
 
@@ -1898,7 +1898,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
 
             #start ticket processing chain
             pinfo["claimpaper_admin_last_viewed_pid"] = pid
-            session.save()
+            session.dirty = True
             return self.adf['ticket_dispatch'][ulevel](req)
 #            return self.perform(req, form)
 
@@ -1912,7 +1912,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         elif action in ['cancel_search_ticket']:
             if 'search_ticket' in pinfo:
                 del(pinfo['search_ticket'])
-            session.save()
+            session.dirty = True
             if "claimpaper_admin_last_viewed_pid" in pinfo:
                 pid = pinfo["claimpaper_admin_last_viewed_pid"]
                 return redirect_to_url(req, "/person/%s" % webapi.get_person_redirect_link(pid))
@@ -1995,7 +1995,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
 
         _ = gettext_set_language(ln)
         no_access = self._page_access_permission_wall(req)
-        session.save()
+        session.dirty = True
         pid = -1
         search_enabled = True
 
@@ -2024,7 +2024,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
             search_enabled = False
 
         pinfo["referer"] = uinfo["referer"]
-        session.save()
+        session.dirty = True
         body = TEMPLATE.tmpl_open_claim(bibrefs, pid, last_viewed_pid,
                                         search_enabled=search_enabled)
         body = TEMPLATE.tmpl_person_detail_layout(body)
@@ -2054,7 +2054,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         search_ticket = pinfo["search_ticket"]
         search_ticket['action'] = 'confirm'
         search_ticket['bibrefs'] = bibrefs
-        session.save()
+        session.dirty = True
         return self.search(req, form)
 
 
@@ -2103,7 +2103,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
                 if e['pid'] == t['pid'] and e['bibref'] == t['bibref']:
                     ticket.remove(e)
             ticket.append(t)
-        session.save()
+        session.dirty = True
         #start ticket processing chain
         webapi.delete_request_ticket(pid, bibref)
         return self.adf['ticket_dispatch'][ulevel](req)
@@ -2180,7 +2180,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         #pinfo['ulevel'] = ulevel
 #        pinfo["claimpaper_admin_last_viewed_pid"] = -1
         pinfo["admin_requested_ticket_id"] = -1
-        session.save()
+        session.dirty = True
 
 
     def _generate_search_ticket_box(self, req):
@@ -2298,7 +2298,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
 #                authorpapers = sorted(authorpapers, key=itemgetter(0),
 #                                      reverse=True)
                 if index < bconfig.PERSON_SEARCH_RESULTS_SHOW_PAPERS_PERSON_LIMIT:
-                    #We are no longer sorting by date because of the huge impact this have 
+                    #We are no longer sorting by date because of the huge impact this have
                     #on the system.
                     #The sorting is now done per recordid
 #                    authorpapers = [[paper] for paper in
@@ -2526,7 +2526,7 @@ class WebInterfaceBibAuthorIDPages(WebInterfaceDirectory):
         session = get_session(req)
         pinfo = session["personinfo"]
         pinfo["claimpaper_admin_last_viewed_pid"] = pid
-        session.save()
+        session.dirty = True
 
         link = TEMPLATE.tmpl_welcome_link()
         req.write(link)
