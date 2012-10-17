@@ -34,6 +34,7 @@ try:
     from invenio.config import CFG_BIBDOCFILE_DOCUMENT_FILE_MANAGER_DOCTYPES
 except ImportError:
     CFG_BIBDOCFILE_DOCUMENT_FILE_MANAGER_DOCTYPES = [
+        ('INSPIRE-PUBLIC', 'INSPIRE-PUBLIC'),
         ('Main', 'Main document'),
         ('LaTeX', 'LaTeX'),
         ('Source', 'Source'),
