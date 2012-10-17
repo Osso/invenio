@@ -442,7 +442,8 @@ class WebInterfaceSubmitPages(WebInterfaceDirectory):
             body += create_file_upload_interface(\
                 recid=argd['recid'],
                 ln=argd['ln'],
-                doctypes_and_desc=[('Main', 'Main document'),
+                doctypes_and_desc=[('INSPIRE-PUBLIC', 'INSPIRE-PUBLIC'),
+                                   ('Main', 'Main document'),
                                    ('LaTeX', 'LaTeX'),
                                    ('Source', 'Source'),
                                    ('Additional', 'Additional File'),
