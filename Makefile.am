@@ -178,6 +178,11 @@ install-jquery-plugins:
 	mv bookmarks.png ../img/ && \
 	mv jquery.bookmark.css ../css/ && \
 	rm -f jquery.bookmark.package-1.4.0.zip && \
+	wget http://invenio-software.org/download/jquery/jquery-ui-1.7.3.custom.zip && \
+	unzip jquery-ui-1.7.3.custom.zip development-bundle/ui/ui.core.js && \
+	mv development-bundle/ui/ui.core.js ui.core.js && \
+	rm -rf development-bundle && \
+	rm jquery-ui-1.7.3.custom.zip && \
 	mkdir -p ${prefix}/var/www/img && \
 	cd ${prefix}/var/www/img && \
 	wget -r -np -nH --cut-dirs=4 -A "png,css" -P jquery-ui/themes http://jquery-ui.googlecode.com/svn/tags/1.8.17/themes/base/ && \
