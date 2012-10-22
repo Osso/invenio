@@ -49,7 +49,6 @@ from invenio.config import \
      CFG_SITE_NAME, \
      CFG_SITE_NAME_INTL, \
      CFG_VERSION, \
-     CFG_SITE_URL, \
      CFG_SITE_SUPPORT_EMAIL, \
      CFG_SITE_ADMIN_EMAIL, \
      CFG_CERN_SITE, \
@@ -66,7 +65,8 @@ from invenio.config import \
      CFG_SITE_RECORD, \
      CFG_WEBSEARCH_PREV_NEXT_HIT_LIMIT, \
      CFG_HEPDATA_URL, \
-     CFG_HEPDATA_PLOTSIZE
+     CFG_HEPDATA_PLOTSIZE, \
+     CFG_BASE_URL
 
 from invenio.dbquery import run_sql
 from invenio.messages import gettext_set_language
@@ -253,8 +253,8 @@ class Template:
             'rft.series' : (str, ''),
     }
 
-    tmpl_opensearch_rss_url_syntax = "%(CFG_SITE_URL)s/rss?p={searchTerms}&amp;jrec={startIndex}&amp;rg={count}&amp;ln={language}" % {'CFG_SITE_URL': CFG_SITE_URL}
-    tmpl_opensearch_html_url_syntax = "%(CFG_SITE_URL)s/search?p={searchTerms}&amp;jrec={startIndex}&amp;rg={count}&amp;ln={language}" % {'CFG_SITE_URL': CFG_SITE_URL}
+    tmpl_opensearch_rss_url_syntax = "%(CFG_BASE_URL)s/rss?p={searchTerms}&amp;jrec={startIndex}&amp;rg={count}&amp;ln={language}" % {'CFG_BASE_URL': CFG_BASE_URL}
+    tmpl_opensearch_html_url_syntax = "%(CFG_BASE_URL)s/search?p={searchTerms}&amp;jrec={startIndex}&amp;rg={count}&amp;ln={language}" % {'CFG_BASE_URL': CFG_BASE_URL}
 
     def tmpl_openurl2invenio(self, openurl_data):
         """ Return an Invenio url corresponding to a search with the data
@@ -386,55 +386,55 @@ class Template:
         ## Trying possible searches
         if doi_query:
             if perform_request_search(p=doi_query):
-                return '%s/search?%s' % (CFG_SITE_URL, urlencode({
+                return '%s/search?%s' % (CFG_BASE_URL, urlencode({
                     'p' : doi_query,
                     'sc' : CFG_WEBSEARCH_SPLIT_BY_COLLECTION,
                     'of' : 'hd'}))
         if isbn_query:
             if perform_request_search(p=isbn_query):
-                return '%s/search?%s' % (CFG_SITE_URL, urlencode({
+                return '%s/search?%s' % (CFG_BASE_URL, urlencode({
                     'p' : isbn_query,
                     'sc' : CFG_WEBSEARCH_SPLIT_BY_COLLECTION,
                     'of' : 'hd'}))
         if coden_query:
             if perform_request_search(p=coden_query):
-                return '%s/search?%s' % (CFG_SITE_URL, urlencode({
+                return '%s/search?%s' % (CFG_BASE_URL, urlencode({
                     'p' : coden_query,
                     'sc' : CFG_WEBSEARCH_SPLIT_BY_COLLECTION,
                     'of' : 'hd'}))
         if author_query and title_query:
             if perform_request_search(p='%s and %s' % (title_query, author_query)):
-                return '%s/search?%s' % (CFG_SITE_URL, urlencode({
+                return '%s/search?%s' % (CFG_BASE_URL, urlencode({
                     'p' : '%s and %s' % (title_query, author_query),
                     'sc' : CFG_WEBSEARCH_SPLIT_BY_COLLECTION,
                     'of' : 'hd'}))
         if title_query:
             result = len(perform_request_search(p=title_query))
             if result == 1:
-                return '%s/search?%s' % (CFG_SITE_URL, urlencode({
+                return '%s/search?%s' % (CFG_BASE_URL, urlencode({
                     'p' : title_query,
                     'sc' : CFG_WEBSEARCH_SPLIT_BY_COLLECTION,
                     'of' : 'hd'}))
             elif result > 1:
-                return '%s/search?%s' % (CFG_SITE_URL, urlencode({
+                return '%s/search?%s' % (CFG_BASE_URL, urlencode({
                     'p' : title_query,
                     'sc' : CFG_WEBSEARCH_SPLIT_BY_COLLECTION,
                     'of' : 'hb'}))
 
         ## Nothing worked, let's return a search that the user can improve
         if author_query and title_query:
-            return '%s/search%s' % (CFG_SITE_URL, make_canonical_urlargd({
+            return '%s/search%s' % (CFG_BASE_URL, make_canonical_urlargd({
                 'p' : '%s and %s' % (title_query_cleaned, author_query),
                 'sc' : CFG_WEBSEARCH_SPLIT_BY_COLLECTION,
                 'of' : 'hb'}, {}))
         elif title_query:
-            return '%s/search%s' % (CFG_SITE_URL, make_canonical_urlargd({
+            return '%s/search%s' % (CFG_BASE_URL, make_canonical_urlargd({
                 'p' : title_query_cleaned,
                 'sc' : CFG_WEBSEARCH_SPLIT_BY_COLLECTION,
                 'of' : 'hb'}, {}))
         else:
             ## Mmh. Too few information provided.
-            return '%s/search%s' % (CFG_SITE_URL, make_canonical_urlargd({
+            return '%s/search%s' % (CFG_BASE_URL, make_canonical_urlargd({
                         'p' : 'recid:-1',
                         'sc' : CFG_WEBSEARCH_SPLIT_BY_COLLECTION,
                         'of' : 'hb'}, {}))
@@ -456,10 +456,10 @@ class Template:
 <Developer>Powered by Invenio</Developer>
 <Url type="text/html" indexOffset="1" rel="results" template="%(html_search_syntax)s" />
 <Url type="application/rss+xml" indexOffset="1" rel="results" template="%(rss_search_syntax)s" />
-<Url type="application/opensearchdescription+xml" rel="self" template="%(CFG_SITE_URL)s/opensearchdescription" />
-<moz:SearchForm>%(CFG_SITE_URL)s</moz:SearchForm>
+<Url type="application/opensearchdescription+xml" rel="self" template="%(CFG_BASE_URL)s/opensearchdescription" />
+<moz:SearchForm>%(CFG_BASE_URL)s</moz:SearchForm>
 </OpenSearchDescription>""" % \
-  {'CFG_SITE_URL': CFG_SITE_URL,
+  {'CFG_BASE_URL': CFG_BASE_URL,
    'short_name': CFG_SITE_NAME_INTL.get(ln, CFG_SITE_NAME)[:16],
    'long_name': CFG_SITE_NAME_INTL.get(ln, CFG_SITE_NAME),
    'description': (_("Search on %(x_CFG_SITE_NAME_INTL)s") % \
@@ -494,12 +494,12 @@ class Template:
 
         # Asking for a recid? Return a /CFG_SITE_RECORD/<recid> URL
         if 'recid' in parameters:
-            target = "%s/%s/%s" % (CFG_SITE_URL, CFG_SITE_RECORD, parameters['recid'])
+            target = "%s/%s/%s" % (CFG_BASE_URL, CFG_SITE_RECORD, parameters['recid'])
             del parameters['recid']
             target += make_canonical_urlargd(parameters, self.search_results_default_urlargd)
             return target
 
-        return "%s/search%s" % (CFG_SITE_URL, make_canonical_urlargd(parameters, self.search_results_default_urlargd))
+        return "%s/search%s" % (CFG_BASE_URL, make_canonical_urlargd(parameters, self.search_results_default_urlargd))
 
     def build_search_interface_url(self, known_parameters={}, **kargs):
         """ Helper for generating a canonical search interface URL."""
@@ -520,9 +520,9 @@ class Template:
             del parameters['aas']
 
         if c and c != CFG_SITE_NAME:
-            base = CFG_SITE_URL + '/collection/' + quote(c)
+            base = CFG_BASE_URL + '/collection/' + quote(c)
         else:
-            base = CFG_SITE_URL
+            base = CFG_BASE_URL
         return create_url(base, parameters)
 
     def build_rss_url(self, known_parameters, **kargs):
@@ -550,7 +550,7 @@ class Template:
                     args += '&amp;'
                 args += 'c=' + '&amp;c='.join(c)
 
-        return CFG_SITE_URL + '/rss' + args
+        return CFG_BASE_URL + '/rss' + args
 
     def tmpl_record_page_header_content(self, req, recid, ln):
         """
@@ -633,7 +633,7 @@ class Template:
                   <tr>
                     <td valign="top">%(narrowsearch)s</td>
                ''' % {
-                 'siteurl' : CFG_SITE_URL,
+                 'siteurl' : CFG_BASE_URL,
                  'searchfor' : searchfor,
                  'np_portalbox' : np_portalbox,
                  'narrowsearch' : narrowsearch,
@@ -798,7 +798,7 @@ class Template:
         ''' % {'ln' : ln,
                'sizepattern' : CFG_WEBSEARCH_LIGHTSEARCH_PATTERN_BOX_WIDTH,
                'langlink': ln != CFG_SITE_LANG and '?ln=' + ln or '',
-               'siteurl' : CFG_SITE_URL,
+               'siteurl' : CFG_BASE_URL,
                'asearch' : create_html_link(asearchurl, {}, _('Advanced Search')),
                'header' : header,
                'msg_search' : _('Search'),
@@ -875,7 +875,7 @@ class Template:
         ''' % {'ln' : ln,
                'sizepattern' : CFG_WEBSEARCH_SIMPLESEARCH_PATTERN_BOX_WIDTH,
                'langlink': ln != CFG_SITE_LANG and '?ln=' + ln or '',
-               'siteurl' : CFG_SITE_URL,
+               'siteurl' : CFG_BASE_URL,
                'asearch' : create_html_link(asearchurl, {}, _('Advanced Search')),
                'header' : header,
                'middle_option' : middle_option,
@@ -987,7 +987,7 @@ class Template:
         ''' % {'ln' : ln,
                'sizepattern' : CFG_WEBSEARCH_ADVANCEDSEARCH_PATTERN_BOX_WIDTH,
                'langlink': ln != CFG_SITE_LANG and '?ln=' + ln or '',
-               'siteurl' : CFG_SITE_URL,
+               'siteurl' : CFG_BASE_URL,
                'ssearch' : create_html_link(ssearchurl, {}, _("Simple Search")),
                'header' : header,
 
@@ -1335,7 +1335,7 @@ class Template:
             if type == 'r':
                 if str(son.dbquery).startswith("hostedcollection:"):
                     out += """<img src="%(siteurl)s/img/external-icon-light-8x8.gif" border="0" alt="%(name)s"/>""" % \
-                           { 'siteurl' : CFG_SITE_URL, 'name' : cgi.escape(son.name), }
+                           { 'siteurl' : CFG_BASE_URL, 'name' : cgi.escape(son.name), }
 
             if son.restricted_p():
                 out += """ <small class="warning">[%(msg)s]</small> """ % { 'msg' : _("restricted") }
@@ -1354,7 +1354,7 @@ class Template:
                     if type == 'r':
                         if str(grandson.dbquery).startswith("hostedcollection:"):
                             out += """<img src="%(siteurl)s/img/external-icon-light-8x8.gif" border="0" alt="%(name)s"/>""" % \
-                                    { 'siteurl' : CFG_SITE_URL, 'name' : cgi.escape(grandson.name), }
+                                    { 'siteurl' : CFG_BASE_URL, 'name' : cgi.escape(grandson.name), }
 
             out += """</td></tr>"""
             i += 1
@@ -1394,7 +1394,7 @@ class Template:
                                    'internal_name': internal_name,
                                    'name': cgi.escape(name),
                                    'id': "extSearch" + nmtoken_from_string(name),
-                                   'siteurl': CFG_SITE_URL, }
+                                   'siteurl': CFG_BASE_URL, }
 
         html += """</tbody></table></td></tr></table>"""
         return html
@@ -1877,7 +1877,7 @@ class Template:
                       </tr>""" % {'link_previous': create_html_link(self.build_search_url(query_previous, action='browse'), {}, _("Previous")),
                       'link_next': create_html_link(self.build_search_url(query_next, action='browse'),
                                                            {}, _("next")),
-                                  'siteurl' : CFG_SITE_URL}
+                                  'siteurl' : CFG_BASE_URL}
         out += """</tbody>
             </table>"""
         return out
@@ -1966,7 +1966,7 @@ class Template:
 
         out += '''
         <form name="search" action="%(siteurl)s/search" method="get">
-        ''' % {'siteurl' : CFG_SITE_URL}
+        ''' % {'siteurl' : CFG_BASE_URL}
 
         # Only add non-default hidden values
         for field, value in argd.items():
@@ -2067,7 +2067,7 @@ class Template:
                                 ),
               'search' : _("Search"),
               'browse' : _("Browse"),
-              'siteurl' : CFG_SITE_URL,
+              'siteurl' : CFG_BASE_URL,
               'ln' : ln,
               'langlink': ln != CFG_SITE_LANG and '?ln=' + ln or '',
               'search_tips': _("Search Tips")
@@ -2124,7 +2124,7 @@ class Template:
                                 ),
               'search' : _("Search"),
               'browse' : _("Browse"),
-              'siteurl' : CFG_SITE_URL,
+              'siteurl' : CFG_BASE_URL,
               'ln' : ln,
               'langlink': ln != CFG_SITE_LANG and '?ln=' + ln or '',
               'search_tips': _("Search Tips")
@@ -2181,7 +2181,7 @@ class Template:
                                 ),
               'search' : _("Search"),
               'browse' : _("Browse"),
-              'siteurl' : CFG_SITE_URL,
+              'siteurl' : CFG_BASE_URL,
               'ln' : ln,
               'langlink': ln != CFG_SITE_LANG and '?ln=' + ln or '',
               'search_tips': _("Search Tips"),
@@ -2466,7 +2466,7 @@ class Template:
                   <strong><big>%(collection_link)s</big></strong></td>
                   ''' % {
                     'collection_id': collection_id,
-                    'siteurl' : CFG_SITE_URL,
+                    'siteurl' : CFG_BASE_URL,
                     'collection_link': create_html_link(self.build_search_interface_url(c=collection, aas=aas, ln=ln),
                                                         {}, cgi.escape(collection_name))
                   }
@@ -2474,7 +2474,7 @@ class Template:
             out += """
                   <div style="clear:both"></div>
                   <form action="%(siteurl)s/search" method="get"><div align="center">
-                  """ % { 'siteurl' : CFG_SITE_URL }
+                  """ % { 'siteurl' : CFG_BASE_URL }
 
         # middle table cell: print beg/next/prev/end arrows:
         if not middle_only:
@@ -2508,7 +2508,7 @@ class Template:
             # @todo here
             def img(gif, txt):
                 return '<img src="%(siteurl)s/img/%(gif)s.gif" alt="%(txt)s" border="0" />' % {
-                    'txt': txt, 'gif': gif, 'siteurl': CFG_SITE_URL}
+                    'txt': txt, 'gif': gif, 'siteurl': CFG_BASE_URL}
 
             if jrec - rg > 1:
                 out += create_html_link(self.build_search_url(query, jrec=1, rg=rg),
@@ -2647,7 +2647,7 @@ class Template:
                   <strong><big>%(collection_link)s</big></strong></td>
                   ''' % {
                     'collection_id': collection_id,
-                    'siteurl' : CFG_SITE_URL,
+                    'siteurl' : CFG_BASE_URL,
                     'collection_link': create_html_link(self.build_search_interface_url(c=collection, aas=aas, ln=ln),
                                                         {}, cgi.escape(collection_name))
                   }
@@ -2655,7 +2655,7 @@ class Template:
         else:
             out += """
                   <form action="%(siteurl)s/search" method="get"><div align="center">
-                  """ % { 'siteurl' : CFG_SITE_URL }
+                  """ % { 'siteurl' : CFG_BASE_URL }
 
         # middle table cell: print beg/next/prev/end arrows:
         if not middle_only:
@@ -2698,7 +2698,7 @@ class Template:
             # @todo here
             def img(gif, txt):
                 return '<img src="%(siteurl)s/img/%(gif)s.gif" alt="%(txt)s" border="0" />' % {
-                    'txt': txt, 'gif': gif, 'siteurl': CFG_SITE_URL}
+                    'txt': txt, 'gif': gif, 'siteurl': CFG_BASE_URL}
 
             if jrec - rg > 1:
                 out += create_html_link(self.build_search_url(query, jrec=1, rg=rg),
@@ -2836,7 +2836,7 @@ class Template:
               <form action="%(siteurl)s/yourbaskets/add" method="post">
               <table>
               """ % {
-                'siteurl' : CFG_SITE_URL,
+                'siteurl' : CFG_BASE_URL,
               }
 
         return out
@@ -3032,7 +3032,7 @@ class Template:
                       <input type="hidden" name="colid" value="%(col_db_id)s" />
                       <table>
                       """ % {
-                        'siteurl' : CFG_SITE_URL,
+                        'siteurl' : CFG_BASE_URL,
                         'col_db_id' : db_id,
                       }
         else:
@@ -3381,7 +3381,7 @@ class Template:
                 out += "<!--not showing citations links-->"
         if display_claim_link: #Maybe we want not to show the link to who cannot use id?
             out += '<span class="moreinfo"> - %s</span>' % \
-                create_html_link(CFG_SITE_URL + '/person/action', {'claim':'True', 'selection':str(recID)},
+                create_html_link(CFG_BASE_URL + '/person/action', {'claim':'True', 'selection':str(recID)},
                                                                         'Attribute this paper',
                                                                         {'class': "moreinfo"})
 
@@ -3389,7 +3389,7 @@ class Template:
             num_comments = get_nb_comments(recID, count_deleted=False)
             if num_comments:
                 out += '<span class="moreinfo"> - %s</span>' % \
-                        create_html_link(CFG_SITE_URL + '/' + CFG_SITE_RECORD + '/' + str(recID)
+                        create_html_link(CFG_BASE_URL + '/' + CFG_SITE_RECORD + '/' + str(recID)
                         + '/comments?ln=%s' % ln, {}, num_comments > 1 and _("%i comments")
                         % (num_comments) or _("1 comment"),
                         {'class': "moreinfo"})
@@ -3400,7 +3400,7 @@ class Template:
             num_reviews = get_nb_reviews(recID, count_deleted=False)
             if num_reviews:
                 out += '<span class="moreinfo"> - %s</span>' % \
-                        create_html_link(CFG_SITE_URL + '/' + CFG_SITE_RECORD + '/' + str(recID)
+                        create_html_link(CFG_BASE_URL + '/' + CFG_SITE_RECORD + '/' + str(recID)
                         + '/reviews?ln=%s' % ln, {}, num_reviews > 1 and _("%i reviews")
                         % (num_reviews) or _("1 review"), {'class': "moreinfo"})
             else:
@@ -3451,7 +3451,7 @@ class Template:
           <link>%(siteurl)s/search</link>
         </textInput>
         """ % {'sitename': CFG_SITE_NAME,
-               'siteurl': CFG_SITE_URL,
+               'siteurl': CFG_BASE_URL,
                'sitelang': CFG_SITE_LANG,
                'search_syntax': self.tmpl_opensearch_rss_url_syntax,
                'timestamp': time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime()),
@@ -3520,7 +3520,7 @@ class Template:
         <itunes:email>%(siteadminemail)s</itunes:email>
         </itunes:owner>
         """ % {'sitename': CFG_SITE_NAME,
-               'siteurl': CFG_SITE_URL,
+               'siteurl': CFG_BASE_URL,
                'sitelang': CFG_SITE_LANG,
                'siteadminemail': CFG_SITE_ADMIN_EMAIL,
                'timestamp': time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime()),
@@ -3630,7 +3630,7 @@ class Template:
                       'sorry': _("Sorry, collection %s does not seem to exist.") % \
                                 ('<strong>' + cgi.escape(colname) + '</strong>'),
                       'you_may_want': _("You may want to start browsing from %s.") % \
-                                 ('<a href="' + CFG_SITE_URL + '?ln=' + ln + '">' + \
+                                 ('<a href="' + CFG_BASE_URL + '/?ln=' + ln + '">' + \
                                         cgi.escape(CFG_SITE_NAME_INTL.get(ln, CFG_SITE_NAME)) + '</a>')}
         return out
 
@@ -3653,18 +3653,18 @@ class Template:
             argd = cgi.parse_qs(res[0][0])
 
         rssurl = self.build_rss_url(argd)
-        alerturl = CFG_SITE_URL + '/youralerts/input?ln=%s&amp;idq=%s' % (ln, id_query)
+        alerturl = CFG_BASE_URL + '/youralerts/input?ln=%s&amp;idq=%s' % (ln, id_query)
 
         if display_email_alert_part:
             msg_alert = _("""Set up a personal %(x_url1_open)semail alert%(x_url1_close)s
                                   or subscribe to the %(x_url2_open)sRSS feed%(x_url2_close)s.""") % \
-                        {'x_url1_open': '<a href="%s"><img src="%s/img/mail-icon-12x8.gif" border="0" alt="" /></a> ' % (alerturl, CFG_SITE_URL) + ' <a class="google" href="%s">' % (alerturl),
+                        {'x_url1_open': '<a href="%s"><img src="%s/img/mail-icon-12x8.gif" border="0" alt="" /></a> ' % (alerturl, CFG_BASE_URL) + ' <a class="google" href="%s">' % (alerturl),
                          'x_url1_close': '</a>',
-                         'x_url2_open': '<a href="%s"><img src="%s/img/feed-icon-12x12.gif" border="0" alt="" /></a> ' % (rssurl, CFG_SITE_URL) + ' <a class="google" href="%s">' % rssurl,
+                         'x_url2_open': '<a href="%s"><img src="%s/img/feed-icon-12x12.gif" border="0" alt="" /></a> ' % (rssurl, CFG_BASE_URL) + ' <a class="google" href="%s">' % rssurl,
                          'x_url2_close': '</a>', }
         else:
             msg_alert = _("""Subscribe to the %(x_url2_open)sRSS feed%(x_url2_close)s.""") % \
-                        {'x_url2_open': '<a href="%s"><img src="%s/img/feed-icon-12x12.gif" border="0" alt="" /></a> ' % (rssurl, CFG_SITE_URL) + ' <a class="google" href="%s">' % rssurl,
+                        {'x_url2_open': '<a href="%s"><img src="%s/img/feed-icon-12x12.gif" border="0" alt="" /></a> ' % (rssurl, CFG_BASE_URL) + ' <a class="google" href="%s">' % rssurl,
                          'x_url2_close': '</a>', }
 
         out = '''<a name="googlebox"></a>
@@ -3967,7 +3967,7 @@ class Template:
             out += '''
                     <tr><td>%(graph)s</td></tr>
                     <tr><td>%(similar)s</td></tr>
-                    ''' % { 'siteurl': CFG_SITE_URL, 'recid': recID, 'ln': ln,
+                    ''' % { 'siteurl': CFG_BASE_URL, 'recid': recID, 'ln': ln,
                              'similar': similar, 'more': _("more"),
                              'graph': downloadsimilarity
                              }
@@ -4364,7 +4364,7 @@ class Template:
 
         if person_link:
             cmp_link = ('<div><a href="%s/person/claimstub?person=%s">%s</a></div>'
-                      % (CFG_SITE_URL, person_link,
+                      % (CFG_BASE_URL, person_link,
                          _("This is me.  Verify my publication list.")))
             if return_html:
                 html.append(cmp_link)
@@ -4491,7 +4491,7 @@ class Template:
                   'of': 'hcs'}
         msg = _('Back to citesummary')
 
-        url = CFG_SITE_URL + '/search?' + \
+        url = CFG_BASE_URL + '/search?' + \
                           '&'.join(['='.join(i) for i in params.iteritems()])
         out += '<a href="%(url)s">%(msg)s</a>' % {'url': url, 'msg': msg}
 
@@ -4504,7 +4504,7 @@ class Template:
         params = {'ln': ln,
                   'p': quote(searchpattern),
                   'of': 'hcs2'}
-        url = CFG_SITE_URL + '/search?' + \
+        url = CFG_BASE_URL + '/search?' + \
                        '&amp;'.join(['='.join(i) for i in params.iteritems()])
         out += msg % {'url': url,
                       'msg': _('Exclude self-citations or RPP')}
@@ -4533,7 +4533,7 @@ class Template:
         out += """<tr><td><strong>%(msg_recs)s</strong></td>""" % \
                {'msg_recs': _("Total number of papers analyzed:"), }
         for coll, colldef in collections:
-            link_url = CFG_SITE_URL + '/search?p='
+            link_url = CFG_BASE_URL + '/search?p='
             if search_patterns[coll]:
                 p = search_patterns[coll]
                 if searchfield:
@@ -4579,7 +4579,7 @@ class Template:
 
         # use ? help linking in the style of oai_repository_admin.py
         msg = ' <small><small>[<a href="%s%s">?</a>]</small></small></td>'
-        out += msg % (CFG_SITE_URL,
+        out += msg % (CFG_BASE_URL,
                       '/help/citation-metrics#citesummary_self-cites')
 
         for total_cites in d_total_cites.values():
@@ -4591,7 +4591,7 @@ class Template:
                                                         {'msg_avgcit': msg, }
         # use ? help linking in the style of oai_repository_admin.py
         msg = ' <small><small>[<a href="%s%s">?</a>]</small></small></td>'
-        out += msg % (CFG_SITE_URL,
+        out += msg % (CFG_BASE_URL,
                       '/help/citation-metrics#citesummary_self-cites')
 
         for avg_cites in d_avg_cites.itervalues():
@@ -4600,7 +4600,7 @@ class Template:
         return out
 
     def tmpl_citesummary_warning(self):
-        url = '%s/help/citation-metrics#citesummary_self-cites' % CFG_SITE_URL
+        url = '%s/help/citation-metrics#citesummary_self-cites' % CFG_BASE_URL
         out = "<p><strong>Warning</strong>: The citation search should be " \
               "used and interpreted with great care. " \
               " <a href=\"%s\">Read the fine print</a></p>" % url
@@ -4621,7 +4621,7 @@ class Template:
         out = """<tr><td>%(fame)s</td>""" % \
               {'fame': _(fame), }
         for coll, colldef in l_colls:
-            link_url = CFG_SITE_URL + '/search?p='
+            link_url = CFG_BASE_URL + '/search?p='
             if searchpatterns.get(coll, None):
                 p = searchpatterns.get(coll, None)
                 if searchfield:
@@ -4649,7 +4649,7 @@ class Template:
         out += '<tr><td>h<sub style="font-size: 50%">HEP</sub> index'
         # use ? help linking in the style of oai_repository_admin.py
         msg = ' <small><small>[<a href="%s%s">?</a>]</small></small></td>'
-        out += msg % (CFG_SITE_URL,
+        out += msg % (CFG_BASE_URL,
                       '/help/citation-metrics#citesummary_h-index')
         for coll, dummy in collections:
             h_factors = d_h_factors[coll]
