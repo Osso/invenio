@@ -145,7 +145,7 @@ RABBIT_USE_CACHED_PID = True
 
 #Collect (external ids from and store them as person attributes) _only_ from manually claimed papers?
 #If false, collects even from non claimed papers.
-LIMIT_EXTERNAL_IDS_COLLECTION_TO_CLAIMED_PAPERS = False
+LIMIT_EXTERNAL_IDS_COLLECTION_TO_CLAIMED_PAPERS = True
 
 
 # BibAuthorID debugging options
