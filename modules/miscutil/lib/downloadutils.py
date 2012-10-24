@@ -29,8 +29,11 @@ Raises InvenioDownloadError exception.
 import urllib2
 import time
 import os
+import socket
+import sys
 
 from tempfile import mkstemp
+
 
 class InvenioDownloadError(Exception):
     """A generic download exception."""
@@ -76,7 +79,7 @@ def download(url, new_file):
         conn = urllib2.urlopen(url)
         response = conn.read()
         conn.close()
-    except (urllib2.URLError, urllib2.HTTPError), e:
+    except (urllib2.URLError, urllib2.HTTPError, socket.timeout), e:
         raise InvenioDownloadError('Error downloading from %s: \n%s\n' % (url, str(e)))
 
     try:
@@ -87,6 +90,7 @@ def download(url, new_file):
         raise InvenioDownloadError('Error saving to file %s: \n%s\n' % (new_file, str(e)))
 
     return conn
+
 
 def download_file(url_for_file, downloaded_file=None, content_type=None, \
                   retry_count=3, timeout=2.0):
@@ -126,7 +130,8 @@ def download_file(url_for_file, downloaded_file=None, content_type=None, \
                 request, downloaded_file = download_into_tempfile(url_for_file)
             else:
                 request = download(url_for_file, downloaded_file)
-        except InvenioDownloadError:
+        except InvenioDownloadError, e:
+            sys.stderr.write(str(e) + "\n")
             attempts += 1
             time.sleep(timeout)
             continue
