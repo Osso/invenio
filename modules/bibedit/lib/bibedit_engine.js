@@ -297,7 +297,8 @@ function initJeditable(){
    * Overwrite Jeditable plugin function to add the autocomplete handler
    * to textboxes corresponding to fields in gTagsToAutocomplete
    */
-  $.editable.types['textarea'].element = function(settings, original) {
+
+   $.editable.types['textarea'].element = function(settings, original) {
     var form = this;
     var textarea = $('<textarea />');
     if (settings.rows) {
@@ -326,6 +327,15 @@ function initJeditable(){
     initInputHotkeys(textarea);
     return(textarea);
   };
+
+  $.editable.addInputType('textarea_custom', {
+    element : $.editable.types.textarea.element,
+    plugin  : function(settings, original) {
+        $('textarea', this).bind('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+  });
 }
 
 /*
@@ -2797,8 +2807,29 @@ function convertFieldIntoEditable(cell, shouldSelect){
     return;
   }
   // first we have to detach all exisiting editables ... which means detaching the event
-  editEvent = 'click';
+  editEvent = 'customclick';
   $(cell).unbind(editEvent);
+
+  /*
+    This binding allows to wait if other textarea is opened before
+    opening the new one. In this way we can jump from one field to the
+    other without the new one being closed.
+  */
+  $(cell).bind('click', function(event) {
+    var self = this;
+
+    function trigger_click() {
+      $(self).trigger('customclick');
+    }
+
+    if ($(".edit_area textarea").length > 0) {
+      $(".edit_area textarea").parent().submit(function() {
+        setTimeout(trigger_click, 30);
+      });
+    } else {
+      trigger_click();
+    }
+  });
 
   $(cell).editable(
     /* function to send edited content to */
@@ -2825,7 +2856,7 @@ function convertFieldIntoEditable(cell, shouldSelect){
     },
     /* start of jEditable options */
     {
-      type: 'textarea',
+      type: 'textarea_custom',
       callback: function(data, settings){
         /* Function to run after submitting edited content */
         var tmpArray = this.id.split('_');
@@ -2845,7 +2876,7 @@ function convertFieldIntoEditable(cell, shouldSelect){
         }
       },
       event: editEvent,
-      data: function(){
+      data: function() {
         // Get the real content from the record structure (instead of
         // from the view, where HTML entities are escaped).
         var tmpArray = this.id.split('_');
@@ -2872,6 +2903,7 @@ function convertFieldIntoEditable(cell, shouldSelect){
           tmpResult = tmpResult.substring(9);
         }
         return tmpResult;
+
       },
       placeholder: '',
       onblur: 'submit',
@@ -2880,19 +2912,34 @@ function convertFieldIntoEditable(cell, shouldSelect){
 }
 
 
-function onContentClick(cell){
+function onContentClick(cell) {
   /*
    * Handle click on editable content fields.
    */
-  // Check if subfield is volatile subfield from a template
-  var shouldSelect = false;
-  if ( $(cell).hasClass('bibEditVolatileSubfield') ){
-    shouldSelect = true;
+  function open_field() {
+    /*
+      Converts <td> element into editable object the first time click
+      is triggered
+    */
+    var shouldSelect = false;
+    // Check if subfield is volatile subfield from a template
+    if ( $(cell).hasClass('bibEditVolatileSubfield') ) {
+      shouldSelect = true;
+    }
+    if (!$(cell).hasClass('edit_area')) {
+      $(cell).addClass('edit_area').removeAttr('onclick');
+      convertFieldIntoEditable(cell, shouldSelect);
+      $(cell).trigger('click');
+    }
   }
-  if (!$(cell).hasClass('edit_area')){
-    $(cell).addClass('edit_area').removeAttr('onclick');
-    convertFieldIntoEditable(cell, shouldSelect);
-    $(cell).trigger('click');
+
+  if ($(".edit_area textarea").length > 0) {
+    /* There is another textarea open, wait for it to close */
+    $(".edit_area textarea").parent().submit(function() {
+       setTimeout(open_field, 30);
+    });
+  } else {
+    open_field();
   }
 }
 
@@ -3028,7 +3075,7 @@ function bulkUpdateSubfieldContent(tag, fieldPosition, subfieldIndex, subfieldCo
     createBulkReq(data, function(json){
       updateStatus('report', gRESULT_CODES[json['resultCode']])}, optArgs);
 
-    redrawFields(tag);
+    redrawFieldPosition(tag, fieldPosition);
     reColorFields();
 }
 

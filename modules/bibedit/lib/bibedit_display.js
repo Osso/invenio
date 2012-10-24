@@ -259,11 +259,13 @@ function redrawFields(tag, skipAddFileds) {
         var result = '',
             i, n;
         if (validMARC.reControlTag.test(tag)) {
-            for (i = 0, n = fields.length; i < n; i++)
-            result += createControlField(tag, fields[i], i);
+            for (i = 0, n = fields.length; i < n; i++) {
+                result += createControlField(tag, fields[i], i);
+            }
         } else {
-            for (i = 0, n = fields.length; i < n; i++)
-            result += createField(tag, fields[i], i);
+            for (i = 0, n = fields.length; i < n; i++) {
+                result += createField(tag, fields[i], i);
+            }
         }
         prevRowGroup.after(result);
     }
@@ -274,6 +276,16 @@ function redrawFields(tag, skipAddFileds) {
             addChangeControl(changeNr, skipAddFileds);
         }
     }
+}
+
+function redrawFieldPosition(tag, fieldPosition) {
+    /*
+        Redraws only the field indicated by fieldPosition
+    */
+    var currentFieldSelector = $("#rowGroup_"  + tag + "_" + fieldPosition);
+    currentFieldSelector.after(
+    createField(tag, gRecord[tag][fieldPosition], fieldPosition));
+    currentFieldSelector.remove();
 }
 
 /// The Holding Pen changes connected functions
