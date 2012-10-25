@@ -173,13 +173,13 @@ class Template:
             '          <tr class="bibEditMenuMore"><td>' \
             '          <div class="bibEditURMenuSection">\n' \
             '             <div class="bibEditURDetailsSection" id="bibEditURUndoListLayer">\n' \
-            '                 <div class="bibEditURButtonLayer"><button id="btnUndo">&lt;</button></div>\n' \
+            '                 <div class="bibEditURButtonLayer"><button id="btnUndo" class="styled-button-12">&lt;</button></div>\n' \
             '                 <div id="undoOperationVisualisationField" class="bibEditHiddenElement bibEditURPreviewBox">\n' \
             '                     <div id="undoOperationVisualisationFieldContent"></div>\n' \
             '                 </div>\n' \
             '             </div>' \
             '             <div class="bibEditURDetailsSection" id="bibEditURRedoListLayer">\n' \
-            '                 <div class="bibEditURButtonLayer"><button id="btnRedo">&gt;</button></div>' \
+            '                 <div class="bibEditURButtonLayer"><button id="btnRedo" class="styled-button-12">&gt;</button></div>' \
             '                 <div id="redoOperationVisualisationField" class="bibEditHiddenElement bibEditURPreviewBox">\n' \
             '                     <div id="redoOperationVisualisationFieldContent"></div>' \
             '                 </div>\n' \
@@ -216,7 +216,7 @@ class Template:
             ' class="bibEditBibCircPanel">' \
             '    Number of copies: ' \
             '       <div id="bibEditBibCirculationCopies">0</div><br/>' \
-            '    <button id="bibEditBibCirculationBtn">' \
+            '    <button id="bibEditBibCirculationBtn" class="styled-button-12">' \
             'Edit physical copies</button>' \
             ' </td></tr></table></div></div>' \
             % {
@@ -324,15 +324,18 @@ def inp(_type, _class='', **kargs):
         args += '%s="%s" ' % (karg, kargs[karg])
     return '<input %s%s%s/>' % (_type, _class, args)
 
-def button(_type, value, _class='', **kargs):
+def button(_type, value, _class="", **kargs):
     """Create an HTML <button> element."""
     _type = 'type="%s" ' % _type
+    class_result = "class='styled-button-12 "
     if _class:
-        _class = 'class="%s" ' % _class
+        class_result += "%s' " % _class
+    else:
+        class_result += "'"
     args = ''
     for karg in kargs:
         args += '%s="%s" ' % (karg, kargs[karg])
-    return '<button %s%s%s>%s</button>' % (_type, _class, args, value)
+    return '<button %s%s%s>%s</button>' % (_type, class_result, args, value)
 
 def link(value, _class='', **kargs):
     """Create an HTML <a> (link) element."""
@@ -347,6 +350,29 @@ def page_style():
     """Apply styling for bibedit elements"""
     style = """<style type="text/css">"""
     style += """
+                .styled-button-12 {
+                    background:#5B74A8;
+                    background:-moz-linear-gradient(top,#5B74A8 0%,#5B74A8 100%);
+                    background:-webkit-gradient(linear,left top,left bottom,color-stop(0%,#5B74A8),color-stop(100%,#5B74A8));
+                    background:-webkit-linear-gradient(top,#5B74A8 0%,#5B74A8 100%);
+                    background:-o-linear-gradient(top,#5B74A8 0%,#5B74A8 100%);
+                    background:-ms-linear-gradient(top,#5B74A8 0%,#5B74A8 100%);
+                    background:linear-gradient(top,#5B74A8 0%,#5B74A8 100%);
+                    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#5B74A8',endColorstr='#5B74A8',GradientType=0);
+                    padding:2px 6px;
+                    color:#fff;
+                    font-family:'Helvetica',sans-serif;
+                    font-size:11px;
+                    border-radius:0;
+                    -moz-border-radius:0;
+                    -webkit-border-radius:0;
+                    border:1px solid #1A356E
+                }
+
+                .styled-button-12[disabled="disabled"] {
+                    opacity: 0.4;
+                }
+
                 .pagefooter {
                     display: none;
                 }
@@ -386,6 +412,9 @@ def page_style():
                     padding-left: 10px;
                     font-size: 0.8em;
                     z-index:1;
+                    background-color: #EEEEEE;
+                    border: 1px solid #C7C7C7;
+                    padding: 10px;
                 }
 
                 #bibEditMessage {
@@ -481,6 +510,10 @@ def page_style():
                     cursor: pointer;
                 }
 
+                #bibEditRevisionsHistory {
+                    border: 1px solid #C7C7C7;
+                }
+
                 #print_helper {
                     display: none;
                 }
@@ -514,10 +547,19 @@ def page_style():
                   * - Dialog refextract
                   */
 
+                .bibedit_input {
+                    border: 2px solid #DDECF7;
+                    padding: 2px;
+                }
+
                 #input_extract_url {
-                    position: absolute;
                     width: 410px;
-                    top: 45px;
+                    margin-top: 30px;
+                }
+
+                #reffreetext {
+                    width: 99%;
+                    height: 590px;
                 }
 
                 .dialog-box-centered {

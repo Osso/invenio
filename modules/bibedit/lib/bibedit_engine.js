@@ -1517,6 +1517,7 @@ function onTextMarcClick() {
 
         var textmarc_box = $('<textarea>');
         textmarc_box.attr('id', 'textmarc_textbox');
+        textmarc_box.addClass("bibedit_input");
         textmarc_box.html(json['textmarc']);
         $('#bibEditTable').remove();
         $('#bibEditContentTable').append(textmarc_box);
