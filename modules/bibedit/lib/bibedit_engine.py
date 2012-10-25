@@ -1438,13 +1438,17 @@ def perform_request_get_pdf_url(recid):
     response = {}
     rec_info = BibRecDocs(recid)
     docs = rec_info.list_bibdocs()
-    try:
-        doc = docs[0]
-        response['pdf_url'] = doc.get_file('pdf').get_url()
-    except (IndexError, InvenioWebSubmitFileError):
-        # FIXME, return here some information about error.
-        # We could allow the user to specify a URl and add the FFT tags automatically
-        response['pdf_url'] = ''
+    doc_pdf_url = ""
+    for doc in docs:
+        try:
+            doc_pdf_url = doc.get_file('pdf').get_url()
+        except InvenioWebSubmitFileError:
+            continue
+        if doc_pdf_url:
+            response['pdf_url'] = doc_pdf_url
+            break
+    if not doc_pdf_url:
+        response['pdf_url'] = ""
     return response
 
 
