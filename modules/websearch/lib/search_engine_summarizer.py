@@ -80,26 +80,17 @@ def render_self_citations(d_recids, ln):
                                                                  ln)
 
 
-def render_citations_breakdown(req, ln, collections, d_recid_citers,
+def render_citations_breakdown(req, ln, collections, breakdown_info,
                                                 search_patterns, searchfield):
     "Render citations break down by fame"
     header = websearch_templates.tmpl_citesummary_breakdown_header(ln)
     req.write(header)
 
-    for low, high, fame in CFG_CITESUMMARY_FAME_THRESHOLDS:
-        d_cites = {}
-        for coll, citers in d_recid_citers.iteritems():
-            d_cites[coll] = 0
-            for recid, lciters in citers:
-                numcites = 0
-                if lciters:
-                    numcites = len(lciters)
-                if numcites >= low and numcites <= high:
-                    d_cites[coll] += 1
-        fame_info = websearch_templates.tmpl_citesummary_breakdown_by_fame(
-                                d_cites, low, high, fame, collections,
-                                search_patterns, searchfield, ln)
-        req.write(fame_info)
+    for low, high, fame, counts in breakdown_info:
+        fame_row = websearch_templates.tmpl_citesummary_breakdown_by_fame(
+                            counts, low, high, collections,
+                            search_patterns, searchfield, ln)
+        req.write(fame_row)
 
 
 def render_citation_summary(req, ln, recids, collections, searchpattern,
@@ -109,6 +100,8 @@ def render_citation_summary(req, ln, recids, collections, searchpattern,
 
     d_recids = get_recids(recids, collections)
     d_recid_citers = get_citers(d_recids)
+    # from invenio.citations_connector import
+    # info =
     search_patterns = dict([(coll, searchpattern) \
                                                for coll, dummy in collections])
     render_citesummary_prologue(req,
@@ -126,7 +119,7 @@ def render_citation_summary(req, ln, recids, collections, searchpattern,
     render_citations_breakdown(req,
                                ln,
                                collections,
-                               d_recid_citers,
+                               info['breakdown'],
                                search_patterns,
                                searchfield)
 

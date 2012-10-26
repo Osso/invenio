@@ -4611,8 +4611,8 @@ class Template:
         return """<tr><td><strong>%(msg_breakdown)s</strong></td></tr>""" % \
                {'msg_breakdown': _("Breakdown of papers by citations:"), }
 
-    def tmpl_citesummary_breakdown_by_fame(self, d_cites, low, high, fame,
-                                           l_colls, searchpatterns,
+    def tmpl_citesummary_breakdown_by_fame(self, counts, low, high, fame,
+                                           colls, searchpatterns,
                                            searchfield, ln=CFG_SITE_LANG):
         """HTML citesummary format, breakdown by fame.
 
@@ -4620,7 +4620,7 @@ class Template:
         _ = gettext_set_language(ln)
         out = """<tr><td>%(fame)s</td>""" % \
               {'fame': _(fame), }
-        for coll, colldef in l_colls:
+        for coll, colldef in colls:
             link_url = CFG_SITE_URL + '/search?p='
             if searchpatterns.get(coll, None):
                 p = searchpatterns.get(coll, None)
@@ -4636,7 +4636,7 @@ class Template:
                 link_url += quote('cited:0')
             else:
                 link_url += quote('cited:%i->%i' % (low, high))
-            link_text = self.tmpl_nice_number(d_cites[coll], ln)
+            link_text = self.tmpl_nice_number(counts[coll], ln)
             out += '<td align="right"><a href="%s">%s</a></td>' % (link_url,
                                                                    link_text)
         out += '</tr>'

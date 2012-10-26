@@ -223,6 +223,12 @@ except:
     register_exception(alert_admin=True, subject='EMERGENCY')
     WebInterfaceWebAuthorPages = WebInterfaceDumbPages
 
+try:
+    from invenio.citations_webinterface import WebInterfaceCitations
+except:
+    register_exception(alert_admin=True, subject='EMERGENCY')
+    WebInterfaceCitations = WebInterfaceDumbPages
+
 if CFG_OPENAIRE_SITE:
     try:
         from invenio.openaire_deposit_webinterface import \
@@ -238,7 +244,7 @@ if CFG_INSPIRE_SITE:
     try:
         from invenio.inspireproject_webinterface import WebInterfaceInspirePages
     except:
-        register_exception(stream='warning', 
+        register_exception(stream='warning',
                 prefix="""
 CFG_INSPIRE_SITE set, but I couldn't load inspireproject_webinterface; have
 you installed the inspire repository master branch?  Until this is corrected,
@@ -288,6 +294,7 @@ class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
         'bibsword',
         'author',
         'info',
+        ('citations-api', 'citations_api'),
         ] + test_exports + openaire_exports
 
     def __init__(self):
@@ -324,6 +331,7 @@ class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
     #redirects author to the new webauthor
     author = WebInterfaceWebAuthorPages()
     #author = WebInterfaceAuthorPages()
+    citations_api = WebInterfaceCitations()
 
 # This creates the 'handler' function, which will be invoked directly
 # by mod_python.

@@ -41,7 +41,11 @@ pylib_DATA = bibrankadminlib.py \
              bibrank_citerank_indexer_tests.py \
              bibrank_selfcites_indexer.py \
              bibrank_selfcites_task.py \
-             bibrank_selfcites_tests.py
+             bibrank_selfcites_tests.py \
+             citations_connector.py \
+             citations_engine.py \
+             citations_webinterface.py
+
 
 EXTRA_DIST = $(pylib_DATA)
 
