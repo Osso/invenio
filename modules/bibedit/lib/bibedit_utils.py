@@ -255,7 +255,11 @@ def update_cache_file_contents(recid, uid, record_revision, record, pending_chan
 
 def delete_cache_file(recid, uid):
     """Delete a BibEdit cache file."""
-    os.remove('%s.tmp' % _get_file_path(recid, uid))
+    try:
+        os.remove('%s.tmp' % _get_file_path(recid, uid))
+    except OSError:
+        # File was probably already removed
+        pass
 
 
 def delete_disabled_changes(used_changes):
