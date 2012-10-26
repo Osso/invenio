@@ -153,7 +153,9 @@ LIMIT_EXTERNAL_IDS_COLLECTION_TO_CLAIMED_PAPERS = True
 # This flag triggers most of the output.
 DEBUG_OUTPUT = False
 # Print timestamps 
+
 DEBUG_TIMESTAMPS = False
+
 # Print timestamps even in update_status
 DEBUG_TIMESTAMPS_UPDATE_STATUS = False
 

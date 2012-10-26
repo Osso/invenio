@@ -20,16 +20,20 @@
 import re
 import bibauthorid_config as bconfig
 from itertools import starmap
-from operator import mul
-from bibauthorid_name_utils import compare_names
-from bibauthorid_dbinterface import get_name_by_bibrecref
-from bibauthorid_dbinterface import get_grouped_records
-from bibauthorid_dbinterface import get_all_authors
-from bibauthorid_dbinterface import get_collaboration
-from bibauthorid_dbinterface import resolve_affiliation
-from bibauthorid_backinterface import get_key_words
-from bibrank_citation_searcher import get_citation_dict
-from bibauthorid_general_utils import metadata_comparison_print
+
+from operator import mul, itemgetter
+from invenio.bibauthorid_name_utils import compare_names
+from invenio.bibauthorid_dbinterface import get_name_by_bibrecref
+from invenio.bibauthorid_dbinterface import get_grouped_records
+from invenio.bibauthorid_dbinterface import get_all_authors
+from invenio.bibauthorid_dbinterface import get_collaboration
+from invenio.bibauthorid_dbinterface import resolve_affiliation
+from invenio.bibauthorid_backinterface import get_key_words
+from invenio.bibrank_citation_searcher import get_citation_dict
+#metadat_comparison_print commented everywhere to increase performances, 
+#import and calls left here to make future debug easier.
+#from invenio.bibauthorid_general_utils import metadata_comparison_print
+
 
 
 # This module is not thread safe!
@@ -41,9 +45,17 @@ from bibauthorid_general_utils import metadata_comparison_print
 # use_refrec = itemgetter(slice(None))
 # use_ref = itemgetter(0, 1)
 # use_rec = itemgetter(2)
-use_refrec = lambda x: x
-use_ref = lambda x: x[0:2]
-use_rec = lambda x: x[2]
+
+try:
+    _ = itemgetter(2, 5, 3)(range(10))
+    use_refrec = lambda x : x
+    use_ref = itemgetter(0, 1)
+    use_rec = itemgetter(2)
+except:
+    #python 2.4 compatibility, a bit slower than itemgetter
+    use_refrec = lambda x: x
+    use_ref = lambda x: x[0:2]
+    use_rec = lambda x: x[2]
 
 # At first glance this may look silly.
 # However, if we load the dictionaries
@@ -380,4 +392,29 @@ def _compare_citations_by(bib1, bib2):
 
     return jaccard(cites1, cites2)
 
+# compare_bibrefrecs
+# Unfortunately doing this assignment at every call of compare_bibrefrec is too expensive.
+# Doing it here is much less elegant but much faster. Let's hope for better times to put it back
+# where it belongs.
 
+# unfortunately, we have to do all comparisons
+if bconfig.CFG_INSPIRE_SITE:
+    cbrr_func_weight = (
+                   (_compare_affiliations, 1.),
+                   (_compare_names, 5.),
+                   (_compare_citations, .5),
+                   (_compare_citations_by, .5),
+                   (_compare_key_words, 2.),
+                   )
+elif bconfig.CFG_ADS_SITE:
+    cbrr_func_weight = (
+            (_compare_email, 3.),
+            (_compare_unified_affiliations, 2.),
+            (_compare_names, 5.),
+    #        register(_compare_citations, .5)
+    #        register(_compare_citations_by, .5)
+            (_compare_key_words, 2.)
+            )
+
+else:
+    cbrr_func_weight = ((_compare_names, 5.),)
