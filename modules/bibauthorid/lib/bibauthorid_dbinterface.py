@@ -268,14 +268,20 @@ def add_signature(sig, name, pid):
             "VALUES (%s, %s, %s, %s, %s)"
             , (pid, str(sig[0]), sig[1], sig[2], name))
 
-def move_signature(sig, pid):
+def move_signature(sig, pid, force_claimed=False, unclaim=False):
     '''
-    Inserts a signature in personid.
+    Move a signature in personid.
     '''
-    run_sql("update aidPERSONIDPAPERS set personid=%s "
-            "where bibref_table like %s and  bibref_value=%s "
-            "and bibrec=%s and flag <> 2 and flag <> -2",
-             (pid,) + sig)
+    upd = "update aidPERSONIDPAPERS set personid=%s" % pid
+    if unclaim:
+        upd += ',flag=0 '
+    sel = " where bibref_table like '%s' and bibref_value=%s and bibrec=%s " % sig
+
+    sql = upd + sel
+    if not force_claimed:
+        sql += '  and flag <> 2 and flag <> -2'
+
+    run_sql(sql)
 
 def find_conflicts(sig, pid):
     """
@@ -904,7 +910,7 @@ def reject_papers_from_person(pid, papers, user_level=0):
         # get moved by tortoise) and add the rejection to the current person
 
         if fpid == pid:
-            move_signature(sig, new_pid)
+            move_signature(sig, new_pid, force_claimed=True, unclaim=True)
             pids_to_update.add(new_pid)
             run_sql("INSERT INTO aidPERSONIDPAPERS "
                     "(personid, bibref_table, bibref_value, bibrec, name, flag, lcul) "
