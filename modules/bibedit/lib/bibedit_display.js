@@ -855,9 +855,14 @@ function displayMessage(msgCode, keepContent, args) {
     case 4:
         msg = 'Your modifications have now been submitted. ' +
               'They will be processed as soon as the task queue is empty.<br />';
+
         if (typeof args !== 'undefined') {
-            if (typeof args[0] !== 'undefined') {
-                msg += '<br /><strong>The conference cnum is ' + args[0] + '</strong>';
+            if (typeof args[0] !== "undefined") {
+                msg += 'Changes will be visible in ' + '<a href="' + gSITE_URL + '/record/' +
+                    args[0] + '" target="_blank">' + gSITE_URL + '/record/' + args[0] + "</a><br />";
+            }
+            if (typeof args[1] !== 'undefined') {
+                msg += '<br /><strong>The conference cnum is ' + args[1] + '</strong>';
             }
         }
         break;
@@ -926,8 +931,9 @@ function displayMessage(msgCode, keepContent, args) {
     }
     if (!keepContent) {
         clearWarnings();
-        $('#bibEditContentTable').html('<div class="warningMsg">' + msg +
-                                       '</div>');
+        $('#bibEditContentTable').empty();
+        $('#bibEditMessage').html('<div class="warningMsg">' + msg +
+                                       '</div>').slideDown('slow');
     } else {
         $('#bibEditMessage').html('<div class="warningMsg">' + msg +
                                   '</div>').slideDown('slow');

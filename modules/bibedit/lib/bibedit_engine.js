@@ -1336,11 +1336,11 @@ function onSubmitPreviewSuccess(dialogPreview, html_preview){
                             else {
                               // Submission was successful.
                               changeAndSerializeHash({state: 'submit', recid: gRecID});
-                              cleanUp(!gNavigatingRecordSet, '', null, true);
                               updateStatus('report', gRESULT_CODES[resCode]);
-                              displayMessage(resCode, false, [json["new_cnum"]]);
+                              cleanUp(!gNavigatingRecordSet, '', null, true, false);
                               updateToolbar(false);
                               resetBibeditState();
+                              displayMessage(resCode, false, [json['recID'], json["new_cnum"]]);
                               updateStatus('ready');
                             }
                         });
@@ -1801,6 +1801,7 @@ function cleanUp(disableRecBrowser, searchPattern, searchType,
   // Clear main content area.
   $('#bibEditContentTable').empty();
   $('#bibEditMessage').empty();
+
   // Clear search area.
   if (typeof(searchPattern) == 'string' || typeof(searchPattern) == 'number')
     $('#txtSearchPattern').val(searchPattern);
