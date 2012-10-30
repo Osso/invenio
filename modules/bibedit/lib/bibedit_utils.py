@@ -71,7 +71,7 @@ from invenio.search_engine import print_record, record_exists, get_colID, \
      guess_primary_collection_of_a_record, get_record, \
      get_all_collections_of_a_record
 from invenio.search_engine_utils import get_fieldvalues
-from invenio.webuser import get_user_info
+from invenio.webuser import get_user_info, get_email
 from invenio.dbquery import run_sql
 from invenio.websearchadminlib import get_detailed_page_tabs
 from invenio.access_control_engine import acc_authorize_action
@@ -334,6 +334,45 @@ def record_locked_by_other_user(recid, uid):
     except ValueError:
         pass
     return bool(active_uids)
+
+
+def get_record_locked_since(recid, uid):
+    """ Get modification time for the given recid and uid
+    """
+    filename = "%s_%s_%s.tmp" % (CFG_BIBEDIT_FILENAME,
+                                recid,
+                                uid)
+    locked_since  = ""
+    try:
+        locked_since = time.ctime(os.path.getmtime('%s%s%s' % (
+                        CFG_TMPSHAREDDIR, os.sep, filename)))
+    except OSError:
+        pass
+    return locked_since
+
+
+def record_locked_by_user_details(recid, uid):
+    """ Get the details about the user that has locked a record and the
+    time the record has been locked.
+    @return: user details and time when record was locked
+    @rtype: tuple
+    """
+    active_uids = _uids_with_active_caches(recid)
+    try:
+        active_uids.remove(uid)
+    except ValueError:
+        pass
+
+    record_blocked_by_nickname = record_blocked_by_email = locked_since = ""
+
+    if active_uids:
+        record_blocked_by_uid = active_uids[0]
+        record_blocked_by_nickname = get_user_info(record_blocked_by_uid)[1]
+        record_blocked_by_email = get_email(record_blocked_by_uid)
+        locked_since = get_record_locked_since(recid, record_blocked_by_uid)
+
+    return record_blocked_by_nickname, record_blocked_by_email, locked_since
+
 
 def record_locked_by_queue(recid):
     """Check if record should be locked for editing because of the current state

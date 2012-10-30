@@ -436,7 +436,11 @@ function onAjaxSuccess(json, onSuccess){
   }
   else if ($.inArray(resCode, [101, 102, 104, 105, 106, 107, 108, 109]) != -1) {
     cleanUp(!gNavigatingRecordSet, null, null, true, true);
-    displayMessage(resCode);
+    args = [];
+    if (resCode == 104) {
+      args = json["locked_details"];
+    }
+    displayMessage(resCode, false, args);
     if (resCode == 107) {
       //return;
       $('#lnkGetRecord').bind('click', function(event){

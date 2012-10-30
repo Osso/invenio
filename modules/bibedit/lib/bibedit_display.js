@@ -880,8 +880,15 @@ function displayMessage(msgCode, keepContent, args) {
             'browse the history on the left menu';
         break;
     case 104:
-        msg = 'This record is currently being edited by another user. Please ' +
-            'try again later.';
+        var name = args.name,
+            email = args.email,
+            locked_since = args.locked_since;
+        name = (name) ? name : "";
+        email = (email) ? email : "";
+        locked_since = (locked_since) ? locked_since : "";
+        msg = 'This record is being edited by user ' + '<strong>' + name +
+              ' (' + email + ') ' + "</strong>" + 'since ' + "<strong>" +
+              locked_since + "</strong>" + '. Please try again later.';
         break;
     case 105:
         msg = 'This record cannot be safely edited at the moment. Please ' +
