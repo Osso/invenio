@@ -205,7 +205,7 @@ def clean_tempfiles():
                vstr))
 
     write_message("- deleting old temporary files attached with BibEdit")
-    gc_exec_command('find %s '
+    gc_exec_command('find %s -name "bibedit*.tmp"'
         ' -atime +%s -exec rm %s -f {} \;' \
             % (CFG_TMPSHAREDDIR, CFG_MAX_ATIME_BIBEDIT_TMP,
                vstr))
