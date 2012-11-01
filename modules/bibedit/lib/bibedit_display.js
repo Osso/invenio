@@ -891,7 +891,7 @@ function displayMessage(msgCode, keepContent, args) {
               locked_since + "</strong>" + '. Please try again later.';
         break;
     case 105:
-        msg = 'This record cannot be safely edited at the moment. Please ' +
+        msg = 'Changes to this record are currently being processed. Please ' +
             'try again in a few minutes.';
         break;
     case 106:
