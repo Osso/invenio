@@ -137,7 +137,10 @@ def rabbit(bibrecs, check_invalid_papers=False):
         markrefs = frozenset(chain(izip(cycle([100]), imap(itemgetter(0), get_authors_from_paper(rec))),
                                    izip(cycle([700]), imap(itemgetter(0), get_coauthors_from_paper(rec)))))
 
-        personid_rows = [map(int, row[:3]) + [row[4]] for row in get_signatures_from_rec(rec)]
+        personid_sql_rows =  get_signatures_from_rec(rec)
+        claimed_signatures = [ tuple(map(int,row[1:3])) for row in personid_sql_rows if int(row[5]) == 2 ]
+        personid_rows = [map(int, row[:3]) + [row[4]] for row in personid_sql_rows]
+
         personidrefs_names = dict(((row[1], row[2]), row[3]) for row in personid_rows)
 
         personidrefs = frozenset(personidrefs_names.keys())
@@ -146,6 +149,16 @@ def rabbit(bibrecs, check_invalid_papers=False):
 
         new_signatures_names = dict((new, create_normalized_name(split_name_parts(get_name_by_bibrecref(new))))
                                     for new in new_signatures)
+
+        osn = []
+        for new in old_signatures:
+            try:
+                osn.append( ( new, create_normalized_name(split_name_parts(get_name_by_bibrecref(new))) ) )
+            except:
+                #with old names we have to deal with stale bibrefs
+                osn.append( (new, 'Name not available anymore') )
+
+        old_signatures_names = dict( osn )
 
         # matrix |new_signatures| X |old_signatures|
         matrix = [[compare_names(new_signatures_names[new], personidrefs_names[old])
@@ -162,14 +175,20 @@ def rabbit(bibrecs, check_invalid_papers=False):
         logwrite (" - Best match: %s " % str(best_match), bool(best_match))
 
         for new, old in best_match:
-            logwrite(" - - Moving signature: %s on %s to %s as %s" % (old, rec, new, new_signatures_names[new]), True)
+            logwrite(" - - Moving signature: %s on %s to %s; originally %s became %s" % (old, rec, new, old_signatures_names[old], new_signatures_names[new]), True)
             modify_signature(old, rec, new, new_signatures_names[new])
 
         remove_sigs(tuple(list(old) + [rec]) for old in old_signatures)
 
         not_matched = frozenset(new_signatures) - frozenset(map(itemgetter(0), best_match))
+        old_not_matched = frozenset(old_signatures) - frozenset(map(itemgetter(1), best_match))
 
-        logwrite(" - Not matched: %s" % str(not_matched), bool(not_matched))
+        logwrite(" - Not matched: new: %s, old %s" % (str(not_matched),str(old_not_matched)), bool(not_matched))
+        logwrite(" -    not matched old: %s"  % str( [[x,old_signatures_names[x]] for x in old_not_matched] ), bool(not_matched))
+        logwrite(" -    not matched new: %s"  % str( [[x,new_signatures_names[x]] for x in not_matched] ), bool(not_matched))
+        for s in old_not_matched:
+            if s in claimed_signatures:
+                logwrite(" -   WARNING: %s was claimed and will be lost!" % str(s), bool(not_matched))
 
         if not_matched:
             used_pids = set(r[0] for r in personid_rows)

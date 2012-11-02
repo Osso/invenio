@@ -906,7 +906,7 @@ def reject_papers_from_person(pid, papers, user_level=0):
 
         fpid, name = records[0]
         # If the record is assigned to a different person already, the rejection is meaningless
-        # Otherwise, we assign the paper to someone else (not important who it will eventually 
+        # Otherwise, we assign the paper to someone else (not important who it will eventually
         # get moved by tortoise) and add the rejection to the current person
 
         if fpid == pid:
@@ -1384,7 +1384,7 @@ def populate_partial_marc_caches():
         for i, v in enumerate(groupby(maptable, itemgetter(0))):
             if i % 1000 == 0:
                 update_status(float(i) / maxiters, 'br_dictionarizing...')
-            if i % 500000 == 0:
+            if i % 2000000 == 0:
                 update_status(float(i) / maxiters, 'br_dictionarizing...GC')
                 gc.collect()
             idx = defaultdict(list)
@@ -1816,7 +1816,7 @@ def get_signatures_from_rec(bibrec):
     Retrieves all information in PERSONID
     about a given bibrec.
     '''
-    return run_sql("select personid, bibref_table, bibref_value, bibrec, name "
+    return run_sql("select personid, bibref_table, bibref_value, bibrec, name, flag "
                    "from aidPERSONIDPAPERS where bibrec = %s"
                    , (bibrec,))
 
