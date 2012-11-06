@@ -82,7 +82,7 @@ def render_self_citations(d_recids, ln):
                                                                  ln)
 
 
-def render_citations_breakdown(req, ln, collections, citers_counts,
+def render_citations_breakdown(req, ln, collections, coll_recids, citers_counts,
                                                 search_patterns, searchfield):
     "Render citations break down by fame"
     header = websearch_templates.tmpl_citesummary_breakdown_header(ln)
@@ -90,10 +90,11 @@ def render_citations_breakdown(req, ln, collections, citers_counts,
 
     for low, high, fame in CFG_CITESUMMARY_FAME_THRESHOLDS:
         d_cites = {}
-        for coll, citecounts in citers_counts.iteritems():
+        for coll, recids in coll_recids.iteritems():
+            cites_counts = citers_counts[coll]
             d_cites[coll] = 0
-            for recid, numcites in citecounts:
-                if numcites >= low and numcites <= high:
+            for recid, numcites in cites_counts:
+                if numcites >= low and numcites <= high and recid in recids:
                     d_cites[coll] += 1
         fame_info = websearch_templates.tmpl_citesummary_breakdown_by_fame(
                                 d_cites, low, high, fame, collections,
@@ -101,7 +102,7 @@ def render_citations_breakdown(req, ln, collections, citers_counts,
         req.write(fame_info)
 
 
-def compute_citations_counts(d_recids):
+def compute_citations_counts(d_recids, dict_name):
     """Compute # cites for each recid
 
     Input
@@ -111,12 +112,12 @@ def compute_citations_counts(d_recids):
     - citers_counts: list of # cites/recid
            {'HEP': [(1, 10), (2, 5), (3, 23), (5, 0), (8, 0)]}
     """
-    citers_counts = {}
-    cites = get_citation_dict('citationdict')
+    filtered_cites_counts = {}
+    cites_count = get_citation_dict(dict_name)
     for coll, recids in d_recids.iteritems():
-        citers_counts[coll] = \
-                       [(recid, len(cites.get(recid, []))) for recid in recids]
-    return citers_counts
+        filtered_cites_counts[coll] = \
+                  [(recid, cites_count.get(recid, 0)) for recid in recids]
+    return filtered_cites_counts
 
 
 def render_citation_summary(req, ln, recids, collections, searchpattern,
@@ -125,9 +126,14 @@ def render_citation_summary(req, ln, recids, collections, searchpattern,
     req.write(title)
 
     d_recids = get_recids(recids, collections)
-    citers_counts = compute_citations_counts(d_recids)
     search_patterns = dict([(coll, searchpattern) \
                                                for coll, dummy in collections])
+
+    cites_counts = get_citation_dict('citationdict_counts')
+    citers_counts = {}
+    for coll, dummy in collections:
+        citers_counts[coll] = cites_counts
+
     render_citesummary_prologue(req,
                                 ln,
                                 recids,
@@ -143,11 +149,12 @@ def render_citation_summary(req, ln, recids, collections, searchpattern,
     render_citations_breakdown(req,
                                ln,
                                collections,
+                               d_recids,
                                citers_counts,
                                search_patterns,
                                searchfield)
 
-    render_h_index(req, ln, collections, citers_counts)
+    render_h_index(req, ln, collections, d_recids, citers_counts)
 
     eplilogue = websearch_templates.tmpl_citesummary_epilogue(ln)
     req.write(eplilogue)
@@ -187,13 +194,15 @@ def render_extended_citation_summary(req, ln, recids, initial_collections,
             (coll_self_cites(coll), query),
             (coll_not_rpp(coll), query),
         ]
-    d_recid_citers = get_citers(d_recids)
-    citers_counts = compute_citations_counts(d_recids)
+
+    cites_counts = get_citation_dict('citationdict_counts')
+    selfcites_counts = get_citation_dict('selfcites_counts')
+    citers_counts = {}
     for coll, dummy in initial_collections:
-        d_recid_citers[coll_self_cites(coll)] = [
-            (recid, range(get_self_citations_count([recid]))) \
-                                                for recid in d_recids[coll]
-        ]
+        citers_counts[coll] = cites_counts
+        citers_counts[coll_self_cites(coll)] = selfcites_counts
+        citers_counts[coll_not_rpp(coll)] = cites_counts
+
     render_citesummary_prologue(req,
                                 ln,
                                 recids,
@@ -209,25 +218,27 @@ def render_extended_citation_summary(req, ln, recids, initial_collections,
     render_citations_breakdown(req,
                                ln,
                                collections,
+                               d_recids,
                                citers_counts,
                                search_patterns,
                                searchfield)
-    render_h_index(req, ln, collections, citers_counts)
+    render_h_index(req, ln, collections, d_recids, citers_counts)
 
     # 6) hcs epilogue:
     eplilogue = websearch_templates.tmpl_citesummary_epilogue(ln)
     req.write(eplilogue)
 
 
-def render_citesummary_overview(req, ln, collections, recids, citers_counts):
+def render_citesummary_overview(req, ln, collections, coll_recids, citers_counts):
     """Citations overview: total citations"""
     total_cites = {}
     avg_cites = {}
 
-    for coll, citecounts in citers_counts.iteritems():
-        total_cites[coll] = sum(tot for recid, tot in citecounts)
+    for coll, recids in coll_recids.iteritems():
+        total_cites[coll] = sum(tot for recid, tot in citers_counts[coll] \
+                                                            if recid in recids)
         try:
-            avg_cites[coll] = float(total_cites[coll]) / len(recids[coll])
+            avg_cites[coll] = float(total_cites[coll]) / len(recids)
         except ZeroDivisionError:
             avg_cites[coll] = 0
 
@@ -271,17 +282,18 @@ def render_citesummary_prologue(req, ln, recids, collections, search_patterns,
     req.write(prologue)
 
 
-def render_h_index(req, ln, collections, citers_counts):
+def render_h_index(req, ln, collections, coll_recids, citers_counts):
     "Calculate and Render h-hep index"
     d_h_factors = {}
-    for coll, citecount in citers_counts.iteritems():
+    for coll, recids in coll_recids.iteritems():
+        cites_counts = citers_counts[coll]
         d_h_factors[coll] = 0
-        citecount.sort(key=itemgetter(1), reverse=True)
-        for citecount in citecount:
-            d_h_factors[coll] += 1
-            if d_h_factors[coll] > citecount[1]:
-                d_h_factors[coll] -= 1
-                break
+        for recid, citecount in cites_counts:
+            if recid in recids:
+                d_h_factors[coll] += 1
+                if d_h_factors[coll] > citecount:
+                    d_h_factors[coll] -= 1
+                    break
     h_idx = websearch_templates.tmpl_citesummary_h_index(collections,
                                                          d_h_factors,
                                                          ln)
