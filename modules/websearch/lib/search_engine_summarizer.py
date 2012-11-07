@@ -26,8 +26,6 @@ __lastupdated__ = """$Date$"""
 
 __revision__ = "$Id$"
 
-from operator import itemgetter
-
 from invenio.config import CFG_INSPIRE_SITE
 from invenio.bibrank_citation_searcher import get_cited_by_list, \
                                               get_citation_dict
@@ -88,14 +86,24 @@ def render_citations_breakdown(req, ln, collections, coll_recids, citers_counts,
     header = websearch_templates.tmpl_citesummary_breakdown_header(ln)
     req.write(header)
 
+    total_recids = {}
+    for coll, recids in coll_recids.iteritems():
+        total_recids[coll] = len(recids)
+
     for low, high, fame in CFG_CITESUMMARY_FAME_THRESHOLDS:
         d_cites = {}
+
         for coll, recids in coll_recids.iteritems():
-            cites_counts = citers_counts[coll]
-            d_cites[coll] = 0
-            for recid, numcites in cites_counts:
-                if numcites >= low and numcites <= high and recid in recids:
-                    d_cites[coll] += 1
+            if low == 0:
+                d_cites[coll] = total_recids[coll]
+            else:
+                cites_counts = citers_counts[coll]
+                d_cites[coll] = 0
+                for recid, numcites in cites_counts:
+                    if numcites >= low and numcites <= high and recid in recids:
+                        d_cites[coll] += 1
+                total_recids[coll] -= d_cites[coll]
+
         fame_info = websearch_templates.tmpl_citesummary_breakdown_by_fame(
                                 d_cites, low, high, fame, collections,
                                 search_patterns, searchfield, ln)
