@@ -2656,14 +2656,13 @@ CREATE TABLE IF NOT EXISTS rnkDOWNLOADS (
 
 -- a table for citations. record-cites-record
 
-CREATE TABLE IF NOT EXISTS rnkCITATIONDATA (
-  id mediumint(8) unsigned NOT NULL auto_increment,
-  object_name varchar(255) NOT NULL,
-  object_value longblob,
-  last_updated datetime NOT NULL default '0000-00-00',
-  PRIMARY KEY id (id),
-  UNIQUE KEY object_name (object_name)
+CREATE TABLE IF NOT EXISTS rnkCITATIONDICT (
+  citee int(10) unsigned NOT NULL,
+  citer int(10) unsigned NOT NULL,
+  last_updated datetime NOT NULL,
+  PRIMARY KEY id (citee, citer)
 ) ENGINE=MyISAM;
+
 
 -- a table for missing citations. This should be scanned by a program
 -- occasionally to check if some publication has been cited more than
@@ -2685,6 +2684,28 @@ CREATE TABLE IF NOT EXISTS rnkCITATIONDATAERR (
   type enum('multiple-matches', 'not-well-formed'),
   citinfo varchar(255) NOT NULL,
   PRIMARY KEY (type, citinfo)
+) ENGINE=MyISAM;
+
+-- tables for self-citations computation
+
+CREATE TABLE `rnkRECORDSCACHE` (
+  `id` int(10) unsigned NOT NULL,
+  `authorid` bigint(10) NOT NULL,
+  PRIMARY KEY (`id`,`authorid`)
+) ENGINE=MyISAM;
+
+CREATE TABLE `rnkEXTENDEDAUTHORS` (
+  `id` int(10) unsigned NOT NULL,
+  `authorid` bigint(10) NOT NULL,
+  PRIMARY KEY (`id`,`authorid`)
+) ENGINE=MyISAM;
+
+CREATE TABLE `rnkSELFCITES` (
+  `id` int(10) unsigned NOT NULL,
+  `count` int(10) unsigned NOT NULL,
+  `references` text NOT NULL,
+  `last_updated` datetime NOT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=MyISAM;
 
 -- tables for collections and collection tree:

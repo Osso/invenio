@@ -18,52 +18,24 @@
 ## along with Invenio; if not, write to the Free Software Foundation, Inc.,
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-
-
-import os
 import sys
 import time
 import ConfigParser
 
 from invenio.config import \
      CFG_SITE_LANG, \
-     CFG_ETCDIR, \
-     CFG_PREFIX
+     CFG_ETCDIR
 from invenio.search_engine import perform_request_search
-from invenio.bibrank_citation_indexer import get_citation_weight, print_missing, get_cit_dict, insert_into_cit_db
+from invenio.bibrank_citation_indexer import get_citation_weight, print_missing
 from invenio.bibrank_downloads_indexer import *
 from invenio.dbquery import run_sql, serialize_via_marshal, deserialize_via_marshal, \
      wash_table_column_name, get_table_update_time
-from invenio.errorlib import register_exception
 from invenio.bibtask import task_get_option, write_message, task_sleep_now_if_required
 from invenio.bibindex_engine import create_range_list
 from invenio.intbitset import intbitset
 
 options = {}
 
-def remove_auto_cites(dic):
-    """Remove auto-cites and dedupe."""
-    for key in dic.keys():
-        new_list = dic.fromkeys(dic[key]).keys()
-        try:
-            new_list.remove(key)
-        except ValueError:
-            pass
-        dic[key] = new_list
-    return dic
-
-def citation_repair_exec():
-    """Repair citation ranking method"""
-    ## repair citations
-    for rowname in ["citationdict","reversedict"]:
-        ## get dic
-        dic = get_cit_dict(rowname)
-        ## repair
-        write_message("Repairing %s" % rowname)
-        dic = remove_auto_cites(dic)
-        ## store healthy citation dic
-        insert_into_cit_db(dic, rowname)
-    return
 
 def download_weight_filtering_user_repair_exec ():
     """Repair download weight filtering user ranking method"""
@@ -223,12 +195,12 @@ def get_lastupdated(rank_method_code):
     else:
         raise Exception("Is this the first run? Please do a complete update.")
 
-def intoDB(dict, date, rank_method_code):
+def intoDB(dic, date, rank_method_code):
     """Insert the rank method data into the database"""
     mid = run_sql("SELECT id from rnkMETHOD where name=%s", (rank_method_code, ))
     del_rank_method_codeDATA(rank_method_code)
-    serdata = serialize_via_marshal(dict);
-    midstr = str(mid[0][0]);
+    serdata = serialize_via_marshal(dic)
+    midstr = str(mid[0][0])
     run_sql("INSERT INTO rnkMETHODDATA(id_rnkMETHOD, relevance_data) VALUES (%s,%s)", (midstr, serdata,))
     if date:
         run_sql("UPDATE rnkMETHOD SET last_updated=%s WHERE name=%s", (date, rank_method_code))

@@ -341,6 +341,12 @@ def get_record_coauthors(recid):
     return (r[0] for r in run_sql(sql, (recid, )))
 
 
+def get_self_cited_by(recid, algorithm=CFG_SELFCITES_ALGORITHM):
+    tags = get_authors_tags()
+    selfcites_fun = ALL_ALGORITHMS[algorithm]
+    return selfcites_fun(recid, tags)
+
+
 ALL_ALGORITHMS = {
     'friends': compute_friends_self_citations,
     'simple': compute_simple_self_citations,
