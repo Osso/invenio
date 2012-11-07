@@ -25,16 +25,15 @@ WebAuthorProfile web templates
 
 __revision__ = "$Id$"
 
-from os import path, unlink
-from re import compile as re_compile
+from re import compile, findall
 from operator import itemgetter
+from md5 import md5
 
 from invenio.messages import gettext_set_language
 from invenio.intbitset import intbitset
 from invenio.search_engine import perform_request_search
 from invenio.urlutils import create_html_link
-from invenio.bibrank_grapher import remove_old_img, write_coordinates_in_tmp_file, create_temporary_image
-from invenio.bibrank_citation_grapher import html_image
+from invenio.bibrank_publication_grapher import get_graph_code
 import invenio.template
 websearch_templates = invenio.template.load('websearch')
 
@@ -49,8 +48,8 @@ from webauthorprofile_config import CFG_WEBAUTHORPROFILE_MAX_COLLAB_LIST, \
     CFG_WEBAUTHORPROFILE_MAX_KEYWORD_LIST, CFG_WEBAUTHORPROFILE_MAX_FIELDCODE_LIST, \
     CFG_WEBAUTHORPROFILE_MAX_AFF_LIST, CFG_WEBAUTHORPROFILE_MAX_COAUTHOR_LIST
 
-_RE_PUNCTUATION = re_compile(CFG_BIBINDEX_CHARS_PUNCTUATION)
-_RE_SPACES = re_compile(r"\s+")
+_RE_PUNCTUATION = compile(CFG_BIBINDEX_CHARS_PUNCTUATION)
+_RE_SPACES = compile(r"\s+")
 
 
 def wrap_author_name_in_quotes_if_needed(author_name):
@@ -206,8 +205,20 @@ class Template:
             baid_query = 'author:%s' % bibauthorid_data["pid"]
 
 
-        sorted_names_list = sorted(names_dict.iteritems(), key=itemgetter(1),
-                                   reverse=True)
+        # perform_request_search function is not case sensitive, so we should agglomerate names which differ only in case
+        new_names_dict = {}
+        for tup in names_dict.iteritems():
+            ln = tup[0].lower()
+            caps = len(findall("[A-Z]", tup[0]))
+            try:
+                if new_names_dict[ln][0] < caps:
+                    new_names_dict[ln] = [caps, tup]
+            except KeyError:
+                new_names_dict[ln] = [caps, tup]
+
+        filtered_list = [name[1] for name in new_names_dict.values()]
+        sorted_names_list = sorted(filtered_list, key=itemgetter(0), reverse=True)
+
         header = "<strong>" + _("Name variants") + "</strong>"
         content = []
 
@@ -635,7 +646,7 @@ class Template:
                     second_author = 'author:%s' % canonical
                 else:
                     second_author = 'exactauthor:"%s"' % name
-                rec_query = baid_query + second_author + " -710:'Collaboration' "
+                rec_query = baid_query + second_author + " -cn:'Collaboration' "
                 lnk = " <a href='%s/author/%s'> %s </a> (" % (CFG_SITE_URL, canonical, name) + create_html_link(websearch_templates.build_search_url(p=rec_query), {}, "%s" % (frequency,),) + ')'
                 content.append("%s" % lnk)
             return "<br>\n".join(content)
@@ -680,26 +691,17 @@ class Template:
            (into a temporary file) and return HTML box refering to that image. """
         _ = gettext_set_language(ln)
         html_head = _("<strong> Publications per year: </strong>")
-        html_graphe_code = _("No Publication Graph")
+        html_graph_code = _("No Publication Graph")
         if graph_data:
-            graphe_file_name = 'citation_%s_stats.png' % str(authorname)
-            remove_old_img(graphe_file_name)
-            years = [tup[0] for tup in graph_data]
-            datas_info = write_coordinates_in_tmp_file([graph_data])
-            graphe = create_temporary_image(authorname, 'citation', datas_info[0], 'Year',
-                                            'Times published', [0, 0], datas_info[1], [], ' ', years)
-            graphe_image = graphe[0]
-            graphe_source_file = graphe[1]
-            if graphe_image and graphe_source_file and path.exists(graphe_source_file):
-                unlink(datas_info[0])
-                html_graphe_code = """<p>%s""" % html_image(graphe_image, 350, 200)
+            graph_file_name = '%s' % (md5(str(graph_data)).hexdigest())
+            html_graph_code = get_graph_code(graph_file_name, graph_data)
         if loading:
-            html_graphe_code = self.loading_html()
+            html_graph_code = self.loading_html()
         if add_box:
-            graph_box = self.tmpl_print_searchresultbox('pubs graph', html_head, html_graphe_code)
+            graph_box = self.tmpl_print_searchresultbox('pubs graph', html_head, html_graph_code)
             return graph_box
         else:
-            return html_graphe_code
+            return html_graph_code
 
     def tmpl_numpaperstitle(self, bibauthorid_data, pubs):
         if bibauthorid_data["cid"]:
@@ -766,18 +768,18 @@ class Template:
             html.append(cmp_link)
 
         html_name_variants = self.tmpl_author_name_variants_box(names_dict, bibauthorid_data, ln, loading=not beval[7])
-        html_combined_papers = self.tmpl_papers_with_self_papers_box(pubs, selfpubs, bibauthorid_data, num_downloads, ln, loading=not (beval[3] and beval[12]))
+        html_combined_papers = self.tmpl_papers_with_self_papers_box(pubs, selfpubs, bibauthorid_data, num_downloads, ln, loading=not (beval[3] and beval[13]))
         html_keywords = self.tmpl_keyword_box(kwtuples, bibauthorid_data, ln, loading=not beval[4])
         html_fieldcodes = self.tmpl_fieldcode_box(fieldtuples, bibauthorid_data, ln, loading=not beval[5])
         html_affiliations = self.tmpl_affiliations_box(aff_pubdict, ln, loading=not beval[2])
         html_coauthors = self.tmpl_coauthor_box(bibauthorid_data, authors, ln, loading=not beval[6])
         if CFG_INSPIRE_SITE:
-            html_hepnames = self.tmpl_hepnames(hepdict, ln, loading=not beval[11])
+            html_hepnames = self.tmpl_hepnames(hepdict, ln, loading=not beval[12])
         else:
             html_hepnames = ''
         html_citations = self.tmpl_citations_box(citedbylist, pubs, summarize_records, ln, loading=not beval[9])
         html_graph = self.tmpl_graph_box(pubs_per_year, authorname, ln, loading=not beval[11])
-        html_collabs = self.tmpl_collab_box(collabs, bibauthorid_data, ln, loading=not beval[13])
+        html_collabs = self.tmpl_collab_box(collabs, bibauthorid_data, ln, loading=not beval[14])
 
 
         g = self._grid

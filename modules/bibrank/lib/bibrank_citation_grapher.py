@@ -122,13 +122,6 @@ def html_command(filename):
     #t += "</table></td></tr></table>"
     return t
 
-def html_image(filename, width, height):
-    """return html code for showing publication graph image (with lightbox js effect)
-    """
-    t = """<a href='%s/img/%s' rel="lightbox"> <img src='%s/img/%s' width="%s" height="%s"
-            alt=""> </a>""" % (CFG_SITE_URL, filename, CFG_SITE_URL, filename, str(width), str(height))
-    return t
-
 def create_citation_history_graph_and_box(recid, ln=CFG_SITE_LANG):
     """Create graph with citation history for record RECID (into a
        temporary file) and return HTML box refering to that image.
