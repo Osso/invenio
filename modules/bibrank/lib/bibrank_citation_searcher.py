@@ -152,7 +152,7 @@ def get_records_with_num_cites(numstr, allrecs=intbitset([])):
             return allrecs - cache_cited_by_dictionary_keys_intbitset
         else:
             return intbitset([recid for recid, cit_count \
-                        in cache_cited_by_dictionary_counts.itervalues() \
+                        in cache_cited_by_dictionary_counts \
                         if cit_count == num])
 
     # Try to get 1->10 or such
@@ -170,7 +170,7 @@ def get_records_with_num_cites(numstr, allrecs=intbitset([])):
             matches = allrecs - cache_cited_by_dictionary_keys_intbitset
         if first <= sec:
             matches += intbitset([recid for recid, cit_count
-                             in cache_cited_by_dictionary_counts.itervalues() \
+                             in cache_cited_by_dictionary_counts \
                              if first <= cit_count <= sec])
         return matches
 
@@ -179,7 +179,7 @@ def get_records_with_num_cites(numstr, allrecs=intbitset([])):
     if firstsec:
         first = firstsec[0]
         matches = intbitset([recid for recid, cit_count
-                         in cache_cited_by_dictionary_counts.itervalues() \
+                         in cache_cited_by_dictionary_counts \
                          if cit_count > int(first)])
 
     return matches
