@@ -337,72 +337,69 @@ def bibrank_engine(run):
         pass
 
     startCreate = time.time()
-    try:
-        options["run"] = []
-        options["run"].append(run)
-        for rank_method_code in options["run"]:
-            task_sleep_now_if_required(can_stop_too=True)
-            cfg_name = getName(rank_method_code)
-            write_message("Running rank method: %s." % cfg_name)
 
-            file = CFG_ETCDIR + "/bibrank/" + rank_method_code + ".cfg"
-            config = ConfigParser.ConfigParser()
-            try:
-                config.readfp(open(file))
-            except StandardError, e:
-                write_message("Cannot find configurationfile: %s" % file, sys.stderr)
-                raise StandardError
+    options["run"] = []
+    options["run"].append(run)
+    for rank_method_code in options["run"]:
+        task_sleep_now_if_required(can_stop_too=True)
+        cfg_name = getName(rank_method_code)
+        write_message("Running rank method: %s." % cfg_name)
 
-            cfg_short = rank_method_code
-            cfg_function = config.get("rank_method", "function") + "_exec"
-            cfg_repair_function = config.get("rank_method", "function") + "_repair_exec"
-            cfg_name = getName(cfg_short)
-            options["validset"] = get_valid_range(rank_method_code)
+        file = CFG_ETCDIR + "/bibrank/" + rank_method_code + ".cfg"
+        config = ConfigParser.ConfigParser()
+        try:
+            config.readfp(open(file))
+        except StandardError, e:
+            write_message("Cannot find configurationfile: %s" % file, sys.stderr)
+            raise StandardError
 
-            if task_get_option("collection"):
-                l_of_colls = string.split(task_get_option("collection"), ", ")
-                recIDs = perform_request_search(c=l_of_colls)
-                recIDs_range = []
-                for recID in recIDs:
-                    recIDs_range.append([recID, recID])
-                options["recid_range"] = recIDs_range
-            elif task_get_option("id"):
-                options["recid_range"] = task_get_option("id")
-            elif task_get_option("modified"):
-                options["recid_range"] = add_recIDs_by_date(rank_method_code, task_get_option("modified"))
-            elif task_get_option("last_updated"):
-                options["recid_range"] = add_recIDs_by_date(rank_method_code)
-            else:
-                write_message("No records specified, updating all", verbose=2)
-                min_id = run_sql("SELECT min(id) from bibrec")[0][0]
-                max_id = run_sql("SELECT max(id) from bibrec")[0][0]
-                options["recid_range"] = [[min_id, max_id]]
+        cfg_short = rank_method_code
+        cfg_function = config.get("rank_method", "function") + "_exec"
+        cfg_repair_function = config.get("rank_method", "function") + "_repair_exec"
+        cfg_name = getName(cfg_short)
+        options["validset"] = get_valid_range(rank_method_code)
 
-            if task_get_option("quick") == "no":
-                write_message("Recalculate parameter not used, parameter ignored.", verbose=9)
+        if task_get_option("collection"):
+            l_of_colls = string.split(task_get_option("collection"), ", ")
+            recIDs = perform_request_search(c=l_of_colls)
+            recIDs_range = []
+            for recID in recIDs:
+                recIDs_range.append([recID, recID])
+            options["recid_range"] = recIDs_range
+        elif task_get_option("id"):
+            options["recid_range"] = task_get_option("id")
+        elif task_get_option("modified"):
+            options["recid_range"] = add_recIDs_by_date(rank_method_code, task_get_option("modified"))
+        elif task_get_option("last_updated"):
+            options["recid_range"] = add_recIDs_by_date(rank_method_code)
+        else:
+            write_message("No records specified, updating all", verbose=2)
+            min_id = run_sql("SELECT min(id) from bibrec")[0][0]
+            max_id = run_sql("SELECT max(id) from bibrec")[0][0]
+            options["recid_range"] = [[min_id, max_id]]
 
-            if task_get_option("cmd") == "del":
-                del_recids(cfg_short, options["recid_range"])
-            elif task_get_option("cmd") == "add":
-                func_object = globals().get(cfg_function)
-                func_object(rank_method_code, cfg_name, config)
-            elif task_get_option("cmd") == "stat":
-                rank_method_code_statistics(rank_method_code)
-            elif task_get_option("cmd") == "check":
-                check_method(rank_method_code)
-            elif task_get_option("cmd") == "print-missing":
-                func_object = globals().get(cfg_function)
-                func_object(rank_method_code, cfg_name, config)
-            elif task_get_option("cmd") == "repair":
-                func_object = globals().get(cfg_repair_function)
-                func_object()
-            else:
-                write_message("Invalid command found processing %s" % rank_method_code, sys.stderr)
-                raise StandardError
-    except StandardError, e:
-        write_message("\nException caught: %s" % e, sys.stderr)
-        register_exception()
-        raise StandardError
+        if task_get_option("quick") == "no":
+            write_message("Recalculate parameter not used, parameter ignored.", verbose=9)
+
+        if task_get_option("cmd") == "del":
+            del_recids(cfg_short, options["recid_range"])
+        elif task_get_option("cmd") == "add":
+            func_object = globals().get(cfg_function)
+            func_object(rank_method_code, cfg_name, config)
+        elif task_get_option("cmd") == "stat":
+            rank_method_code_statistics(rank_method_code)
+        elif task_get_option("cmd") == "check":
+            check_method(rank_method_code)
+        elif task_get_option("cmd") == "print-missing":
+            func_object = globals().get(cfg_function)
+            func_object(rank_method_code, cfg_name, config)
+        elif task_get_option("cmd") == "repair":
+            func_object = globals().get(cfg_repair_function)
+            func_object()
+        else:
+            msg = "Invalid command found processing %s" % rank_method_code, sys.stderr
+            write_message(msg)
+            raise StandardError(msg)
 
     if task_get_option("verbose"):
         showtime((time.time() - startCreate))
