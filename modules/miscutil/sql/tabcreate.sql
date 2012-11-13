@@ -2660,7 +2660,8 @@ CREATE TABLE IF NOT EXISTS rnkCITATIONDICT (
   citee int(10) unsigned NOT NULL,
   citer int(10) unsigned NOT NULL,
   last_updated datetime NOT NULL,
-  PRIMARY KEY id (citee, citer)
+  PRIMARY KEY id (citee, citer),
+  KEY reverse (citer, citee)
 ) ENGINE=MyISAM;
 
 
