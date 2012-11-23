@@ -109,7 +109,8 @@ elif CFG_INSPIRE_SITE:
     CFG_EXTERNAL_AUTH_USING_SSO = False
     CFG_EXTERNAL_AUTH_LOGOUT_SSO = None
     CFG_EXTERNAL_AUTHENTICATION = {
-        "arXiv": ExternalAuthRobot(enforce_external_nicknames=True, use_zlib=True)
+    "Local": None,
+    "arXiv": ExternalAuthRobot(enforce_external_nicknames=True, use_zlib=True)
     }
 elif CFG_INSPIRE_SITE:
     # INSPIRE specific robot configuration
