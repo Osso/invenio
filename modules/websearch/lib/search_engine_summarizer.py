@@ -246,7 +246,7 @@ def render_extended_citation_summary(req, ln, recids, initial_collections,
     stats = {}
     for coll, dummy in collections:
         stats[coll] = compute_citation_stats(coll_recids[coll], citers_counts[coll])
-    print stats
+
     render_citesummary_prologue(req,
                                 ln,
                                 recids,
