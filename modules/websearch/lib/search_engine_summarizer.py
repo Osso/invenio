@@ -119,10 +119,11 @@ def compute_citation_stats(recids, citers_counts):
             total_recids_without_cites -= 1
 
             # h-index
-            h_index += 1
-            if not h_index_done and h_index > citecount:
-                h_index -= 1
-                h_index_done = True
+            if not h_index_done:
+                h_index += 1
+                if h_index > citecount:
+                    h_index -= 1
+                    h_index_done = True
 
             # Breakdown
             for low, high, fame in CFG_CITESUMMARY_FAME_THRESHOLDS:
