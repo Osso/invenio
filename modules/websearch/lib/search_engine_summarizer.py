@@ -31,9 +31,7 @@ from operator import itemgetter
 from invenio.config import CFG_INSPIRE_SITE, \
                            CFG_WEBSEARCH_CITESUMMARY_SCAN_THRESHOLD
 
-from invenio.bibrank_citation_searcher import get_cited_by_list, \
-                                              get_citation_dict
-from invenio.bibrank_selfcites_indexer import get_self_citations_count
+from invenio.bibrank_citation_searcher import get_citation_dict
 from StringIO import StringIO
 
 from invenio.search_engine import search_pattern, perform_request_search
@@ -253,7 +251,7 @@ def render_extended_citation_summary(req, ln, recids, initial_collections,
                                 collections,
                                 search_patterns,
                                 searchfield,
-                                stats)
+                                coll_recids)
     render_citesummary_overview(req,
                                 ln,
                                 collections,
@@ -298,19 +296,11 @@ def get_recids(recids, collections):
     return d_recids
 
 
-def get_citers(d_recids):
-    """For each recid fetches the list of citing papers"""
-    d_recid_citers = {}
-    for coll, recids in d_recids.iteritems():
-        d_recid_citers[coll] = get_cited_by_list(recids)
-    return d_recid_citers
-
-
 def render_citesummary_prologue(req, ln, recids, collections, search_patterns,
-                          searchfield, d_recids):
+                          searchfield, coll_recids):
     total_count = len(recids)
     citable_recids = recids & search_pattern(p='collection:citeable')
-    prologue = websearch_templates.tmpl_citesummary_prologue(d_recids,
+    prologue = websearch_templates.tmpl_citesummary_prologue(coll_recids,
                                                              collections,
                                                              search_patterns,
                                                              searchfield,

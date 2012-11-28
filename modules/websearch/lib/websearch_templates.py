@@ -4518,7 +4518,7 @@ class Template:
 
         return out
 
-    def tmpl_citesummary_prologue(self, d_recids, collections, search_patterns,
+    def tmpl_citesummary_prologue(self, coll_recids, collections, search_patterns,
                                   searchfield, citable_recids, total_count,
                                   ln=CFG_SITE_LANG):
         """HTML citesummary format, prologue. A part of HCS format suite."""
@@ -4551,7 +4551,7 @@ class Template:
                 link_url += quote(p)
             if colldef:
                 link_url += '%20AND%20' + quote(colldef)
-            link_text = self.tmpl_nice_number(len(d_recids[coll]), ln)
+            link_text = self.tmpl_nice_number(len(coll_recids[coll]), ln)
             out += '<td align="right"><a href="%s">%s</a></td>' % (link_url,
                                                                    link_text)
         out += '</tr>'
