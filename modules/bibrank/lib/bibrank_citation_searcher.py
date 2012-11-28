@@ -51,9 +51,9 @@ class CitationDictsDataCacher(DataCacher):
             from invenio.bibrank_selfcites_indexer import get_all_precomputed_selfcites
             selfcites = {}
             for recid, counts in get_all_precomputed_selfcites():
-                selfcites[recid] = counts
+                selfcites[recid] = weights.get(recid, 0) - counts
             alldicts['selfcites_weights'] = selfcites
-            alldicts['selfcites_counts'] = [(recid, cites - selfcites.get(recid, 0)) for recid, cites in alldicts['citations_counts']]
+            alldicts['selfcites_counts'] = [(recid, selfcites.get(recid, cites)) for recid, cites in alldicts['citations_counts']]
             alldicts['selfcites_counts'].sort(key=itemgetter(1), reverse=True)
 
             return alldicts
