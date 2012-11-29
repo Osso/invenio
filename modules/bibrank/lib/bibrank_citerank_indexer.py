@@ -92,39 +92,30 @@ def get_citations_from_db():
     -a dictionary of type x:{x1,x2..}, where x is cited by x1,x2..
     -a dict of type a:{b} where recid 'a' is asociated with an index 'b'"""
     dict_of_ids = {}
+
+    cit = {}
+    rows = run_sql("SELECT citer, citee FROM rnkCITATIONDICT")
+    for citer, citee in rows:
+        cit.setdefault(citee, set()).add(citer)
+
     count = 0
-    query = "select object_value from rnkCITATIONDATA \
-                where object_name = 'citationdict'"
-    cit_compressed = run_sql(query)
-    cit = []
-    if cit_compressed and cit_compressed[0] and cit_compressed[0][0]:
-        cit = deserialize_via_marshal(cit_compressed[0][0])
-        if cit:
-            for item in cit:
-                #check for duplicates in citation dictionary
-                cit[item] = set(cit[item])
-                if item in cit[item]:
-                    cit[item].remove(item)
-                if item not in dict_of_ids:
-                    dict_of_ids[item] = count
-                    count += 1
-                for value in cit[item]:
-                    if value not in dict_of_ids:
-                        dict_of_ids[value] = count
-                        count += 1
-            write_message("Citation data collected\
-from rnkCITATIONDATA", verbose=2)
-            write_message("Ids and recids corespondace: %s" \
-                % str(dict_of_ids), verbose=9)
-            write_message("Citations: %s" % str(cit), verbose=9)
-            return cit, dict_of_ids
-        else:
-            write_message("Error while extracting citation data \
-from rnkCITATIONDATA table", verbose=1)
-    else:
-        write_message("Error while extracting citation data \
-from rnkCITATIONDATA table", verbose=1)
-    return {}, {}
+    for item in cit:
+        if item in cit[item]:
+            cit[item].remove(item)
+        if item not in dict_of_ids:
+            dict_of_ids[item] = count
+            count += 1
+        for value in cit[item]:
+            if value not in dict_of_ids:
+                dict_of_ids[value] = count
+                count += 1
+
+    write_message("Citation data collected", verbose=2)
+    write_message("Ids and recids correspondence: %s" \
+                                                 % str(dict_of_ids), verbose=9)
+    write_message("Citations: %s" % str(cit), verbose=9)
+
+    return cit, dict_of_ids
 
 
 def construct_ref_array(cit, dict_of_ids, len_):
