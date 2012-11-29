@@ -208,6 +208,19 @@ def get_refersto_hitset(ahitset):
     return out
 
 
+def get_cited_by_weight(recordlist):
+    """Return a tuple of ([recid,number_of_citing_records],...) for all the
+       records in recordlist.
+    """
+    weights = get_citation_dict("citations_weights")
+
+    result = []
+    for recid in recordlist:
+        result.append([recid, weights.get(recid, 0)])
+
+    return result
+
+
 def get_citedby_hitset(ahitset):
     """
     Return a hitset of records that are cited by records in the given
