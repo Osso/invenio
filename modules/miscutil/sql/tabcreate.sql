@@ -2689,19 +2689,19 @@ CREATE TABLE IF NOT EXISTS rnkCITATIONDATAERR (
 
 -- tables for self-citations computation
 
-CREATE TABLE `rnkRECORDSCACHE` (
+CREATE TABLE IF NOT EXISTS rnkRECORDSCACHE (
   `id` int(10) unsigned NOT NULL,
   `authorid` bigint(10) NOT NULL,
   PRIMARY KEY (`id`,`authorid`)
 ) ENGINE=MyISAM;
 
-CREATE TABLE `rnkEXTENDEDAUTHORS` (
+CREATE TABLE IF NOT EXISTS rnkEXTENDEDAUTHORS (
   `id` int(10) unsigned NOT NULL,
   `authorid` bigint(10) NOT NULL,
   PRIMARY KEY (`id`,`authorid`)
 ) ENGINE=MyISAM;
 
-CREATE TABLE `rnkSELFCITES` (
+CREATE TABLE IF NOT EXISTS rnkSELFCITES (
   `id` int(10) unsigned NOT NULL,
   `count` int(10) unsigned NOT NULL,
   `references` text NOT NULL,
