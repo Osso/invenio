@@ -1085,7 +1085,7 @@ class BibSched(object):
             for other_task_id, other_proc, other_runtime, other_status, other_priority, other_host, other_sequenceid in self.mono_tasks_all_nodes:
                 if priority < other_priority:
                     # Sleep ourselves
-                    sleep_task(task_id, proc, runtime, status, priority, host, sequenceid)
+                    sleep_task(task_id, proc, priority, status, sequenceid)
                     return True
 
         elif (task_id, proc, runtime, status, priority, host, sequenceid) in self.node_relevant_waiting_tasks:
