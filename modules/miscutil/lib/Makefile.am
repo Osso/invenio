@@ -77,6 +77,7 @@ pylib_DATA = __init__.py \
              sequtils.py \
              sequtils_regression_tests.py \
              sequtils_cnum.py \
+             sequtils_texkey.py \
              sequtils.py \
              sequtils_regression_tests.py \
              downloadutils.py \
