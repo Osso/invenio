@@ -28,9 +28,8 @@ from invenio.config import CFG_SITE_SECURE_URL
 from invenio.urlutils import redirect_to_url
 from invenio.messages import gettext_set_language
 from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
-from invenio.webinterface_handler_config import SERVER_RETURN, HTTP_NOT_FOUND
 from invenio.webinterface_handler_wsgi_utils import handle_file_post
-from invenio.webuser import getUid, page_not_authorized
+from invenio.webuser import getUid, page_not_authorized, get_email
 from invenio.webpage import page
 
 from invenio.batchuploader_engine import metadata_upload, cli_upload, \
@@ -88,28 +87,32 @@ class WebInterfaceBatchUploaderPages(WebInterfaceDirectory):
         argd = wash_urlargd(form, { 'filetype': (str, ""),
                                     'mode': (str, ""),
                                     'submit_date': (str, "yyyy-mm-dd"),
-                                    'submit_time': (str, "hh:mm:ss")})
+                                    'submit_time': (str, "hh:mm:ss"),
+                                    'email_logs_to': (str, None)})
         _ = gettext_set_language(argd['ln'])
 
         not_authorized = user_authorization(req, argd['ln'])
         if not_authorized:
             return not_authorized
+
         uid = getUid(req)
+        if argd['email_logs_to'] is None:
+            argd['email_logs_to'] = get_email(uid)
         body = batchuploader_templates.tmpl_display_menu(argd['ln'],
                                                          ref="metadata")
         body += batchuploader_templates.tmpl_display_web_metaupload_form(argd['ln'],
                 argd['filetype'], argd['mode'], argd['submit_date'],
-                argd['submit_time'])
+                argd['submit_time'], argd['email_logs_to'])
 
         title = _("Metadata batch upload")
-        return page(title = title,
-                    body = body,
-                    metaheaderadd = batchuploader_templates.tmpl_styles(),
-                    uid = uid,
-                    lastupdated = __lastupdated__,
-                    req = req,
-                    language = argd['ln'],
-                    navmenuid = "batchuploader")
+        return page(title=title,
+                    body=body,
+                    metaheaderadd=batchuploader_templates.tmpl_styles(),
+                    uid=uid,
+                    lastupdated=__lastupdated__,
+                    req=req,
+                    language=argd['ln'],
+                    navmenuid="batchuploader")
 
     def documents(self, req, form):
         """ Display document upload form """
@@ -121,9 +124,9 @@ class WebInterfaceBatchUploaderPages(WebInterfaceDirectory):
         if not_authorized:
             return not_authorized
         uid = getUid(req)
-        body = batchuploader_templates.tmpl_display_menu(argd['ln'],
-                                                         ref="documents")
-        body += batchuploader_templates.tmpl_display_web_docupload_form(argd['ln'])
+        email_logs_to = get_email(uid)
+        body = batchuploader_templates.tmpl_display_menu(argd['ln'], ref="documents")
+        body += batchuploader_templates.tmpl_display_web_docupload_form(argd['ln'], email_logs_to=email_logs_to)
 
         title = _("Document batch upload")
         return page(title = title,
@@ -144,7 +147,8 @@ class WebInterfaceBatchUploaderPages(WebInterfaceDirectory):
                                    'mode': (str, ""),
                                    'submit_date': (str, ""),
                                    'submit_time': (str, ""),
-                                   'priority': (str, "")})
+                                   'priority': (str, ""),
+                                   'email_logs_to': (str, "")})
         _ = gettext_set_language(argd['ln'])
 
         not_authorized = user_authorization(req, argd['ln'])
@@ -157,8 +161,7 @@ class WebInterfaceBatchUploaderPages(WebInterfaceDirectory):
                                 and argd['submit_time'] or ''
 
         errors, info = document_upload(req, argd['docfolder'], argd['matching'],
-                                       argd['mode'], date, time, argd['ln'],
-                                       argd['priority'])
+                                       argd['mode'], date, time, argd['ln'], argd['priority'], argd['email_logs_to'])
 
         body = batchuploader_templates.tmpl_display_menu(argd['ln'])
         uid = getUid(req)
@@ -195,7 +198,8 @@ class WebInterfaceBatchUploaderPages(WebInterfaceDirectory):
                                    'submit_time': (str, None),
                                    'filename': (str, None),
                                    'priority': (str, None),
-                                   'strong_tags': (str, None)})
+                                   'strong_tags': (str, None),
+                                   'email_logs_to': (str, None)})
         _ = gettext_set_language(argd['ln'])
 
         # Check if the page is directly accessed
@@ -219,7 +223,8 @@ class WebInterfaceBatchUploaderPages(WebInterfaceDirectory):
                                   argd['mode'].split()[0],
                                   date, time, argd['filename'], argd['ln'],
                                   argd['priority'],
-                                  ignore_strong_tags=ignore_strong_tags)
+                                  ignore_strong_tags=ignore_strong_tags,
+                                  email_logs_to=argd['email_logs_to'])
 
         if auth_code == 1: # not authorized
             referer = '/batchuploader/'
@@ -252,7 +257,16 @@ class WebInterfaceBatchUploaderPages(WebInterfaceDirectory):
                                    'submit_time': (str, None),
                                    'filename': (str, None),
                                    'priority': (str, None),
+<<<<<<< HEAD
                                    'skip_simulation': (str, None)})
+||||||| parent of a1f05b7... BatchUploader: bibtask logs via email
+                                   'strong_tags': (str, None),
+                                   'skip_simulation': (str, None)})
+=======
+                                   'strong_tags': (str, None),
+                                   'skip_simulation': (str, None),
+                                   'email_logs_to': (str, None)})
+>>>>>>> a1f05b7... BatchUploader: bibtask logs via email
         _ = gettext_set_language(argd['ln'])
 
         # Check if the page is directly accessed or no file selected
@@ -274,7 +288,7 @@ class WebInterfaceBatchUploaderPages(WebInterfaceDirectory):
         body = batchuploader_templates.tmpl_display_confirm_page(argd['ln'],
                 argd['metafile'], argd['filetype'], argd['mode'], date,
                 time, argd['filename'], argd['priority'], errors_upload,
-                skip_simulation)
+                argd['strong_tags'], skip_simulation, argd['email_logs_to'])
 
         uid = getUid(req)
         navtrail = '''<a class="navtrail" href="%s/batchuploader/metadata">%s</a>''' % \
