@@ -257,16 +257,9 @@ class WebInterfaceBatchUploaderPages(WebInterfaceDirectory):
                                    'submit_time': (str, None),
                                    'filename': (str, None),
                                    'priority': (str, None),
-<<<<<<< HEAD
-                                   'skip_simulation': (str, None)})
-||||||| parent of a1f05b7... BatchUploader: bibtask logs via email
-                                   'strong_tags': (str, None),
-                                   'skip_simulation': (str, None)})
-=======
                                    'strong_tags': (str, None),
                                    'skip_simulation': (str, None),
                                    'email_logs_to': (str, None)})
->>>>>>> a1f05b7... BatchUploader: bibtask logs via email
         _ = gettext_set_language(argd['ln'])
 
         # Check if the page is directly accessed or no file selected

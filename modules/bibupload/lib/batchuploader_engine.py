@@ -205,7 +205,7 @@ def metadata_upload(req, metafile=None, filetype=None, mode=None, exec_date=None
     # run upload command:
     task_arguments = ('bibupload', user_info['nickname'], mode, "--name=" + metafilename, "--priority=" + priority)
     if ignore_strong_tags:
-        params.append('--ignore-strong-tags')
+       task_arguments += ('--ignore-strong-tags',)
     if exec_date:
         date = exec_date
         if exec_time:
