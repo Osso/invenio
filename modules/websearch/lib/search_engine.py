@@ -38,6 +38,8 @@ import urlparse
 import zlib
 import sys
 
+from invenio.dateutils import strptime
+
 if sys.hexversion < 0x2040000:
     # pylint: disable=W0622
     from sets import Set as set
@@ -2610,33 +2612,45 @@ def search_unit_in_solr(p, f=None, m=None):
         p = '"' + p + '"'
     return solr_get_bitset(p, CFG_SOLR_URL)
 
-def search_unit_in_bibrec(datetext1, datetext2, type='c'):
+def convert_partial_date_to_isoformat(datetime_string, default=None):
+    for format in ('%Y-%m', '%Y', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S'):
+        try:
+            d = strptime(datetime_string, format)
+            return d.strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            pass
+    return default
+
+def search_unit_in_bibrec(datetext1, datetext2, search_type='c'):
     """
     Return hitset of recIDs found that were either created or modified
     (according to 'type' arg being 'c' or 'm') from datetext1 until datetext2, inclusive.
     Does not pay attention to pattern, collection, anything.  Useful
     to intersect later on with the 'real' query.
     """
-    set = intbitset()
-    if type.startswith("m"):
-        type = "modification_date"
+    if search_type.startswith("m"):
+        search_type = "modification_date"
     else:
-        type = "creation_date" # by default we are searching for creation dates
+        search_type = "creation_date" # by default we are searching for creation dates
 
     parts = datetext1.split('->')
     if len(parts) > 1 and datetext1 == datetext2:
         datetext1 = parts[0]
         datetext2 = parts[1]
 
-    if datetext1 == datetext2:
-        res = run_sql("SELECT id FROM bibrec WHERE %s LIKE %%s" % (type,),
-                      (datetext1 + '%',))
-    else:
-        res = run_sql("SELECT id FROM bibrec WHERE %s>=%%s AND %s<=%%s" % (type, type),
-                      (datetext1, datetext2))
-    for row in res:
-        set += row[0]
-    return set
+    datetext1 = convert_partial_date_to_isoformat(datetext1, '1800-01-01')
+    datetext2 = convert_partial_date_to_isoformat(datetext2, '9999-01-01')
+
+    res = []
+    if datetext1 and datetext2:
+        if datetext1 == datetext2:
+            res = run_sql("SELECT id FROM bibrec WHERE %s LIKE %%s" % (search_type,),
+                          (datetext1 + '%',))
+        else:
+            res = run_sql("SELECT id FROM bibrec WHERE %s>=%%s AND %s<=%%s" % (search_type, search_type),
+                          (datetext1, datetext2))
+
+    return intbitset(res)
 
 def search_unit_by_times_cited(p):
     """
