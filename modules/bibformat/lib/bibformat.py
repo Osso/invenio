@@ -53,6 +53,7 @@ from invenio.config import \
 from invenio.bibformat_config import \
      CFG_BIBFORMAT_USE_OLD_BIBFORMAT
 from invenio.access_control_engine import acc_authorize_action
+from invenio.dbquery import run_sql
 import getopt
 import sys
 
@@ -61,7 +62,7 @@ import sys
 
 def format_record(recID, of, ln=CFG_SITE_LANG, verbose=0, search_pattern=None,
                   xml_record=None, user_info=None, on_the_fly=False,
-                  save_missing=True):
+                  save_missing=True, formatted_cache=None):
     """
     Format a record in given output format.
 
@@ -120,8 +121,7 @@ def format_record(recID, of, ln=CFG_SITE_LANG, verbose=0, search_pattern=None,
        (ln == CFG_SITE_LANG or \
         of.lower() == 'xm' or \
         CFG_BIBFORMAT_USE_OLD_BIBFORMAT or \
-        (of.lower() in CFG_BIBFORMAT_DISABLE_I18N_FOR_CACHED_FORMATS)) and \
-        record_exists(recID) != -1:
+        (of.lower() in CFG_BIBFORMAT_DISABLE_I18N_FOR_CACHED_FORMATS)):
         # Try to fetch preformatted record. Only possible for records
         # formatted in CFG_SITE_LANG language (other are never
         # stored), or of='xm' which does not depend on language.
@@ -130,7 +130,14 @@ def format_record(recID, of, ln=CFG_SITE_LANG, verbose=0, search_pattern=None,
         # always served from the same cache for any language.  Also,
         # do not fetch from DB when record has been deleted: we want
         # to return an "empty" record in that case
-        res = bibformat_dblayer.get_preformatted_record(recID, of)
+        res = None
+
+        if formatted_cache:
+            res = formatted_cache.get((recID, of))
+
+        if res is None and record_exists(recID) != -1:
+            res = bibformat_dblayer.get_preformatted_record(recID, of)
+
         if res is not None:
             # record 'recID' is formatted in 'of', so return it
             if verbose == 9:
@@ -233,6 +240,29 @@ def record_get_xml(recID, format='xm', decompress=zlib.decompress):
     """
     return bibformat_utils.record_get_xml(recID=recID, format=format, decompress=decompress)
 
+
+def build_formatted_cache(recIDs, of, decompress=zlib.decompress):
+    cache = {}
+    if not recIDs:
+        return cache
+
+    # Decide whether to use DB slave:
+    if of in ('xm', 'recstruct'):
+        run_on_slave = False # for master formats, use DB master
+    else:
+        run_on_slave = True # for other formats, we can use DB slave
+
+    # Try to fetch preformatted record
+    query = """SELECT id_bibrec, value FROM bibfmt
+               WHERE id_bibrec IN (%s) AND format=%%s"""
+    in_str = ','.join('%s' for dummy in recIDs)
+    params = recIDs[:]
+    params.append(of)
+    for res in run_sql(query % in_str, params, run_on_slave=run_on_slave):
+        cache[(int(res[0]), of)] = decompress(res[1])
+
+    return cache
+
 # Helper functions to do complex formatting of multiple records
 #
 # You should not modify format_records when adding a complex
@@ -302,6 +332,11 @@ def format_records(recIDs, of, ln=CFG_SITE_LANG, verbose=0, search_pattern=None,
     @type on_the_fly: boolean
     @rtype: string
     """
+    # Optimization
+    # We prefill a cache with all the preformatted records so that
+    # we do not have to query for each one separatly in format_record
+    formatted_cache = build_formatted_cache(recIDs, of)
+
     if req is not None:
         req.write(prologue)
 
@@ -334,7 +369,8 @@ def format_records(recIDs, of, ln=CFG_SITE_LANG, verbose=0, search_pattern=None,
         #Print formatted record
         formatted_record = format_record(recIDs[i], of, ln, verbose, \
                                          search_pattern, xml_records[i],\
-                                         user_info, on_the_fly)
+                                         user_info, on_the_fly,
+                                         formatted_cache=formatted_cache)
         formatted_records += formatted_record
         if req is not None:
             req.write(formatted_record)

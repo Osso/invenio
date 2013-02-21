@@ -444,7 +444,8 @@ def change_output_format_code(old_code, new_code):
     params = (new_code.lower(), output_format_id)
     res = run_sql(query, params)
 
-def get_preformatted_record(recID, of, decompress=zlib.decompress):
+def get_preformatted_record(recID, of, decompress=zlib.decompress,
+                            formatted_cache=None):
     """
     Returns the preformatted record with id 'recID' and format 'of'
 
