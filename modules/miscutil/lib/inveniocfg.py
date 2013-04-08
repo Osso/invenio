@@ -880,7 +880,7 @@ def cli_cmd_load_demo_records(conf):
     from invenio.dbquery import run_sql
     print ">>> Going to load demo records..."
     run_sql("TRUNCATE schTASK")
-    for cmd in ["%s/bin/bibupload -u admin -i %s/var/tmp/demobibdata.xml" % (CFG_PREFIX, CFG_PREFIX),
+    for cmd in ["%s/bin/bibupload -u admin -i %s/var/tmp/demobibdata.xml --copy-source" % (CFG_PREFIX, CFG_PREFIX),
                 "%s/bin/bibupload 1" % CFG_PREFIX,
                 "%s/bin/bibdocfile --textify --with-ocr --recid 97" % CFG_PREFIX,
                 "%s/bin/bibdocfile --textify --all" % CFG_PREFIX,

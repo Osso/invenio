@@ -33,6 +33,7 @@ from marshal import loads
 from zlib import decompress
 from urllib import urlencode
 from urllib2 import urlopen
+from tempfile import NamedTemporaryFile
 import pprint
 if sys.hexversion < 0x2060000:
     from md5 import md5
@@ -47,7 +48,8 @@ from invenio.config import CFG_OAI_ID_FIELD, CFG_PREFIX, CFG_SITE_URL, CFG_TMPDI
      CFG_SITE_RECORD, \
      CFG_DEVEL_SITE, \
      CFG_BIBUPLOAD_REFERENCE_TAG, \
-     CFG_BIBUPLOAD_SERIALIZE_RECORD_STRUCTURE
+     CFG_BIBUPLOAD_SERIALIZE_RECORD_STRUCTURE, \
+     CFG_LOGDIR
 from invenio.access_control_config import CFG_ACC_GRANT_AUTHOR_RIGHTS_TO_EMAILS_IN_TAGS
 from invenio import bibupload
 from invenio.search_engine import print_record, get_record
@@ -5714,6 +5716,24 @@ allow any</subfield>
         self.assertEqual(test_web_page_content(testrec_expected_url, expected_text=['<em>04 May 2008, 03:02</em>']), [])
 
 
+class BibUploadArchival(InvenioTestCase):
+    def test_simple(self):
+        from invenio.bibupload import move_xml_file_to_archive
+        temp_file = NamedTemporaryFile(dir=CFG_TMPDIR, suffix='test')
+        new_path = move_xml_file_to_archive('10000', temp_file.name)
+        os.rename(new_path, temp_file.name)
+        self.assert_(new_path.startswith(CFG_LOGDIR))
+
+    def test_inexistent(self):
+        from invenio.bibupload import move_xml_file_to_archive
+        temp_file = NamedTemporaryFile(dir=CFG_TMPDIR, suffix='test')
+        temp_path = temp_file.name
+        del temp_file
+        self.assertRaises(IOError,
+                          move_xml_file_to_archive,
+                          '10000',
+                          temp_path)
+
 TEST_SUITE = make_test_suite(BibUploadNoUselessHistoryTest,
                              BibUploadHoldingPenTest,
                              BibUploadInsertModeTest,
@@ -5737,6 +5757,7 @@ TEST_SUITE = make_test_suite(BibUploadNoUselessHistoryTest,
                              BibUploadRecordsWithDOITest,
                              BibUploadTypicalBibEditSessionTest,
                              BibUploadRealCaseRemovalDOIViaBibEdit,
+                             BibUploadArchival,
                              )
 
 if __name__ == "__main__":

@@ -28,6 +28,7 @@ import os
 import re
 import sys
 import time
+import shutil
 from datetime import datetime
 from zlib import compress
 import socket
@@ -53,8 +54,8 @@ from invenio.config import CFG_OAI_ID_FIELD, \
      CFG_BIBUPLOAD_DISABLE_RECORD_REVISIONS, \
      CFG_BIBUPLOAD_CONFLICTING_REVISION_TICKET_QUEUE, \
      CFG_CERN_SITE, \
-     CFG_BIBUPLOAD_MATCH_DELETED_RECORDS
-
+     CFG_BIBUPLOAD_MATCH_DELETED_RECORDS, \
+     CFG_LOGDIR
 from invenio.jsonutils import json, CFG_JSON_AVAILABLE
 from invenio.bibupload_config import CFG_BIBUPLOAD_CONTROLFIELD_TAGS, \
     CFG_BIBUPLOAD_SPECIAL_TAGS, \
@@ -566,12 +567,16 @@ def bibupload(record, opt_mode=None, opt_notimechange=0, oai_rec_id="", pretend=
                     msg = "   Failed: ERROR: during update_bibfmt_format 'recstruct'"
                     write_message(msg, verbose=1, stream=sys.stderr)
                     return (1, int(rec_id), msg)
+
             if not CFG_BIBUPLOAD_DISABLE_RECORD_REVISIONS:
                 # archive MARCXML format of this record for version history purposes:
+
+                marcxml_path = task_get_option('file_path', 'UNKNOWN')
+
                 if insert_mode_p:
-                    error = archive_marcxml_for_history(rec_id, affected_fields={}, pretend=pretend)
+                    error = archive_marcxml_for_history(rec_id, affected_fields={}, marcxml_path=marcxml_path, pretend=pretend)
                 else:
-                    error = archive_marcxml_for_history(rec_id, affected_fields=affected_tags, pretend=pretend)
+                    error = archive_marcxml_for_history(rec_id, affected_fields=affected_tags, marcxml_path=marcxml_path, pretend=pretend)
                 if error == 1:
                     msg = "   ERROR: Failed to archive MARCXML for history"
                     write_message(msg, verbose=1, stream=sys.stderr)
@@ -2336,7 +2341,7 @@ def delete_bibfmt_format(id_bibrec, format_name, pretend=False):
     return 0
 
 
-def archive_marcxml_for_history(recID, affected_fields, pretend=False):
+def archive_marcxml_for_history(recID, affected_fields, marcxml_path, pretend=False):
     """
     Archive current MARCXML format of record RECID from BIBFMT table
     into hstRECORD table.  Useful to keep MARCXML history of records.
@@ -2362,7 +2367,7 @@ def archive_marcxml_for_history(recID, affected_fields, pretend=False):
         run_sql("""INSERT INTO hstRECORD (id_bibrec, marcxml, job_id, job_name, job_person, job_date, job_details, affected_fields)
                                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
                 (res[0][0], res[0][1], task_get_task_param('task_id', 0), 'bibupload', task_get_task_param('user', 'UNKNOWN'), res[0][2],
-                    'mode: ' + task_get_option('mode', 'UNKNOWN') + '; file: ' + task_get_option('file_path', 'UNKNOWN') + '.',
+                    'mode: ' + task_get_option('mode', 'UNKNOWN') + '; file: ' + marcxml_path + '.',
                 db_affected_fields))
     return 0
 
@@ -2663,6 +2668,7 @@ Examples:
   --special-treatment=MODE\tif "oracle" is specified, when used together with --callback_url,
 \t\t\tPOST an application/x-www-form-urlencoded request where the JSON message is encoded
 \t\t\tinside a form field called "results".
+  --copy-source\t\tCopy (instead of moving) the source file to /var/data.
 """,
             version=__revision__,
             specific_params=("ircazdnoS:",
@@ -2681,6 +2687,7 @@ Examples:
                    "nonce=",
                    "special-treatment=",
                    "stage=",
+                   "copy-source"
                  ]),
             task_submit_elaborate_specific_parameter_fnc=task_submit_elaborate_specific_parameter,
             task_run_fnc=task_run_core,
@@ -2773,6 +2780,8 @@ def task_submit_elaborate_specific_parameter(key, value, opts, args): # pylint: 
             return False
     elif key in ("-S", "--stage"):
         print >> sys.stderr, """WARNING: the --stage parameter is deprecated and ignored."""
+    elif key in ("--copy-source"):
+        task_set_option('copy_source', True)
     else:
         return False
     return True
@@ -2908,6 +2917,8 @@ def bibupload_records(records, opt_mode=None, opt_notimechange=0,
                 if callback_url:
                     results_for_callback['results'].append({'recid': error[1], 'success': False, 'error_message': error[2]})
             elif error[0] == 2:
+                # The xml file is parsed at the global level.
+                # So any xml, parsing error should have already been caught.
                 if record:
                     write_message(lambda: record_xml_output(record),
                                   stream=sys.stderr)
@@ -2953,9 +2964,19 @@ def task_run_core():
     write_message("STAGE 0:", verbose=2)
 
     if task_get_option('file_path') is not None:
-        write_message("start preocessing", verbose=3)
+        write_message("start pre-processing", verbose=3)
         task_update_progress("Reading XML input")
         recs = xml_marc_to_records(open_marc_file(task_get_option('file_path')))
+        marcxml_path = move_xml_file_to_archive(task_get_task_param('task_id', 0),
+                                                task_get_option('file_path'),
+                                                task_get_option('copy_source'))
+        if marcxml_path:
+            write_message("   -Archived MARCXML file", verbose=2)
+            task_set_option('file_path', marcxml_path)
+        else:
+            msg = "   ERROR: Failed to archive MARCXML file"
+            write_message(msg, verbose=2)
+
         stat['nb_records_to_upload'] = len(recs)
         write_message("   -Open XML marc: DONE", verbose=2)
         task_sleep_now_if_required(can_stop_too=True)
@@ -2965,7 +2986,8 @@ def task_run_core():
 
         if recs is not None:
             # We proceed each record by record
-            bibupload_records(records=recs, opt_mode=task_get_option('mode'),
+            bibupload_records(records=recs,
+                              opt_mode=task_get_option('mode'),
                               opt_notimechange=task_get_option('notimechange'),
                               pretend=task_get_option('pretend'),
                               callback_url=callback_url,
@@ -2973,6 +2995,7 @@ def task_run_core():
         else:
             write_message("   ERROR: bibupload failed: No record found",
                         verbose=1, stream=sys.stderr)
+
         callback_url = task_get_option("callback_url")
         if callback_url:
             nonce = task_get_option("nonce")
@@ -2992,6 +3015,42 @@ def log_record_uploading(oai_rec_id, task_id, bibrec_id, insertion_db, pretend=F
         query = """UPDATE oaiHARVESTLOG SET date_inserted=NOW(), inserted_to_db=%s, id_bibrec=%s WHERE oai_id = %s AND bibupload_task_id = %s ORDER BY date_harvested LIMIT 1"""
         if not pretend:
             run_sql(query, (str(insertion_db), str(bibrec_id), str(oai_rec_id), str(task_id), ))
+
+def move_xml_file_to_archive(task_id, file_path, copy_source=False):
+    """Archive xml file
+
+    This function moves the xml file to its appropriate archival directory.
+    If the file cannot be moved, it is copied.
+    It is called after a successful bibupload.
+    """
+    date_str = datetime.now().strftime('%Y-%m-%d')
+    bibupload_archive_dir = os.path.join(CFG_LOGDIR, 'bibupload', date_str)
+    try:
+        os.makedirs(bibupload_archive_dir)
+    except OSError, e:
+        if e.errno != 17:
+            write_message("Could not create log directory: %s" % e)
+            return
+    dest = os.path.join(bibupload_archive_dir, "%s.xml" % task_id)
+
+    if not copy_source:
+        try:
+            os.rename(file_path, dest)
+            write_message("Moved input file to %s" % dest)
+        except OSError:
+            # Rename failed, probably because the file is only accessible in
+            # read mode or file is in another partition
+            write_message("Could not move input file to %s" % dest)
+            copy_source = True
+
+    if copy_source:
+        try:
+            shutil.copyfile(file_path, dest)
+            write_message("Copied input file to %s" % dest)
+        except OSError:
+            write_message("Could not copy input file to %s" % dest)
+            return
+    return dest
 
 if __name__ == "__main__":
     main()
