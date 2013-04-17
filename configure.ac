@@ -684,6 +684,7 @@ AC_CONFIG_FILES([config.nice  \
      modules/bibindex/Makefile \
      modules/bibindex/bin/Makefile \
      modules/bibindex/bin/bibindex \
+     modules/bibindex/bin/bibindex_checker \
      modules/bibindex/bin/bibstat \
      modules/bibindex/doc/Makefile \
      modules/bibindex/doc/admin/Makefile \

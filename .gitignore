@@ -49,6 +49,7 @@ modules/bibformat/bin/bibreformat
 modules/oaiharvest/bin/oaiharvest
 modules/oairepository/bin/oairepositoryupdater
 modules/bibindex/bin/bibindex
+modules/bibindex/bin/bibindex_checker
 modules/bibindex/bin/bibstat
 modules/bibmatch/bin/bibmatch
 modules/bibrank/bin/bibrank
