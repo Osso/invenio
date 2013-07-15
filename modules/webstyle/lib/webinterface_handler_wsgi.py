@@ -24,11 +24,18 @@ import re
 import cgi
 import gc
 import inspect
+import signal
 from fnmatch import fnmatch
 from urlparse import urlparse, urlunparse
 
 from wsgiref.validate import validator
 from wsgiref.util import FileWrapper
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
 
 if __name__ != "__main__":
     # Chances are that we are inside mod_wsgi.
@@ -463,10 +470,59 @@ def alert_admin_for_server_status_p(status, referer):
             return True
     return False
 
-def application(environ, start_response):
+def generate_timeout_page(req, page_already_started=False):
+    """
+    Returns an iterable with the error page to be sent to the user browser.
+    """
+    from invenio.webpage import page
+    from invenio import template
+    webstyle_templates = template.load('webstyle')
+    ln = req.form.get('ln', CFG_SITE_LANG)
+
+    if 'application/json' in req.headers_in['ACCEPT']:
+        return [json.dumps({"resultCode": -1, "errorMsg": "Request timed out."})]
+    elif page_already_started:
+        return [webstyle_templates.tmpl_timeout_page(status=req.get_wsgi_status(), ln=ln)]
+    else:
+        return [page(title='Timeout', body=webstyle_templates.tmpl_timeout_page(status=req.get_wsgi_status(), ln=ln), language=ln, req=req)]
+
+class TimedOutRequest(Exception):
+    pass
+
+def handle_timed_request(environ, req, timeout):
+
+    def handler(signum, frame):  # pylint: disable=W0613
+        raise TimedOutRequest()
+
+    old = signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout)
+    try:
+        result = handle_request(environ, req)
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
+    return result
+
+def handle_request(environ, req):
+    possible_module, possible_handler = is_mp_legacy_publisher_path(environ['PATH_INFO'])
+    if possible_module is not None:
+        mp_legacy_publisher(req, possible_module, possible_handler)
+    elif CFG_WSGI_SERVE_STATIC_FILES:
+        possible_static_path = is_static_path(environ['PATH_INFO'])
+        if possible_static_path is not None:
+            from invenio.bibdocfile import stream_file
+            stream_file(req, possible_static_path)
+        else:
+            ret = invenio_handler(req)
+    else:
+        ret = invenio_handler(req)
+    return []
+
+def application(environ, start_response, timeout=None):
     """
     Entry point for wsgi.
     """
+    ret = []
     ## Needed for mod_wsgi, see: <http://code.google.com/p/modwsgi/wiki/ApplicationIssues>
     req = SimulatedModPythonRequest(environ, start_response)
     #print 'Starting mod_python simulation'
@@ -492,19 +548,15 @@ def application(environ, start_response):
                 target = urlunparse(final_parts)
                 redirect_to_url(req, target)
 
-            possible_module, possible_handler = is_mp_legacy_publisher_path(environ['PATH_INFO'])
-            if possible_module is not None:
-                mp_legacy_publisher(req, possible_module, possible_handler)
-            elif CFG_WSGI_SERVE_STATIC_FILES:
-                possible_static_path = is_static_path(environ['PATH_INFO'])
-                if possible_static_path is not None:
-                    from invenio.bibdocfile import stream_file
-                    stream_file(req, possible_static_path)
-                else:
-                    ret = invenio_handler(req)
+            if timeout:
+                ret = handle_timed_request(environ, req, timeout)
             else:
-                ret = invenio_handler(req)
+                ret = handle_request(environ, req)
             req.flush()
+        except TimedOutRequest:
+            if not req.response_sent_p:
+                start_response(req.get_wsgi_status(), req.get_low_level_headers(), sys.exc_info())
+            return generate_timeout_page(req)
         except SERVER_RETURN, status:
             status = int(str(status))
             if status not in (OK, DONE):
@@ -570,7 +622,8 @@ def application(environ, start_response):
         gc.enable()
         gc.collect()
         del gc.garbage[:]
-    return []
+
+    return ret
 
 def generate_error_page(req, admin_was_alerted=True, page_already_started=False):
     """

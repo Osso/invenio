@@ -970,6 +970,22 @@ URI: http://%(host)s%(page)s
         }
         return out
 
+    def tmpl_timeout_page(self, ln=CFG_SITE_LANG, status="", admin_was_alerted=True):
+        """
+        Display an error page.
+
+        - status *string* - the HTTP status.
+        """
+        _ = gettext_set_language(ln)
+        out = """
+        <p>%(message)s</p>
+        <p>%(doubts)s</p>""" % {
+            'status' : status,
+            'message' : _("Your request took too long to process and has been aborted."),
+            'doubts' : _("In case of doubt, please contact %(x_admin_email)s.") % {'x_admin_email' : '<a href="mailto:%(admin)s">%(admin)s</a>' % {'admin' : CFG_SITE_SUPPORT_EMAIL}}
+        }
+        return out
+
     def tmpl_error_page(self, ln=CFG_SITE_LANG, status="", admin_was_alerted=True):
         """
         Display an error page.
