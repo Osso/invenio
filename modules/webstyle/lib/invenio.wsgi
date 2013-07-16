@@ -45,4 +45,11 @@ try:
 except:
     pass
 
+import os
 from invenio.webinterface_handler_wsgi import application
+
+timeout = os.environ.get('CFG_INVENIO_WSGI_TIMEOUT', None)
+if timeout:
+    from functools import partial
+    application = partial(application, timeout=timeout)
+
