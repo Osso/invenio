@@ -517,6 +517,8 @@ def wrap_warn():
     def wrapper(warn_fun):
         def fun(*args, **kwargs):
             traceback.print_stack()
+            if args:
+                print args[0]
             return warn_fun(*args, **kwargs)
         return fun
 

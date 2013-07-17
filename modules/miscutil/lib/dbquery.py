@@ -160,9 +160,16 @@ def close_connection(dbhost=CFG_DATABASE_HOST):
     """
     try:
         _DB_CONN[dbhost][(os.getpid(), get_ident())].close()
-        del(_DB_CONN[dbhost][(os.getpid(), get_ident())])
+        del _DB_CONN[dbhost][(os.getpid(), get_ident())]
     except KeyError:
         pass
+
+def close_all_connections():
+    global _DB_CONN
+    _DB_CONN = {}
+    for hosts_connections in _DB_CONN.values():
+        for conn in hosts_connections.values():
+            conn.close()
 
 def run_sql(sql, param=None, n=0, with_desc=False, with_dict=False, run_on_slave=False):
     """Run SQL on the server with PARAM and return result.

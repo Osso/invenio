@@ -25,6 +25,8 @@ import cgi
 import gc
 import inspect
 import signal
+import atexit
+import threading
 from fnmatch import fnmatch
 from urlparse import urlparse, urlunparse
 
@@ -55,6 +57,7 @@ from invenio.config import CFG_WEBDIR, CFG_SITE_LANG, \
     CFG_WEBSTYLE_HTTP_STATUS_ALERT_LIST, CFG_DEVEL_SITE, CFG_SITE_URL, \
     CFG_SITE_SECURE_URL, CFG_WEBSTYLE_REVERSE_PROXY_IPS
 from invenio.errorlib import register_exception, get_pretty_traceback
+from invenio.dbquery import close_all_connections
 
 ## Static files are usually handled directly by the webserver (e.g. Apache)
 ## However in case WSGI is required to handle static files too (such
@@ -128,6 +131,7 @@ class SimulatedModPythonRequest(object):
         self.track_writings = False
         self.__what_was_written = ""
         self.__cookies_out = {}
+        self.disable_write = False
         for key, value in environ.iteritems():
             if key.startswith('HTTP_'):
                 self.__headers_in[key[len('HTTP_'):].replace('_', '-')] = value
@@ -192,6 +196,8 @@ class SimulatedModPythonRequest(object):
         return self.__buffer
 
     def write(self, string, flush=1):
+        if self.disable_write:
+            return
         if isinstance(string, unicode):
             self.__buffer += string.encode('utf8')
         else:
@@ -200,6 +206,8 @@ class SimulatedModPythonRequest(object):
             self.flush()
 
     def flush(self):
+        if self.disable_write:
+            return
         self.send_http_header()
         if self.__buffer:
             self.__bytes_sent += len(self.__buffer)
@@ -234,6 +242,8 @@ class SimulatedModPythonRequest(object):
         return self.__headers['content-type']
 
     def send_http_header(self):
+        if self.disable_write:
+            return
         if not self.__response_sent_p:
             self._write_cookies()
             self.__tainted = True
@@ -482,9 +492,9 @@ def generate_timeout_page(req, page_already_started=False):
     if 'application/json' in req.headers_in['ACCEPT']:
         return [json.dumps({"resultCode": -1, "errorMsg": "Request timed out."})]
     elif page_already_started:
-        return [webstyle_templates.tmpl_timeout_page(status=req.get_wsgi_status(), ln=ln)]
+        return webstyle_templates.tmpl_timeout_page(status=req.get_wsgi_status(), ln=ln)
     else:
-        return [page(title='Timeout', body=webstyle_templates.tmpl_timeout_page(status=req.get_wsgi_status(), ln=ln), language=ln, req=req)]
+        return page(title='Timeout', body=webstyle_templates.tmpl_timeout_page(status=req.get_wsgi_status(), ln=ln), language=ln, req=req)
 
 class TimedOutRequest(Exception):
     pass
@@ -494,14 +504,34 @@ def handle_timed_request(environ, req, timeout):
     def handler(signum, frame):  # pylint: disable=W0613
         raise TimedOutRequest()
 
-    old = signal.signal(signal.SIGALRM, handler)
-    signal.alarm(timeout)
-    try:
-        result = handle_request(environ, req)
-    finally:
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, old)
-    return result
+    def target():
+        handle_request(environ, req)
+
+    t = threading.Thread(target=target)
+    t.start()
+    t.join(timeout)
+
+    if t.isAlive():
+        req.disable_write = True
+        from copy import copy
+        new_req = copy(req)
+        new_req.disable_write = False
+
+        if not req.response_sent_p:
+            new_req.headers_out['content-type'] = 'text/html'
+            new_req.send_http_header()
+            page_already_started = False
+        else:
+            page_already_started = True
+        result = generate_timeout_page(new_req, page_already_started)
+        new_req.write(result)
+
+        # Close db connections
+        atexit.register(close_all_connections)
+        # Signal mod_wsgi to reload ourselves
+        os.kill(os.getpid(), signal.SIGINT)
+
+    return []
 
 def handle_request(environ, req):
     possible_module, possible_handler = is_mp_legacy_publisher_path(environ['PATH_INFO'])
@@ -513,9 +543,9 @@ def handle_request(environ, req):
             from invenio.bibdocfile import stream_file
             stream_file(req, possible_static_path)
         else:
-            ret = invenio_handler(req)
+            invenio_handler(req)
     else:
-        ret = invenio_handler(req)
+        invenio_handler(req)
     return []
 
 def application(environ, start_response, timeout=None):
@@ -553,10 +583,6 @@ def application(environ, start_response, timeout=None):
             else:
                 ret = handle_request(environ, req)
             req.flush()
-        except TimedOutRequest:
-            if not req.response_sent_p:
-                start_response(req.get_wsgi_status(), req.get_low_level_headers(), sys.exc_info())
-            return generate_timeout_page(req)
         except SERVER_RETURN, status:
             status = int(str(status))
             if status not in (OK, DONE):

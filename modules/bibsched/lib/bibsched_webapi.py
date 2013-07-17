@@ -23,8 +23,8 @@ from invenio.dbquery import run_sql
 from invenio.bibsched import CFG_MOTD_PATH
 
 import os
-import popen2
 import time
+import subprocess
 
 
 def get_css():
@@ -96,11 +96,9 @@ def get_bibsched_mode():
     """
     Gets bibsched running mode: AUTOMATIC or MANUAL
     """
-    child_stdout, child_stdin = popen2.popen2("%s status" %
-                                     os.path.join(CFG_BINDIR, 'bibsched'))
-    child_stdin.close()
-    output = child_stdout.readlines()
-    child_stdout.close()
+    cmd = [os.path.join(CFG_BINDIR, 'bibsched'), 'status']
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
+    output = p.communicate()[0].split('\n')
     try:
         if output[1].split()[-1] in ['MANUAL', 'AUTOMATIC']:
             return output[1].split()[-1]
