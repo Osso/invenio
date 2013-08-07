@@ -82,7 +82,8 @@ pylib_DATA = __init__.py \
              hepdatautils.py \
              hepdatadisplayutils.py \
              hepdatautils_tests.py \
-             crossrefutils.py
+             crossrefutils.py \
+             funcutils.py
 
 noinst_DATA = testimport.py \
               kwalitee.py \
