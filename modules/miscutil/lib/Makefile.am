@@ -82,7 +82,8 @@ pylib_DATA = __init__.py \
              hepdatautils.py \
              hepdatadisplayutils.py \
              hepdatautils_tests.py \
-             crossrefutils.py
+             crossrefutils.py \
+             intbitset.py
 
 noinst_DATA = testimport.py \
               kwalitee.py \
@@ -97,11 +98,6 @@ EXTRA_DIST = $(pylib_DATA) \
              testimport.py \
              kwalitee.py \
              pep8.py \
-             intbitset.pyx \
-             intbitset.c \
-             intbitset.h \
-             intbitset_impl.c \
-             intbitset_setup.py \
              solrutils \
              solrutils/schema.xml \
              solrutils/java_sources.txt \
@@ -124,7 +120,6 @@ all:
 
 install-data-hook:
 	$(PYTHON) $(srcdir)/testimport.py ${prefix}
-	@find ${srcdir} -name intbitset.so -exec cp {} ${pylibdir} \;
 
 CLEANFILES = *~ *.tmp *.pyc
 
