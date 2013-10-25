@@ -1,0 +1,27 @@
+<div class="tab-content">
+
+    <div class="tab-pane" id="internal-pubs">
+    <!-- Internal Publications -->
+        <ol>
+        {% for title, url, recid in internal_pubs %}
+            <li><a href="{{ url }}">{{ title }}</a></li>{% endfor %}
+        </ol>
+        <a href="{{ all_pubs_search_link }}">Click here to see all</a>
+    </div>
+
+    <div class="tab-pane" id="datasets">
+    <!-- Datasets -->
+        <ol>{% for title, url, recid in datasets %}
+            <li><a href="{{ url }}">{{ title }}</a></li>{% endfor %}
+        </ol>
+    </div>
+
+    <div class="tab-pane" id="external-pubs">
+    <!-- External Publications -->
+        <ol>
+        {% for title, url, type in external_pubs %}
+            <li><a href="{{ url }}">{{ title }}</a></li>{% endfor %}
+        </ol>
+    </div>
+
+</div>

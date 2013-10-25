@@ -27,6 +27,8 @@ import invenio.bibauthorid_config as bconfig
 from invenio.bibauthorid_string_utils import string_partition
 from copy import deepcopy
 
+from invenio.bibauthorid_general_utils import memoized
+
 from invenio.textutils import translate_to_ascii
 
 from invenio.bibauthorid_general_utils import name_comparison_print
@@ -76,6 +78,7 @@ artifact_removal = re.compile("[^a-zA-Z0-9]")
 
 #Gender names and names variation files are loaded updon module import to increase performances
 
+@memoized
 def split_name_parts(name_string, delete_name_additions=True,
                      override_surname_sep='', return_all_lower=False):
     '''
@@ -124,7 +127,7 @@ def split_name_parts(name_string, delete_name_additions=True,
         if name_string.count(sep) >= 1:
             found_sep = sep
             surname, rest_of_name = string_partition(name_string, sep)[0::2]
-            surname = surname.strip().capitalize()
+            surname = surname.strip().title()
             # Fix for dashes
             surname = re.sub('-([a-z])', lambda n:'-' + n.group(1).upper(), surname)
             break
@@ -132,12 +135,12 @@ def split_name_parts(name_string, delete_name_additions=True,
     if not found_sep:
         if name_string.count(" ") > 0:
             rest_of_name, surname = string_partition(name_string, ' ', direc='r')[0::2]
-            surname = surname.strip().capitalize()
+            surname = surname.strip().title()
             # Fix for dashes
             surname = re.sub('-([a-z])', lambda n:'-' + n.group(1).upper(), surname)
         else:
             surname = name_string
-            surname = surname.strip().capitalize()
+            surname = surname.strip().title()
             # Fix for dashes
             surname = re.sub('-([a-z])', lambda n:'-' + n.group(1).upper(), surname)
             if not return_all_lower:
@@ -215,9 +218,12 @@ def create_normalized_name(splitted_name):
 
     return name
 
+def create_matchable_name(name):
+    splitted_name = split_name_parts(name)
+    return create_normalized_name(splitted_name).lower()
 
-create_indexable_name_artifact_removal_re = re.compile("[^a-zA-Z,\s]")
-def create_indexable_name(name_string):
+
+def create_indexable_name(splitted_name):
     '''
     Creates a normalized name from a given name array. A normalized name
     looks like "Lastname, Firstnames and Initials"
@@ -228,10 +234,6 @@ def create_indexable_name(name_string):
     @return: normalized name
     @rtype: string
     '''
-
-
-    name_string = create_indexable_name_artifact_removal_re.sub(' ',name_string)
-    splitted_name = split_name_parts(name_string)
 
     name = splitted_name[0]
 

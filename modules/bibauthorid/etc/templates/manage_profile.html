@@ -1,0 +1,71 @@
+{% extends "index.html" %}
+{% block content %}
+<div class="row">
+
+
+    <!-- arxiv -->
+    <div class="col-md-6">
+        <div id="arxiv" class="well well-small inspire-well">
+            <div class="bai-box-title">
+                <span>arXiv</span>
+            </div>
+            <div class="bai-box-content">{{ arxiv }}</div>
+        </div> 
+    </div>
+
+    <!-- orcid -->
+    <div class="col-md-6">
+        <div id="orcid" class="well well-small inspire-well">
+            <div class="bai-box-title">
+                <span>ORCiD</span>
+            </div>
+            <div class="bai-box-content">{{ orcid }}</div>
+        </div>
+    </div>
+
+    <!-- autoassign -->
+    {% if autoassign %}
+        <div class="col-md-6">
+            <div class="row">
+	         <div class="span9">
+	             <div id="autoassign" class="well well-small inspire-well">
+		     <div class="bai-box-title"><span>Automatically Assigned Papers</span></div>
+		     <div class="bai-box-content">{{ autoassign }}</div>
+	         </div>
+	    </div>
+        </div>
+    {% endif %}
+
+    <!-- hepnames -->
+    <div class="col-md-6">
+        <div id="hepdata" class="well well-small inspire-well">
+            <div class="bai-box-title">
+                <span>HepNames</span>
+            </div>
+            <div class="bai-box-content">{{ hepnames }}</div>
+        </div>
+    </div>
+
+    <!-- merge -->
+    <div class="col-md-6">
+        <div id="merge" class="well well-small inspire-well">
+            <div class="bai-box-title">
+                <span>Merge Profiles</span>
+            </div>
+            <div class="bai-box-content">{{ merge }}</div>
+        </div>
+    </div>
+
+    <!-- contact -->
+    <div class="col-md-6">
+        <div id="contact" class="well well-small inspire-well">
+            <div class="bai-box-title">
+                <span>Contact</span>
+            </div>
+            <div class="bai-box-content">{{ contact }}</div>
+        </div>
+    </div>
+
+
+</div>
+{% endblock %}

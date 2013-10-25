@@ -32,7 +32,7 @@ from invenio.bibauthorid_backinterface import insert_user_log
 from invenio.bibauthorid_backinterface import get_db_time
 from invenio.bibauthorid_backinterface import get_authors_of_claimed_paper
 from invenio.bibauthorid_backinterface import get_claimed_papers_from_papers
-from invenio.bibauthorid_backinterface import get_all_valid_papers
+from invenio.bibauthorid_backinterface import get_all_valid_bibrecs
 
 
 #python 2.4 compatibility
@@ -251,7 +251,7 @@ def _get_personids_to_update_extids(papers=None):
         daemon_last_time_run = last_log[0][2]
         modified_bibrecs = get_modified_papers_since(daemon_last_time_run)
     else:
-        modified_bibrecs = get_all_valid_papers()
+        modified_bibrecs = get_all_valid_bibrecs()
     if papers:
         modified_bibrecs &= set(papers)
     if not modified_bibrecs:
@@ -324,5 +324,5 @@ def run_merge():
     merge_dynamic()
 
 def update_index():
-    from bibauthorid_search_engine import create_bibauthorid_indexer
+    from invenio.bibauthorid_search_engine import create_bibauthorid_indexer
     create_bibauthorid_indexer()

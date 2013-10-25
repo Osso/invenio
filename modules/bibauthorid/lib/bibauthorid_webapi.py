@@ -563,7 +563,7 @@ def get_user_level(uid):
     actions = [row[1] for row in acc_find_user_role_actions({'uid': uid})]
     return max([dbapi.get_paper_access_right(acc) for acc in actions])
 
-def search_person_ids_by_name(namequery, limit_to_recid=None):
+def search_person_ids_by_name(namequery, limit_to_recid=None, exact_name_match=False):
     '''
     Prepares the search to search in the database
 
@@ -586,7 +586,7 @@ def search_person_ids_by_name(namequery, limit_to_recid=None):
     else:
         return list()
 
-    results = dbapi.find_personIDs_by_name_string(escaped_query)
+    results = dbapi.person_search_engine_query(escaped_query)
 
     if not limit_to_recid:
         return results

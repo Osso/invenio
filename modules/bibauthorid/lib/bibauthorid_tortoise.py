@@ -41,7 +41,7 @@ except:
 from itertools import groupby, chain, repeat
 from invenio.bibauthorid_general_utils import update_status, update_status_final, override_stdout_config, override_stdout_config
 
-override_stdout_config(fileout=True, stdout=False)
+#override_stdout_config(fileout=True, stdout=False)
 
 from invenio.bibauthorid_cluster_set import delayed_cluster_sets_from_marktables
 from invenio.bibauthorid_cluster_set import delayed_cluster_sets_from_personid

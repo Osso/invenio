@@ -53,7 +53,7 @@ import os
 PID = lambda : str(os.getpid())
 
 import pyximport; pyximport.install()
-from bibauthorid_meld_edges import meld_edges
+from invenio.bibauthorid_meld_edges import meld_edges
 
 def wedge(cluster_set, report_cluster_status=False, force_wedge_thrsh=False):
     # The lower bound of the edges being processed by the wedge algorithm.
