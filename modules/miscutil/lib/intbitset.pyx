@@ -24,7 +24,7 @@ integers with ultra fast set operations, implemented via bit vectors
 and Python C extension to optimize speed and memory usage.
 
 Emulates the Python built-in set class interface with some additional
-specific methods such as its own fast dump and load marshalling
+specific methods such as its own fast dump and load serializing
 functions.  Uses real bits to optimize memory usage, so may have
 issues with endianness if you transport serialized bitsets between
 various machine architectures.
@@ -109,7 +109,7 @@ cdef class intbitset:
 
     Emulates the Python built-in set class interface with some
     additional specific methods such as its own fast dump and load
-    marshalling functions.  Uses real bits to optimize memory usage,
+    serializing functions.  Uses real bits to optimize memory usage,
     so may have issues with endianness if you transport serialized
     bitsets between various machine architectures.
 

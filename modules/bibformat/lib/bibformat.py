@@ -36,8 +36,6 @@ record basis) should be defined, with name C{def create_*}.
 
 __revision__ = "$Id$"
 
-import zlib
-
 from invenio import bibformat_dblayer
 from invenio import bibformat_engine
 from invenio import bibformat_utils
@@ -106,7 +104,7 @@ def format_record(recID, of, ln=CFG_SITE_LANG, verbose=0, search_pattern=None,
     return out
 
 
-def record_get_xml(recID, format='xm', decompress=zlib.decompress):
+def record_get_xml(recID, format='xm'):
     """
     Returns an XML string of the record given by recID.
 
@@ -126,7 +124,7 @@ def record_get_xml(recID, format='xm', decompress=zlib.decompress):
     @param decompress: the library to use to decompress cache from DB
     @return: the xml string of the record
     """
-    return bibformat_utils.record_get_xml(recID=recID, format=format, decompress=decompress)
+    return bibformat_utils.record_get_xml(recID=recID, format=format)
 
 # Helper functions to do complex formatting of multiple records
 #

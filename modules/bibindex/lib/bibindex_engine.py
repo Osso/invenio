@@ -51,8 +51,8 @@ from invenio.search_engine import perform_request_search, \
      get_synonym_terms, \
      search_pattern, \
      search_unit_in_bibrec
-from invenio.dbquery import run_sql, DatabaseError, serialize_via_marshal, \
-     deserialize_via_marshal, wash_table_column_name
+from invenio.dbquery import run_sql, DatabaseError, wash_table_column_name
+from invenio.serializeutils import serialize, deserialize
 from invenio.bibindex_engine_washer import wash_index_term
 from invenio.bibtask import task_init, write_message, get_datetime, \
     task_set_option, task_get_option, task_get_task_param, \
@@ -931,10 +931,10 @@ class WordTable:
 
         # put words into reverse index table with FUTURE status:
         for recID in recIDs:
-            run_sql("INSERT INTO %sR (id_bibrec,termlist,type) VALUES (%%s,%%s,'FUTURE')" % wash_table_column_name(self.tablename[:-1]), (recID, serialize_via_marshal(wlist[recID]))) # kwalitee: disable=sql
+            run_sql("INSERT INTO %sR (id_bibrec,termlist,type) VALUES (%%s,%%s,'FUTURE')" % wash_table_column_name(self.tablename[:-1]), (recID, serialize(wlist[recID]))) # kwalitee: disable=sql
             # ... and, for new records, enter the CURRENT status as empty:
             try:
-                run_sql("INSERT INTO %sR (id_bibrec,termlist,type) VALUES (%%s,%%s,'CURRENT')" % wash_table_column_name(self.tablename[:-1]), (recID, serialize_via_marshal([]))) # kwalitee: disable=sql
+                run_sql("INSERT INTO %sR (id_bibrec,termlist,type) VALUES (%%s,%%s,'CURRENT')" % wash_table_column_name(self.tablename[:-1]), (recID, serialize([]))) # kwalitee: disable=sql
             except DatabaseError:
                 # okay, it's an already existing record, no problem
                 pass
@@ -1041,7 +1041,7 @@ class WordTable:
         recID_rows = run_sql(query, (low, high))
         for recID_row in recID_rows:
             recID = recID_row[0]
-            wlist = deserialize_via_marshal(recID_row[1])
+            wlist = deserialize(recID_row[1])
             for word in wlist:
                 self.put(recID, word, -1)
         write_message("%s fetching existing words for records #%d-#%d ended" % \
@@ -1193,7 +1193,7 @@ class WordTable:
                     write_message(query, verbose=9)
                     res = run_sql(query, (recID,))
                     for row in res:
-                        wlist = deserialize_via_marshal(row[1])
+                        wlist = deserialize(row[1])
                         write_message("Words are %s " % wlist, verbose=9)
                         if row[0] == 'TEMPORARY':
                             sign = 1

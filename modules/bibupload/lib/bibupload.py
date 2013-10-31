@@ -29,9 +29,7 @@ import re
 import sys
 import time
 from datetime import datetime
-from zlib import compress
 import socket
-import marshal
 import copy
 import tempfile
 import urlparse
@@ -56,6 +54,7 @@ from invenio.config import CFG_OAI_ID_FIELD, \
      CFG_INSPIRE_SITE
 
 from invenio.jsonutils import json, CFG_JSON_AVAILABLE
+from invenio.serializeutils import deserialize, serialize
 from invenio.bibupload_config import CFG_BIBUPLOAD_CONTROLFIELD_TAGS, \
     CFG_BIBUPLOAD_SPECIAL_TAGS, \
     CFG_BIBUPLOAD_DELETE_CODE, \
@@ -179,7 +178,7 @@ def bibupload_pending_recids():
     xmls = []
     if options:
         for arguments in options:
-            arguments = marshal.loads(arguments[0])
+            arguments = deserialize(arguments[0])
             for argument in arguments[1:]:
                 if argument.startswith('/'):
                     # XMLs files are recognizable because they're absolute
@@ -554,7 +553,12 @@ def bibupload(record, opt_mode=None, opt_notimechange=0, oai_rec_id="", pretend=
                 write_message(msg, verbose=1, stream=sys.stderr)
                 return (1, int(rec_id), msg)
             if CFG_BIBUPLOAD_SERIALIZE_RECORD_STRUCTURE:
-                error = update_bibfmt_format(rec_id, marshal.dumps(record), 'recstruct', modification_date, pretend=pretend)
+                error = update_bibfmt_format(rec_id,
+                                             record,
+                                             'recstruct',
+                                             modification_date,
+                                             pretend=pretend,
+                                             compress_only=False)
                 if error == 1:
                     msg = "   Failed: ERROR: during update_bibfmt_format 'recstruct'"
                     write_message(msg, verbose=1, stream=sys.stderr)
@@ -779,7 +783,7 @@ def insert_record_into_holding_pen(record, oai_id, pretend=False):
             bibrec_id = 0
 
     if not pretend:
-        run_sql(query, (oai_id, compress(xml_record), bibrec_id))
+        run_sql(query, (oai_id, serialize(xml_record, compress_only=True), bibrec_id))
 
     # record_id is logged as 0! ( We are not inserting into the main database)
     log_record_uploading(oai_id, task_get_task_param('task_id', 0), 0, 'H', pretend=pretend)
@@ -1266,10 +1270,10 @@ def create_new_record(rec_id=None, pretend=False):
     else:
         return run_sql("INSERT INTO bibrec (creation_date, modification_date) VALUES (NOW(), NOW())")
 
-def insert_bibfmt(id_bibrec, marc, bibformat, modification_date='1970-01-01 00:00:00', pretend=False):
+def insert_bibfmt(id_bibrec, marc, bibformat, modification_date='1970-01-01 00:00:00', pretend=False, compress_only=True):
     """Insert the format in the table bibfmt"""
     # compress the marc value
-    pickled_marc =  compress(marc)
+    serialized_marc = serialize(marc, compress_only=compress_only)
     try:
         time.strptime(modification_date, "%Y-%m-%d %H:%M:%S")
     except ValueError:
@@ -1278,7 +1282,7 @@ def insert_bibfmt(id_bibrec, marc, bibformat, modification_date='1970-01-01 00:0
     query = """INSERT LOW_PRIORITY INTO bibfmt (id_bibrec, format, last_updated, value)
         VALUES (%s, %s, %s, %s)"""
     if not pretend:
-        row_id  = run_sql(query, (id_bibrec, bibformat, modification_date, pickled_marc))
+        row_id = run_sql(query, (id_bibrec, bibformat, modification_date, serialized_marc))
         return row_id
     else:
         return 1
@@ -2284,7 +2288,7 @@ def update_bibrec_date(now, bibrec_id, insert_mode_p, pretend=False):
         run_sql(query, params)
     write_message("   -Update record creation/modification date: DONE" , verbose=2)
 
-def update_bibfmt_format(id_bibrec, format_value, format_name, modification_date=None, pretend=False):
+def update_bibfmt_format(id_bibrec, format_value, format_name, modification_date=None, pretend=False, compress_only=True):
     """Update the format in the table bibfmt"""
     if modification_date is None:
         modification_date = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -2299,10 +2303,10 @@ def update_bibfmt_format(id_bibrec, format_value, format_name, modification_date
     if nb_found == 1:
         # we are going to update the format
         # compress the format_value value
-        pickled_format_value =  compress(format_value)
+        serialized_format_value = serialize(format_value, compress_only=compress_only)
         # update the format:
         query = """UPDATE LOW_PRIORITY bibfmt SET last_updated=%s, value=%s WHERE id_bibrec=%s AND format=%s"""
-        params = (modification_date, pickled_format_value, id_bibrec, format_name)
+        params = (modification_date, serialized_format_value, id_bibrec, format_name)
         if not pretend:
             row_id  = run_sql(query, params)
         if not pretend and row_id is None:
@@ -2317,7 +2321,12 @@ def update_bibfmt_format(id_bibrec, format_value, format_name, modification_date
         return 1
     else:
         # Insert the format information in BibFMT
-        res = insert_bibfmt(id_bibrec, format_value, format_name, modification_date, pretend=pretend)
+        res = insert_bibfmt(id_bibrec,
+                            format_value,
+                            format_name,
+                            modification_date,
+                            pretend=pretend,
+                            compress_only=compress_only)
         if res is None:
             write_message("   ERROR: during insert_bibfmt", verbose=1, stream=sys.stderr)
             return 1

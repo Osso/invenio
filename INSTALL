@@ -97,6 +97,10 @@ Contents
           - (mandatory) Required for Python-2.4 only.
              It is already built-in in Python-2.6
              <http://effbot.org/zone/element-index.htm>
+          - (mandatory) lz4, for compressing python strucutures
+             <https://pypi.python.org/pypi/lz4>
+          - (mandatory) msg, for serializing python strucutures
+             <http://msgpack.org/>
           - (recommended) python-dateutil, for complex date processing:
              <http://labix.org/python-dateutil>
           - (recommended) PyXML, for XML processing:

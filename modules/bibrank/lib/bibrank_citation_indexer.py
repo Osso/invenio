@@ -28,8 +28,7 @@ from datetime import datetime
 from itertools import islice
 
 from invenio.intbitset import intbitset
-from invenio.dbquery import run_sql, \
-                            deserialize_via_marshal
+from invenio.dbquery import run_sql
 from invenio.bibindex_tokenizers.BibIndexJournalTokenizer import \
     CFG_JOURNAL_PUBINFO_STANDARD_FORM, \
     CFG_JOURNAL_PUBINFO_STANDARD_FORM_REGEXP_CHECK

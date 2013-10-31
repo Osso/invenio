@@ -22,8 +22,8 @@
 import sys
 import time
 from invenio.dateutils import datetime, strftime
-from invenio.dbquery import deserialize_via_marshal, \
-serialize_via_marshal, run_sql, Error
+from invenio.dbquery import run_sql, Error
+from invenio.serializeutils import deserialize, serialize
 from invenio.search_engine import get_field_tags, search_pattern
 from invenio.intbitset import intbitset
 from invenio.bibtask import write_message, task_update_progress, \
@@ -187,7 +187,7 @@ def get_data_for_definition_rnk(method_name, rnk_name):
         if res and res[0]:
             write_message('Data extracted from table rnkMETHODDATA for sorting method %s' \
                           %method_name, verbose=5)
-            return deserialize_via_marshal(res[0][0])
+            return deserialize(res[0][0])
     except Error, err:
         write_message("No data could be found for sorting method %s. " \
                       "The following errror occured: [%s]" \
@@ -308,9 +308,9 @@ def run_sorting_method(recids, method_name, method_id, definition, washer):
 def write_to_methoddata_table(id_method, data_dict, data_dict_ordered, data_list_sorted, update_timestamp=True):
     """Serialize the date and write it to the bsrMETHODDATA"""
     write_message('Starting serializing the data..', verbose=5)
-    serialized_data_dict = serialize_via_marshal(data_dict)
-    serialized_data_dict_ordered = serialize_via_marshal(data_dict_ordered)
-    serialized_data_list_sorted = serialize_via_marshal(data_list_sorted)
+    serialized_data_dict = serialize(data_dict)
+    serialized_data_dict_ordered = serialize(data_dict_ordered)
+    serialized_data_list_sorted = serialize(data_list_sorted)
     write_message('Serialization completed.', verbose=5)
     date = strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     if not update_timestamp:
@@ -580,7 +580,7 @@ def update_bibsort_tables(recids, method, update_timestamp = True):
     res = run_sql("SELECT data_dict, data_dict_ordered, data_list_sorted \
                   FROM bsrMETHODDATA where id_bsrMETHOD = %s", (method_id, ))
     if res and res[0]:
-        data_dict = deserialize_via_marshal(res[0][0])
+        data_dict = deserialize(res[0][0])
         data_dict_ordered = {}
         data_list_sorted = []
     else:
@@ -616,8 +616,8 @@ def update_bibsort_tables(recids, method, update_timestamp = True):
     recids_old_ordered = {}
 
     if recids_to_insert or recids_to_modify or recids_to_delete:
-        data_dict_ordered = deserialize_via_marshal(res[0][1])
-        data_list_sorted = deserialize_via_marshal(res[0][2])
+        data_dict_ordered = deserialize(res[0][1])
+        data_list_sorted = deserialize(res[0][2])
         if recids_to_modify:
             write_message("%s records have been modified." \
                           %len(recids_to_modify), verbose=5)

@@ -50,7 +50,7 @@ from invenio.config import \
      CFG_SITE_SUPPORT_EMAIL, \
      CFG_TMPDIR
 from invenio.oai_harvest_config import InvenioOAIHarvestWarning
-from invenio.dbquery import deserialize_via_marshal
+from invenio.serializeutils import deserialize
 from invenio.bibtask import \
      task_get_task_param, \
      task_get_option, \
@@ -145,7 +145,7 @@ def task_run_core():
         current_progress = "(%i/%i)" % (j, len(reposlist))
         task_sleep_now_if_required()
         if repository['arguments']:
-            repository['arguments'] = deserialize_via_marshal(repository['arguments'])
+            repository['arguments'] = deserialize(repository['arguments'])
 
         write_message("running with post-processes: %s" % (repository["postprocess"],))
 

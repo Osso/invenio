@@ -27,7 +27,6 @@ webaccess to connect user to roles using every infos about users.
 
 import re
 import cPickle
-from zlib import compress, decompress
 import sys
 import time
 
@@ -42,6 +41,8 @@ from invenio.config import CFG_CERN_SITE
 from invenio.access_control_config import CFG_ACC_EMPTY_ROLE_DEFINITION_SRC, \
         CFG_ACC_EMPTY_ROLE_DEFINITION_SER, CFG_ACC_EMPTY_ROLE_DEFINITION_OBJ
 from invenio.errorlib import register_exception
+from invenio import serializeutils
+
 
 # INTERFACE
 
@@ -277,14 +278,14 @@ def serialize(firerole_def_obj):
     if firerole_def_obj == CFG_ACC_EMPTY_ROLE_DEFINITION_OBJ:
         return CFG_ACC_EMPTY_ROLE_DEFINITION_SER
     elif firerole_def_obj:
-        return compress(cPickle.dumps(firerole_def_obj, -1))
+        return serializeutils.serialize(cPickle.dumps(firerole_def_obj, -1), compress_only=True)
     else:
         return CFG_ACC_EMPTY_ROLE_DEFINITION_SER
 
 def deserialize(firerole_def_ser):
     """ Deserialize and decompress a definition."""
     if firerole_def_ser:
-        return cPickle.loads(decompress(blob_to_string(firerole_def_ser)))
+        return cPickle.loads(serializeutils.deserialize(blob_to_string(firerole_def_ser), decompress_only=True))
     else:
         return CFG_ACC_EMPTY_ROLE_DEFINITION_OBJ
 

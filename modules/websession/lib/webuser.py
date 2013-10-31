@@ -67,8 +67,8 @@ try:
     from invenio.session import get_session
 except ImportError:
     pass
-from invenio.dbquery import run_sql, OperationalError, \
-    serialize_via_marshal, deserialize_via_marshal
+from invenio.dbquery import run_sql, OperationalError
+from invenio.serializeutils import deserialize, serialize
 from invenio.access_control_admin import acc_get_role_id, acc_get_action_roles, acc_get_action_id, acc_is_user_in_role, acc_find_possible_activities
 from invenio.access_control_mailcookie import mail_cookie_create_mail_activation
 from invenio.access_control_firerole import acc_firerole_check_user, load_role_definition
@@ -498,7 +498,7 @@ def registerUser(req, email, passw, nickname, register_without_nickname=False,
     user_preference = get_default_user_preferences()
     uid = run_sql("INSERT INTO user (nickname, email, password, note, settings, last_login) "
         "VALUES (%s,%s,AES_ENCRYPT(email,%s),%s,%s, NOW())",
-        (nickname, email, passw, activated, serialize_via_marshal(user_preference)))
+        (nickname, email, passw, activated, serialize(user_preference)))
     if activated == 1: # Ok we consider the user as logged in :-)
         setUid(req, uid)
     return 0
@@ -1106,7 +1106,7 @@ def get_uid_based_on_pref(prefname, prefvalue):
     the_uid = None
     for pref in prefs:
         try:
-            settings = deserialize_via_marshal(pref[1])
+            settings = deserialize(pref[1])
             if (settings.has_key(prefname)) and (settings[prefname] == prefvalue):
                 the_uid = pref[0]
         except:
@@ -1117,7 +1117,7 @@ def get_user_preferences(uid):
     pref = run_sql("SELECT id, settings FROM user WHERE id=%s", (uid,))
     if pref:
         try:
-            return deserialize_via_marshal(pref[0][1])
+            return deserialize(pref[0][1])
         except:
             pass
     return get_default_user_preferences() # empty dict mean no preferences
@@ -1125,7 +1125,7 @@ def get_user_preferences(uid):
 def set_user_preferences(uid, pref):
     assert(type(pref) == type({}))
     run_sql("UPDATE user SET settings=%s WHERE id=%s",
-            (serialize_via_marshal(pref), uid))
+            (serialize(pref), uid))
 
 def get_default_user_preferences():
     user_preference = {

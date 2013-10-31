@@ -183,7 +183,7 @@ The APIs of bibformat.py consists in these functions:
      """
 
 
- def record_get_xml(recID, format='xm', decompress=zlib.decompress):
+ def record_get_xml(recID, format='xm'):
      """
      Returns an XML string of the record given by recID.
 

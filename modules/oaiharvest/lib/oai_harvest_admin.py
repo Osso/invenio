@@ -45,7 +45,7 @@ from invenio.bibrankadminlib import \
      tupletotable, \
      createhiddenform
 from invenio.oai_harvest_dblayer import get_holdingpen_day_size
-from invenio.dbquery import deserialize_via_marshal
+from invenio.serializeutils import deserialize
 
 from invenio.oai_harvest_dblayer import get_month_logs_size, \
      get_history_entries_for_day, get_day_logs_size, get_entry_history, \
@@ -216,7 +216,7 @@ def perform_request_editsource(oai_src_id=None, oai_src_name='',
         # A list is returned, we care only of the first item (which should be the only one..)
         oai_src = oai_src[0]
         if oai_src['arguments']:
-            oai_src['arguments'] = deserialize_via_marshal(oai_src['arguments'])
+            oai_src['arguments'] = deserialize(oai_src['arguments'])
 
         oai_src['setspecs'] = oai_src['setspecs'].split()
 
@@ -1016,7 +1016,7 @@ def harvest_postprocess_record(oai_src_id, record_id, treat_new=False):
     """Harvest the record and postprocess it"""
     oai_src = get_oai_src_by_id(oai_src_id)[0]
     if oai_src['arguments']:
-        oai_src['arguments'] = deserialize_via_marshal(oai_src['arguments'])
+        oai_src['arguments'] = deserialize(oai_src['arguments'])
 
     result = harvest_record(record_id, oai_src['baseurl'], oai_src['metadataprefix'])
     if result == None:

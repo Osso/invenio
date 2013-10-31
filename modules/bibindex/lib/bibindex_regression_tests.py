@@ -30,7 +30,8 @@ from invenio.bibindex_engine_config import CFG_BIBINDEX_ADDING_RECORDS_STARTED_S
 from invenio.bibtask import task_low_level_submission
 from invenio.config import CFG_BINDIR, CFG_LOGDIR
 from invenio.testutils import make_test_suite, run_test_suite, nottest
-from invenio.dbquery import run_sql, deserialize_via_marshal
+from invenio.dbquery import run_sql
+from invenio.serializeutils import deserialize
 from invenio.bibindex_engine import WordTable, get_index_id_from_index_name, get_index_tags
 from invenio.intbitset import intbitset
 from invenio.search_engine_utils import get_fieldvalues
@@ -515,21 +516,21 @@ class BibIndexItemCountIndexTest(unittest.TestCase):
         query = "SELECT termlist FROM idxWORD%02dR WHERE id_bibrec=1" \
                  % get_index_id_from_index_name('itemcount')
         res = run_sql(query)
-        self.assertEqual(deserialize_via_marshal(res[0][0]),['0'])
+        self.assertEqual(deserialize(res[0][0]),['0'])
 
     def test_records_for_number_of_copies_record30(self):
         """checks content of itemcount index for record: 30"""
         query = "SELECT termlist FROM idxWORD%02dR WHERE id_bibrec=30" \
                  % get_index_id_from_index_name('itemcount')
         res = run_sql(query)
-        self.assertEqual(deserialize_via_marshal(res[0][0]),['1'])
+        self.assertEqual(deserialize(res[0][0]),['1'])
 
     def test_records_for_number_of_copies_record32(self):
         """checks content of itemcount index for record: 32"""
         query = "SELECT termlist FROM idxWORD%02dR WHERE id_bibrec=32" \
                  % get_index_id_from_index_name('itemcount')
         res = run_sql(query)
-        self.assertEqual(deserialize_via_marshal(res[0][0]),['3'])
+        self.assertEqual(deserialize(res[0][0]),['3'])
 
 
 class BibIndexJournalIndexTest(unittest.TestCase):
@@ -623,7 +624,7 @@ class BibIndexCJKTokenizerTitleIndexTest(unittest.TestCase):
         res = run_sql(query)
         iset = []
         if res:
-            iset = deserialize_via_marshal(res[0][1])
+            iset = deserialize(res[0][1])
         self.assertEqual(iset, ['\xe6\x95\xac', '\xe7\x8d\xa8', '\xe4\xba\xad', '\xe5\x9d\x90'])
 
 
@@ -661,7 +662,7 @@ class BibIndexAuthorityRecordTest(unittest.TestCase):
 
         reindex_for_type_with_bibsched(index_name)
         self.assertTrue(
-            authority_string in deserialize_via_marshal(
+            authority_string in deserialize(
                 run_sql("SELECT termlist FROM %s WHERE id_bibrec = %s" % (table, bibRecID))[0][0]
             )
         )

@@ -28,9 +28,6 @@ import unittest
 import os
 import time
 import sys
-import zlib
-from marshal import loads
-from zlib import decompress
 from urllib import urlencode
 from urllib2 import urlopen
 import pprint
@@ -57,8 +54,9 @@ from invenio.dateutils import convert_datestruct_to_datetext
 from invenio.testutils import make_test_suite, run_test_suite, test_web_page_content
 from invenio.textutils import encode_for_xml
 from invenio.bibtask import task_set_task_param, setup_loggers, task_set_option, task_low_level_submission
-from invenio.bibrecord import record_has_field,record_get_field_value, records_identical, create_record
+from invenio.bibrecord import record_has_field, record_get_field_value, records_identical, create_record
 from invenio.shellutils import run_shell_command
+from invenio.serializeutils import deserialize
 from invenio.bibdocfile import BibRecDocs, BibRelation, MoreInfo
 import base64
 import cPickle
@@ -293,7 +291,7 @@ class GenericBibUploadTest(unittest.TestCase):
         self.failUnless(records_identical(rec_in_xm, rec_in_history, skip_005=False), "\n%s\n!=\n%s\n" % (rec_in_xm, rec_in_history))
         self.failUnless(records_identical(rec_in_xm, rec_in_bibxxx, skip_005=False, ignore_duplicate_subfields=True, ignore_duplicate_controlfields=True), "\n%s\n!=\n%s\n" % (rec_in_xm, rec_in_bibxxx))
         if CFG_BIBUPLOAD_SERIALIZE_RECORD_STRUCTURE:
-            rec_in_recstruct = loads(decompress(run_sql("SELECT value FROM bibfmt WHERE id_bibrec=%s AND format='recstruct'", (recid, ))[0][0]))
+            rec_in_recstruct = deserialize(run_sql("SELECT value FROM bibfmt WHERE id_bibrec=%s AND format='recstruct'", (recid, ))[0][0])
             self.failUnless(records_identical(rec_in_xm, rec_in_recstruct, skip_005=False, ignore_subfield_order=True), "\n%s\n!=\n%s\n" % (rec_in_xm, rec_in_recstruct))
 
 class BibUploadRealCaseRemovalDOIViaBibEdit(GenericBibUploadTest):
@@ -575,7 +573,7 @@ class BibUploadTypicalBibEditSessionTest(GenericBibUploadTest):
         self.check_record_consistency(self.recid)
         ## The change should have been merged with the previous without conflict
         self.failUnless(records_identical(bibupload.xml_marc_to_records(marc_to_replace1)[0], get_record(self.recid)), "%s != %s" % (bibupload.xml_marc_to_records(marc_to_replace1)[0], get_record(self.recid)))
-        self.failUnless(records_identical(bibupload.xml_marc_to_records(marc_to_replace2)[0], bibupload.xml_marc_to_records(zlib.decompress(run_sql("SELECT changeset_xml FROM bibHOLDINGPEN WHERE id_bibrec=%s", (self.recid,))[0][0]))[0]))
+        self.failUnless(records_identical(bibupload.xml_marc_to_records(marc_to_replace2)[0], bibupload.xml_marc_to_records(deserialize(run_sql("SELECT changeset_xml FROM bibHOLDINGPEN WHERE id_bibrec=%s", (self.recid,))[0][0]))[0]))
 
 class BibUploadNoUselessHistoryTest(GenericBibUploadTest):
     """Testing generation of history only when necessary"""
@@ -3791,7 +3789,7 @@ class BibUploadHoldingPenTest(GenericBibUploadTest):
         recs = bibupload.xml_marc_to_records(test_to_upload)
         bibupload.insert_record_into_holding_pen(recs[0], "")
         res = run_sql("SELECT changeset_xml FROM bibHOLDINGPEN WHERE id_bibrec=%s", (self.recid, ))
-        self.failUnless("Rupp, G" in zlib.decompress(res[0][0]))
+        self.failUnless("Rupp, G" in deserialize(res[0][0], decompress_only=True))
 
     def test_holding_pen_upload_with_oai_id(self):
         """bibupload - holding pen upload with oai_id"""
@@ -3825,7 +3823,7 @@ class BibUploadHoldingPenTest(GenericBibUploadTest):
         recs = bibupload.xml_marc_to_records(test_to_upload)
         bibupload.insert_record_into_holding_pen(recs[0], self.oai_id)
         res = run_sql("SELECT changeset_xml FROM bibHOLDINGPEN WHERE id_bibrec=%s AND oai_id=%s", (self.recid, self.oai_id))
-        self.failUnless("Rupp, G" in zlib.decompress(res[0][0]))
+        self.failUnless("Rupp, G" in deserialize(res[0][0], decompress_only=True))
 
     def tearDown(self):
         GenericBibUploadTest.tearDown(self)

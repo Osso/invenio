@@ -28,11 +28,9 @@ __revision__ = "$Id$"
 
 import difflib
 import fnmatch
-import marshal
 import os
 import re
 import time
-import zlib
 import tempfile
 import sys
 from datetime import datetime
@@ -43,6 +41,7 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+from invenio.serializeutils import deserialize
 from invenio.bibedit_config import CFG_BIBEDIT_FILENAME, \
     CFG_BIBEDIT_RECORD_TEMPLATES_PATH, CFG_BIBEDIT_TO_MERGE_SUFFIX, \
     CFG_BIBEDIT_FIELD_TEMPLATES_PATH, CFG_BIBEDIT_CACHEDIR
@@ -75,6 +74,7 @@ from invenio.search_engine import record_exists, get_colID, \
 from invenio.search_engine_utils import get_fieldvalues
 from invenio.webuser import get_user_info, getUid, get_email
 from invenio.dbquery import run_sql
+from invenio.serializeutils import deserialize
 from invenio.websearchadminlib import get_detailed_page_tabs
 from invenio.access_control_engine import acc_authorize_action
 from invenio.refextract_api import extract_references_from_record_xml, \
@@ -508,7 +508,7 @@ def get_marcxml_of_revision(recid, revid):
     tmp_res = get_marcxml_of_record_revision(recid, revid)
     if tmp_res:
         for row in tmp_res:
-            res += zlib.decompress(row[0]) + '\n'
+            res += deserialize(row[0], decompress_only=True) + '\n'
     return res
 
 def get_marcxml_of_revision_id(revid):
@@ -664,7 +664,7 @@ def _get_bibupload_filenames():
     tasks_opts = get_bibupload_task_opts(task_ids)
     for task_opts in tasks_opts:
         if task_opts:
-            record_options = marshal.loads(task_opts[0][0])
+            record_options = deserialize(task_opts[0][0])
             for option in record_options[1:]:
                 if re_file_option.search(option):
                     filenames.append(option)

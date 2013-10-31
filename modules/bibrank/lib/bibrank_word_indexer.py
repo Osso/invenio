@@ -28,7 +28,8 @@ from invenio.config import \
      CFG_SITE_LANG, \
      CFG_ETCDIR
 from invenio.search_engine import perform_request_search, wash_index_term
-from invenio.dbquery import run_sql, DatabaseError, serialize_via_marshal, deserialize_via_marshal
+from invenio.dbquery import run_sql, DatabaseError
+from invenio.serializeutils import deserialize, serialize
 from invenio.bibindex_engine_stemmer import is_stemmer_available_for_language, stem
 from invenio.bibindex_engine_stopwords import is_stopword
 from invenio.bibindex_engine import beautify_range_list, \
@@ -236,7 +237,7 @@ class WordTable:
         query = "SELECT hitlist FROM %s WHERE term=%%s" % self.tablename
         res = run_sql(query, (word,))
         if res:
-            return deserialize_via_marshal(res[0][0])
+            return deserialize(res[0][0])
         else:
             return None
 
@@ -278,7 +279,7 @@ class WordTable:
                 # yes there were some new words:
                 write_message("......... updating hitlist for ``%s''" % word, verbose=9)
                 run_sql("UPDATE %s SET hitlist=%%s WHERE term=%%s" % self.tablename,
-                        (serialize_via_marshal(set), word))
+                        (serialize(set), word))
         else: # the word is new, will create new set:
             write_message("......... inserting hitlist for ``%s''" % word, verbose=9)
             set = self.value[word]
@@ -287,7 +288,7 @@ class WordTable:
                 options["modified_words"][word] = 1
                 try:
                     run_sql("INSERT INTO %s (term, hitlist) VALUES (%%s, %%s)" % self.tablename,
-                            (word, serialize_via_marshal(set)))
+                            (word, serialize(set)))
                 except Exception, e:
                     ## FIXME: This is for debugging encoding errors
                     register_exception(prefix="Error when putting the term '%s' into db (hitlist=%s): %s\n" % (repr(word), set, e), alert_admin=True)
@@ -470,11 +471,11 @@ class WordTable:
         # put words into reverse index table with FUTURE status:
         for recID in recIDs:
             run_sql("INSERT INTO %sR (id_bibrec,termlist,type) VALUES (%%s,%%s,'FUTURE')" % self.tablename[:-1],
-                    (recID, serialize_via_marshal(wlist[recID])))
+                    (recID, serialize(wlist[recID])))
             # ... and, for new records, enter the CURRENT status as empty:
             try:
                 run_sql("INSERT INTO %sR (id_bibrec,termlist,type) VALUES (%%s,%%s,'CURRENT')" % self.tablename[:-1],
-                        (recID, serialize_via_marshal([])))
+                        (recID, serialize([])))
             except DatabaseError:
                 # okay, it's an already existing record, no problem
                 pass
@@ -541,7 +542,7 @@ class WordTable:
         recID_rows = run_sql(query)
         for recID_row in recID_rows:
             recID = recID_row[0]
-            wlist = deserialize_via_marshal(recID_row[1])
+            wlist = deserialize(recID_row[1])
             for word in wlist:
                 self.put(recID, word, (-1, 0))
         write_message("%s fetching existing words for records #%d-#%d ended" % \
@@ -692,7 +693,7 @@ class WordTable:
                     write_message(query, verbose=9)
                     res = run_sql(query)
                     for row in res:
-                        wlist = deserialize_via_marshal(row[1])
+                        wlist = deserialize(row[1])
                         write_message("Words are %s " % wlist, verbose=9)
                         if row[0] == 'TEMPORARY':
                             sign = 1
@@ -896,7 +897,7 @@ def check_rnkWORD(table):
         terms_docs = run_sql("SELECT term, hitlist FROM %s WHERE term IN (%s)" % (table, (len(query_params)*"%s,")[:-1]),
                              query_params)
         for (t, hitlist) in terms_docs:
-            term_docs = deserialize_via_marshal(hitlist)
+            term_docs = deserialize(hitlist)
             if (term_docs.has_key("Gi") and term_docs["Gi"][1] == 0) or not term_docs.has_key("Gi"):
                 write_message("ERROR: Missing value for term: %s (%s) in %s: %s" % (t, repr(t), table, len(term_docs)))
                 errors[t] = 1
@@ -906,13 +907,13 @@ def check_rnkWORD(table):
     while i < N:
         docs_terms = run_sql("SELECT id_bibrec, termlist FROM %sR WHERE id_bibrec>=%s and id_bibrec<=%s" % (table[:-1], i, i+5000))
         for (j, termlist) in docs_terms:
-            termlist = deserialize_via_marshal(termlist)
+            termlist = deserialize(termlist)
             for (t, tf) in termlist.iteritems():
                 if tf[1] == 0 and not errors.has_key(t):
                     errors[t] = 1
                     write_message("ERROR: Gi missing for record %s and term: %s (%s) in %s" % (j,t,repr(t), table))
                     terms_docs = run_sql("SELECT term, hitlist FROM %s WHERE term=%%s" % table, (t,))
-                    termlist = deserialize_via_marshal(terms_docs[0][1])
+                    termlist = deserialize(terms_docs[0][1])
             i += 5000
 
     if len(errors) == 0:
@@ -936,7 +937,7 @@ def rank_method_code_statistics(table):
     while i < maxID:
         terms_docs=run_sql("SELECT term, hitlist FROM %s WHERE id>= %s and id < %s" % (table, i, i + 10000))
         for (t, hitlist) in terms_docs:
-            term_docs=deserialize_via_marshal(hitlist)
+            term_docs=deserialize(hitlist)
             terms[len(term_docs)] = terms.get(len(term_docs), 0) + 1
             if term_docs.has_key("Gi"):
                 Gi[t] = term_docs["Gi"]
@@ -973,7 +974,7 @@ def update_rnkWORD(table, terms):
         while i < len(terms):
             terms_docs = get_from_forward_index(terms, i, (i+5000), table)
             for (t, hitlist) in terms_docs:
-                term_docs = deserialize_via_marshal(hitlist)
+                term_docs = deserialize(hitlist)
                 if term_docs.has_key("Gi"):
                     del term_docs["Gi"]
                 for (j, tf) in term_docs.iteritems():
@@ -990,7 +991,7 @@ def update_rnkWORD(table, terms):
         while i < len(records):
             docs_terms = get_from_reverse_index(records, i, (i + 5000), table)
             for (j, termlist) in docs_terms:
-                doc_terms = deserialize_via_marshal(termlist)
+                doc_terms = deserialize(termlist)
                 for (t, tf) in doc_terms.iteritems():
                     Gi[t] = 0
             write_message("Phase 2: ......processed %s/%s records " % ((i+5000>len(records) and len(records) or (i+5000)), len(records)))
@@ -1008,7 +1009,7 @@ def update_rnkWORD(table, terms):
             terms_docs = get_from_forward_index_with_id(i, (i+5000), table)
             for (t, hitlist) in terms_docs:
                 Gi[t] = 0
-                term_docs = deserialize_via_marshal(hitlist)
+                term_docs = deserialize(hitlist)
                 if term_docs.has_key("Gi"):
                     del term_docs["Gi"]
                 for (j, tf) in term_docs.iteritems():
@@ -1028,7 +1029,7 @@ def update_rnkWORD(table, terms):
         while i < len(terms):
             terms_docs = get_from_forward_index(terms, i, (i+5000), table)
             for (t, hitlist) in terms_docs:
-                term_docs = deserialize_via_marshal(hitlist)
+                term_docs = deserialize(hitlist)
                 if term_docs.has_key("Gi"):
                     del term_docs["Gi"]
                 Fi = 0
@@ -1047,7 +1048,7 @@ def update_rnkWORD(table, terms):
         while i < len(terms):
             terms_docs = get_from_forward_index(terms, i, (i+5000), table)
             for (t, hitlist) in terms_docs:
-                term_docs = deserialize_via_marshal(hitlist)
+                term_docs = deserialize(hitlist)
                 if term_docs.has_key("Gi"):
                     Gi[t] = term_docs["Gi"][1]
                 elif len(term_docs) == 1:
@@ -1071,7 +1072,7 @@ def update_rnkWORD(table, terms):
         #Calculating the normalization value for each document, and adding the Gi value to each term in each document.
         docs_terms = get_from_reverse_index(records, i, (i + 5000), table)
         for (j, termlist) in docs_terms:
-            doc_terms = deserialize_via_marshal(termlist)
+            doc_terms = deserialize(termlist)
             try:
                 for (t, tf) in doc_terms.iteritems():
                     if Gi.has_key(t):
@@ -1087,7 +1088,7 @@ def update_rnkWORD(table, terms):
                 if Nj[j] >= 0:
                     Nj[j] += 1
                 run_sql("UPDATE %sR SET termlist=%%s WHERE id_bibrec=%%s" % table[:-1],
-                        (serialize_via_marshal(doc_terms), j))
+                        (serialize(doc_terms), j))
             except (ZeroDivisionError, OverflowError), e:
                 ## This is to try to isolate division by zero errors.
                 register_exception(prefix="Error when analysing the record %s (%s): %s\n" % (j, repr(docs_terms), e), alert_admin=True)
@@ -1102,7 +1103,7 @@ def update_rnkWORD(table, terms):
         terms_docs = get_from_forward_index(terms, i, (i+5000), table)
         for (t, hitlist) in terms_docs:
             try:
-                term_docs = deserialize_via_marshal(hitlist)
+                term_docs = deserialize(hitlist)
                 if term_docs.has_key("Gi"):
                     del term_docs["Gi"]
                 for (j, tf) in term_docs.iteritems():
@@ -1113,7 +1114,7 @@ def update_rnkWORD(table, terms):
                     Git += 1
                 term_docs["Gi"] = (0, Git)
                 run_sql("UPDATE %s SET hitlist=%%s WHERE term=%%s" % table,
-                        (serialize_via_marshal(term_docs), t))
+                        (serialize(term_docs), t))
             except (ZeroDivisionError, OverflowError), e:
                 register_exception(prefix="Error when analysing the term %s (%s): %s\n" % (t, repr(terms_docs), e), alert_admin=True)
         write_message("Phase 5: ......processed %s/%s terms" % ((i+5000>len(terms) and len(terms) or (i+5000)), len(terms)))

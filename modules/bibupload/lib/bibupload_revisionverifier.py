@@ -26,9 +26,10 @@ avoid replacing the whole record where changes are minimal
 
 __revision__ = "$Id$"
 
-import zlib
 import copy
 from pprint import pformat
+
+from invenio.serializeutils import deserialize
 
 from invenio.bibrecord import record_get_field_value, \
                                 record_get_field_instances, \
@@ -43,6 +44,7 @@ from invenio.bibupload_config import CFG_BIBUPLOAD_CONTROLFIELD_TAGS, \
 
 from invenio.bibedit_dblayer import get_marcxml_of_record_revision, \
                                     get_record_revisions
+
 
 class RevisionVerifier:
     """
@@ -397,7 +399,7 @@ class RevisionVerifier:
 
         # Retrieving the archived version
         marc_xml = get_marcxml_of_record_revision(self.rec_id, r_date)
-        res = create_record(zlib.decompress(marc_xml[0][0]))
+        res = create_record(deserialize(marc_xml[0][0], decompress_only=True))
         archived_record = res[0]
 
         # Comparing Upload and Archive record

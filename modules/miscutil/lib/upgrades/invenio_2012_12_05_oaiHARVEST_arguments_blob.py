@@ -17,10 +17,8 @@
 ## along with Invenio; if not, write to the Free Software Foundation, Inc.,
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-from invenio.dbquery import run_sql, \
-                            serialize_via_marshal, \
-                            deserialize_via_marshal, \
-                            OperationalError
+from invenio.dbquery import run_sql, OperationalError
+from invenio.serializeutils import deserialize, serialize
 
 depends_on = ['invenio_release_1_1_0']
 
@@ -39,12 +37,12 @@ def do_upgrade():
         # Move away from old columns
         for row in rows_to_change:
             if row['arguments']:
-                arguments = deserialize_via_marshal(row['arguments'])
+                arguments = deserialize(row['arguments'])
             else:
                 arguments = {}
             arguments['c_cfg-file'] = row['bibconvertcfgfile']
             arguments['f_filter-file'] = row['bibfilterprogram']
-            run_sql("UPDATE oaiHARVEST set arguments=%s WHERE id=%s", (serialize_via_marshal(arguments), row['id']))
+            run_sql("UPDATE oaiHARVEST set arguments=%s WHERE id=%s", (serialize(arguments), row['id']))
         run_sql("ALTER TABLE oaiHARVEST DROP COLUMN bibconvertcfgfile")
         run_sql("ALTER TABLE oaiHARVEST DROP COLUMN bibfilterprogram")
 

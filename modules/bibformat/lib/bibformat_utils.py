@@ -28,7 +28,6 @@ Used mainly by BibFormat elements.
 __revision__ = "$Id$"
 
 import re
-import zlib
 
 from invenio.config import \
      CFG_OAI_ID_FIELD, \
@@ -42,6 +41,8 @@ from invenio.textutils import encode_for_xml
 from invenio.shellutils import run_shell_command
 from invenio.search_engine_utils import get_fieldvalues
 from invenio.solrutils_bibindex_searcher import solr_get_snippet
+from invenio.serializeutils import deserialize
+
 
 def highlight_matches(text, compiled_pattern,
                       prefix_tag='<strong>', suffix_tag="</strong>"):
@@ -162,8 +163,7 @@ def get_contextual_content(text, keywords, max_lines=2):
     else:
         return lines[index_with_highest_weight:index_with_highest_weight+max_lines]
 
-def record_get_xml(recID, format='xm', decompress=zlib.decompress,
-                   on_the_fly=False):
+def record_get_xml(recID, format='xm', on_the_fly=False):
     """
     Returns an XML string of the record given by recID.
 
@@ -233,7 +233,7 @@ def record_get_xml(recID, format='xm', decompress=zlib.decompress,
             res = run_sql(query, None, 1)
         if res and record_exist_p == 1:
             # record 'recID' is formatted in 'format', so print it
-            out += "%s" % decompress(res[0][0])
+            out += "%s" % deserialize(res[0][0], decompress_only=True)
         else:
             # record 'recID' is not formatted in 'format' -- they are
             # not in "bibfmt" table; so fetch all the data from

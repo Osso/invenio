@@ -16,8 +16,8 @@
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 import time
-import zlib
-from invenio.dbquery import run_sql, serialize_via_marshal
+from invenio.dbquery import run_sql
+from invenio.serializeutils import serialize, deserialize
 from invenio.bibrecord import create_records, record_extract_oai_id
 
 class HistoryEntry:
@@ -254,7 +254,7 @@ def modify_oai_src(oai_src_id, oai_src_name, oai_src_baseurl, oai_src_prefix,
     try:
         run_sql(sql, (oai_src_baseurl,
                       oai_src_prefix,
-                      serialize_via_marshal(oai_src_args),
+                      serialize(oai_src_args),
                       oai_src_comment,
                       oai_src_name,
                       oai_src_frequency,
@@ -273,7 +273,7 @@ def add_oai_src(oai_src_name, oai_src_baseurl, oai_src_prefix, oai_src_frequency
         oai_src_sets = []
     if oai_src_args is None:
         oai_src_args = {}
-    #return (0, str(serialize_via_marshal(oai_src_args)))
+    #return (0, str(serialize(oai_src_args)))
     try:
         if oai_src_lastrun in [0, "0"]: lastrun_mode = 'NULL'
         else:
@@ -283,7 +283,7 @@ def add_oai_src(oai_src_name, oai_src_baseurl, oai_src_prefix, oai_src_frequency
                 "(baseurl, metadataprefix, arguments, comment, name, lastrun, "
                 "frequency, postprocess, setspecs) VALUES "
                 "(%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                (oai_src_baseurl, oai_src_prefix, serialize_via_marshal(oai_src_args), \
+                (oai_src_baseurl, oai_src_prefix, serialize(oai_src_args), \
                  oai_src_comment, oai_src_name, lastrun_mode, oai_src_frequency, \
                  "-".join(oai_src_post), " ".join(oai_src_sets)))
         return (1, "")
@@ -343,8 +343,8 @@ def get_holdingpen_entry(oai_id, date_inserted):
     query = "SELECT changeset_xml FROM bibHOLDINGPEN WHERE changeset_date = %s AND oai_id = %s"
     changeset_xml = run_sql(query, (str(date_inserted), str(oai_id)))[0][0]
     try:
-        changeset_xml = zlib.decompress(changeset_xml)
-    except zlib.error:
+        changeset_xml = deserialize(changeset_xml, decompress_only=True)
+    except ValueError:
         # Legacy: the xml can be in TEXT format, leave it unchanged
         pass
     return changeset_xml
@@ -420,9 +420,9 @@ def get_holdingpen_entry_details(hpupdate_id):
     res = run_sql(query, (hpupdate_id,))
     if res:
         try:
-            changeset_xml = zlib.decompress(res[0][3])
+            changeset_xml = deserialize(res[0][3], decompress_only=True)
             return res[0][0], res[0][1], res[0][2], changeset_xml
-        except zlib.error:
+        except ValueError:
             # Legacy: the xml can be in TEXT format, leave it unchanged
             pass
         return res[0]

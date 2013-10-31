@@ -31,7 +31,7 @@ setup(
 
     Emulates the Python built-in set class interface with some
     additional specific methods such as its own fast dump and load
-    marshalling functions.  Uses real bits to optimize memory usage,
+    serializing functions.  Uses real bits to optimize memory usage,
     so may have issues with endianness if you transport serialized
     bitsets between various machine architectures.
     """,

@@ -346,8 +346,8 @@ class IntBitSetTest(unittest.TestCase):
             tmp_tuple = tuple([(elem, ) for elem in set1])
             self.assertEqual(intbitset(set1, trailing_bits=True), intbitset(tmp_tuple, trailing_bits=True))
 
-    def test_marshalling(self):
-        """intbitset - marshalling"""
+    def test_serialize(self):
+        """intbitset - serialization"""
         for set1 in self.sets + [[]]:
             self.assertEqual(intbitset(set1), intbitset().fastload((intbitset(set1).fastdump())))
         for set1 in self.sets + [[]]:

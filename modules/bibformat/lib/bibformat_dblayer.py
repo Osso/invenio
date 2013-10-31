@@ -24,11 +24,11 @@ administration pages.
 
 __revision__ = "$Id$"
 
-import zlib
 import time
 
 from invenio.dbquery import run_sql
 from invenio.dateutils import localtime_to_utc
+from invenio.serializeutils import deserialize, serialize
 
 
 def get_creation_date(sysno, fmt="%Y-%m-%dT%H:%M:%SZ"):
@@ -419,7 +419,7 @@ def change_output_format_code(old_code, new_code):
     params = (new_code.lower(), output_format_id)
     run_sql(query, params)
 
-def get_preformatted_record(recID, of, decompress=zlib.decompress):
+def get_preformatted_record(recID, of):
     """
     Returns the preformatted record with id 'recID' and format 'of'
     and whether we need a 2nd pass.
@@ -443,7 +443,7 @@ def get_preformatted_record(recID, of, decompress=zlib.decompress):
     params = (recID, of)
     res = run_sql(query, params, run_on_slave=run_on_slave)
     if res:
-        value = decompress(res[0][0])
+        value = deserialize(res[0][0], decompress_only=True)
         needs_2nd_pass = bool(res[0][1])
         # record 'recID' is formatted in 'of', so return it
         return value, needs_2nd_pass
@@ -476,10 +476,11 @@ def get_preformatted_record_date(recID, of):
     else:
         return None
 
-def save_preformatted_record(recID, of, res, needs_2nd_pass=False,
-                             low_priority=False, compress=zlib.compress):
+def save_preformatted_record(recID, of, res,
+                             needs_2nd_pass=False,
+                             low_priority=False):
     start_date = time.strftime('%Y-%m-%d %H:%M:%S')
-    formatted_record = compress(res)
+    formatted_record = serialize(res, compress_only=True)
     if low_priority:
         sql_str = " LOW_PRIORITY"
     else:

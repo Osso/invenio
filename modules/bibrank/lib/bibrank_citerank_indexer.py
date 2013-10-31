@@ -43,7 +43,8 @@ if sys.hexversion < 0x2040000:
     from sets import Set as set
     # pylint: enable=W0622
 
-from invenio.dbquery import run_sql, serialize_via_marshal
+from invenio.dbquery import run_sql
+from invenio.serializeutils import serialize
 from invenio.bibtask import write_message
 from invenio.config import CFG_ETCDIR
 
@@ -611,7 +612,7 @@ def into_db(dict_of_ranks, rank_method_code):
     method_id = run_sql("SELECT id from rnkMETHOD where name=%s", \
         (rank_method_code, ))
     del_rank_method_data(rank_method_code)
-    serialized_data = serialize_via_marshal(dict_of_ranks)
+    serialized_data = serialize(dict_of_ranks)
     method_id_str = str(method_id[0][0])
     run_sql("INSERT INTO rnkMETHODDATA(id_rnkMETHOD, relevance_data) \
         VALUES(%s, %s) ", (method_id_str, serialized_data, ))

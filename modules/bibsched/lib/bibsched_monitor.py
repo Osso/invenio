@@ -21,7 +21,6 @@
 
 import os
 import time
-import marshal
 from socket import gethostname
 from datetime import datetime, timedelta
 from itertools import chain
@@ -63,6 +62,7 @@ from invenio.bibsched import bibsched_get_status, \
                              get_task_pid, \
                              fetch_debug_mode
 from invenio.bibtask import get_sleeptime, task_get_options
+from invenio.serializeutils import deserialize
 
 
 CFG_MOTD_PATH = os.path.join(CFG_TMPSHAREDDIR, "bibsched.motd")
@@ -436,7 +436,7 @@ D - Debug mode for remote task
         msg += ' sleeptime: %s\n\n' % self.currentrow[4]
         msg += '    status: %s\n\n' % self.currentrow[5]
         msg += '  progress: %s\n\n' % self.currentrow[6]
-        arguments = marshal.loads(self.currentrow[7])
+        arguments = deserialize(self.currentrow[7])
         if type(arguments) is dict:
             # FIXME: REMOVE AFTER MAJOR RELEASE 1.0
             msg += '   options : %s\n\n' % arguments

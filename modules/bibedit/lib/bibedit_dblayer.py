@@ -23,8 +23,7 @@ __revision__ = "$Id$"
 try:
     import cPickle as Pickle
 except ImportError:
-    import Pickle
-import zlib
+    import pickle as Pickle
 
 from datetime import datetime, timedelta
 
@@ -102,13 +101,13 @@ def get_hp_update_xml(changeId):
     """
     Get the MARC XML of the Holding Pen update
     """
-    res = run_sql("""SELECT  changeset_xml, id_bibrec from bibHOLDINGPEN WHERE
-                      changeset_id=%s""", (changeId,))
+    res = run_sql("""SELECT changeset_xml, id_bibrec from bibHOLDINGPEN
+                     WHERE changeset_id=%s""", (changeId,))
     if res:
         try:
-            changeset_xml = zlib.decompress(res[0][0])
+            changeset_xml = deserialize(res[0][0], decompress_only=True)
             return changeset_xml, res[0][1]
-        except zlib.error:
+        except ValueError:
             # Legacy: the xml can be in TEXT format, leave it unchanged
             pass
         return res[0]
@@ -184,6 +183,7 @@ def get_cache(recid, uid):
         return Pickle.loads(r[0][0])
 
 def update_cache(recid, uid, data):
+    data[1] = time.asctime(data[1])
     data_str = Pickle.dumps(data)
     r = run_sql("""INSERT INTO bibEDITCACHE (id_bibrec, uid, data, post_date)
                    VALUES (%s, %s, %s, NOW())

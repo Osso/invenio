@@ -84,7 +84,6 @@ import re
 import shutil
 import socket
 import sys
-import zlib
 
 
 def print_usage():
@@ -541,7 +540,8 @@ def cli_cmd_reset_recstruct_cache(conf):
     will adapt the database to either store or not store the recstruct
     format."""
     from invenio.intbitset import intbitset
-    from invenio.dbquery import run_sql, serialize_via_marshal
+    from invenio.dbquery import run_sql
+    from invenio.serializeutils import serialize, deserialize
     from invenio.search_engine import get_record, print_record
     from invenio.bibsched import server_pid, pidfile
     enable_recstruct_cache = conf.get("Invenio", "CFG_BIBUPLOAD_SERIALIZE_RECORD_STRUCTURE")
@@ -554,23 +554,37 @@ def cli_cmd_reset_recstruct_cache(conf):
     if enable_recstruct_cache:
         print ">>> Searching records which need recstruct cache resetting; this may take a while..."
         all_recids = intbitset(run_sql("SELECT id FROM bibrec"))
-        good_recids = intbitset(run_sql("SELECT bibrec.id FROM bibrec JOIN bibfmt ON bibrec.id = bibfmt.id_bibrec WHERE format='recstruct' AND modification_date < last_updated"))
-        recids = all_recids - good_recids
+        sql = """SELECT bibrec.id FROM bibrec JOIN bibfmt
+                 ON bibrec.id = bibfmt.id_bibrec
+                 WHERE format = 'recstruct'
+                 AND modification_date < last_updated"""
+        good_recids = intbitset(run_sql(sql))
         print ">>> Generating recstruct cache..."
-        tot = len(recids)
+        tot = len(all_recids)
         count = 0
-        for recid in recids:
+        for recid in all_recids:
             try:
-                value = serialize_via_marshal(get_record(recid))
-            except zlib.error, err:
-                print >> sys.stderr, "Looks like XM is corrupted for record %s. Let's recover it from bibxxx" % recid
-                run_sql("DELETE FROM bibfmt WHERE id_bibrec=%s AND format='xm'", (recid, ))
-                xm_value = zlib.compress(print_record(recid, 'xm'))
-                run_sql("INSERT INTO bibfmt(id_bibrec, format, last_updated, value) VALUES(%s, 'xm', NOW(), %s)", (recid, xm_value))
-                value = serialize_via_marshal(get_record(recid))
+                ser = run_sql("SELECT value FROM bibfmt WHERE format = 'recstruct' AND id_bibrec = %s", [recid])[0][0]
+            except IndexError:
+                # recstruct missing in bibfmt, we need to create it
+                pass
+            else:
+                if serialize(deserialize(ser)) == ser and recid in good_recids:
+                    # The serialzed format is already up to date
+                    # Nothing to do
+                    continue
 
-            run_sql("DELETE FROM bibfmt WHERE id_bibrec=%s AND format='recstruct'", (recid, ))
-            run_sql("INSERT INTO bibfmt(id_bibrec, format, last_updated, value) VALUES(%s, 'recstruct', NOW(), %s)", (recid, value))
+            try:
+                value = serialize(get_record(recid))
+            except ValueError:
+                print >> sys.stderr, "Looks like XM is corrupted for record %s. Let's recover it from bibxxx" % recid
+                run_sql("DELETE FROM bibfmt WHERE id_bibrec = %s AND format = 'xm'", (recid, ))
+                xm_value = serialize(print_record(recid, 'xm'), compress_only=True)
+                run_sql("INSERT INTO bibfmt(id_bibrec, format, last_updated, value) VALUES (%s, 'xm', NOW(), %s)", (recid, xm_value))
+                value = serialize(get_record(recid))
+
+            run_sql("DELETE FROM bibfmt WHERE id_bibrec = %s AND format = 'recstruct'", (recid, ))
+            run_sql("INSERT INTO bibfmt(id_bibrec, format, last_updated, value) VALUES (%s, 'recstruct', NOW(), %s)", (recid, value))
             count += 1
             if count % 1000 == 0:
                 print "    ... done records %s/%s" % (count, tot)
@@ -585,10 +599,6 @@ def cli_cmd_reset_recjson_cache(conf):
     """If CFG_BIBUPLOAD_SERIALIZE_RECORD_STRUCTURE is changed, this function
     will adapt the database to either store or not store the recjson
     format."""
-    try:
-        import cPickle as pickle
-    except:
-        import pickle
     from invenio.intbitset import intbitset
     from invenio.dbquery import run_sql
     from invenio.bibfield import get_record

@@ -21,7 +21,8 @@ import time
 import math
 import re
 
-from invenio.dbquery import run_sql, deserialize_via_marshal
+from invenio.dbquery import run_sql
+from invenio.serializeutils import deserialize
 from invenio.bibindex_engine_stemmer import stem
 from invenio.bibindex_engine_stopwords import is_stopword
 
@@ -56,7 +57,7 @@ def find_similar(rank_method_code, recID, hitset, rank_limit_relevance,verbose, 
     rec_terms = run_sql("""SELECT termlist FROM %sR WHERE id_bibrec=%%s""" % methods[rank_method_code]["rnkWORD_table"][:-1],  (recID,))
     if not rec_terms:
         return (None, "Warning: Requested record does not seem to exist.", "", voutput)
-    rec_terms = deserialize_via_marshal(rec_terms[0][0])
+    rec_terms = deserialize(rec_terms[0][0])
 
     #Get all documents using terms from the selected documents
     if len(rec_terms) == 0:
@@ -78,7 +79,7 @@ def find_similar(rank_method_code, recID, hitset, rank_limit_relevance,verbose, 
     (recdict, rec_termcount) = ({}, {})
 
     for (t, tf) in tf_values: #t=term, tf=term frequency
-        term_recs = deserialize_via_marshal(terms_recs[t])
+        term_recs = deserialize(terms_recs[t])
         if len(tf_values) <= methods[rank_method_code]["max_nr_words_lower"] or (len(term_recs) >= methods[rank_method_code]["min_nr_words_docs"] and (((float(len(term_recs)) / float(methods[rank_method_code]["col_size"])) <=  methods[rank_method_code]["max_word_occurence"]) and ((float(len(term_recs)) / float(methods[rank_method_code]["col_size"])) >= methods[rank_method_code]["min_word_occurence"]))): #too complicated...something must be done
             lwords.append((t, methods[rank_method_code]["rnkWORD_table"])) #list of terms used
             (recdict, rec_termcount) = calculate_record_relevance_findsimilar((t, round(tf, 4)) , term_recs, hitset, recdict, rec_termcount, verbose, "true") #true tells the function to not calculate all unimportant terms
@@ -208,7 +209,7 @@ def word_similarity(rank_method_code, lwords, hitset, rank_limit_relevance, verb
     for (term, table) in lwords:
         term_recs = run_sql("""SELECT term, hitlist FROM %s WHERE term=%%s""" % methods[rank_method_code]["rnkWORD_table"], (term,))
         if term_recs: #if term exists in database, use for ranking
-            term_recs = deserialize_via_marshal(term_recs[0][1])
+            term_recs = deserialize(term_recs[0][1])
             (recdict, rec_termcount) = calculate_record_relevance((term, int(term_recs["Gi"][1])) , term_recs, hitset, recdict, rec_termcount, verbose, quick=None)
             del term_recs
 
@@ -315,7 +316,7 @@ def rank_method_stat(rank_method_code, reclist, lwords):
         for (term, table) in lwords:
             term_recs = run_sql("""SELECT hitlist FROM %s WHERE term=%%s""" % table, (term,))
             if term_recs:
-                term_recs = deserialize_via_marshal(term_recs[0][0])
+                term_recs = deserialize(term_recs[0][0])
                 if term_recs.has_key(reclist[len(reclist) - i][0]):
                     voutput += "%s-%s / " % (term, term_recs[reclist[len(reclist) - i][0]])
         voutput += "<br />"

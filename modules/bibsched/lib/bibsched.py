@@ -24,7 +24,6 @@ import os
 import sys
 import time
 import re
-import marshal
 import getopt
 from itertools import chain
 from socket import gethostname
@@ -56,6 +55,7 @@ from invenio.config import \
 from invenio.dbquery import run_sql, real_escape_string
 from invenio.errorlib import register_exception, register_emergency
 from invenio.shellutils import run_shell_command
+from invenio.serializeutils import deserialize
 
 CFG_VALID_STATUS = ('WAITING', 'SCHEDULED', 'RUNNING', 'CONTINUING',
                     '% DELETED', 'ABOUT TO STOP', 'ABOUT TO SLEEP', 'STOPPED',
@@ -148,7 +148,7 @@ def get_task_options(task_id):
     """Returns options for task_id read from the BibSched task queue table."""
     res = run_sql("SELECT arguments FROM schTASK WHERE id=%s", (task_id,))
     try:
-        return marshal.loads(res[0][0])
+        return deserialize(res[0][0])
     except IndexError:
         return list()
 

@@ -43,7 +43,6 @@ task_low_level_submission.
 
 import getopt
 import getpass
-import marshal
 import os
 import pwd
 import re
@@ -84,6 +83,7 @@ from invenio.mailutils import send_email
 from invenio.bibsched import bibsched_set_host, \
                              bibsched_get_host
 from invenio.intbitset import intbitset
+from invenio.serializeutils import serialize, deserialize
 
 
 # Global _TASK_PARAMS dictionary.
@@ -304,7 +304,7 @@ def task_low_level_submission(name, user, *argv):
             runtime,sleeptime,status,progress,arguments,priority,sequenceid)
             VALUES (%s,%s,%s,%s,%s,'WAITING',%s,%s,%s,%s)""",
             (name, host, user, runtime, sleeptime, verbose_argv,
-             marshal.dumps(argv), priority, sequenceid))
+             serialize(argv), priority, sequenceid))
 
     except Exception:
         register_exception(alert_admin=True)
@@ -907,7 +907,7 @@ def _task_submit(argv, authorization_action, authorization_msg):
                                            runtime,sleeptime,status,progress,arguments,priority,sequenceid,host)
                                          VALUES (%s,%s,%s,%s,'WAITING',%s,%s,%s,%s,%s)""",
         (task_name, _TASK_PARAMS['user'], _TASK_PARAMS["runtime"],
-         _TASK_PARAMS["sleeptime"], verbose_argv[:255], marshal.dumps(argv),
+         _TASK_PARAMS["sleeptime"], verbose_argv[:255], serialize(argv),
          _TASK_PARAMS['priority'], _TASK_PARAMS['sequence-id'],
          _TASK_PARAMS['host']))
 
@@ -923,12 +923,14 @@ def task_get_options(task_id, task_name):
     res = run_sql("SELECT arguments FROM schTASK WHERE id=%s AND proc LIKE %s",
         (task_id, task_name+'%'))
     try:
-        out = marshal.loads(res[0][0])
-    except:
+        r = res[0][0]
+    except IndexError:
         write_message("Error: %s task %d does not seem to exist."
             % (task_name, task_id), sys.stderr)
         task_update_status('ERROR')
         sys.exit(1)
+    else:
+        out = deserialize(r)
     write_message('Options retrieved: %s' % (out, ), verbose=9)
     return out
 

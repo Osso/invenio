@@ -29,8 +29,10 @@ from invenio.config import \
 from invenio.search_engine import perform_request_search
 from invenio.bibrank_citation_indexer import get_citation_weight, print_missing
 from invenio.bibrank_downloads_indexer import *
-from invenio.dbquery import run_sql, serialize_via_marshal, deserialize_via_marshal, \
-     wash_table_column_name, get_table_update_time
+from invenio.dbquery import run_sql, \
+                            wash_table_column_name, \
+                            get_table_update_time
+from invenio.serializeutils import deserialize, serialize
 from invenio.bibtask import task_get_option, write_message, task_sleep_now_if_required
 from invenio.bibindex_engine import create_range_list
 from invenio.intbitset import intbitset
@@ -200,7 +202,7 @@ def intoDB(dic, date, rank_method_code):
     """Insert the rank method data into the database"""
     mid = run_sql("SELECT id from rnkMETHOD where name=%s", (rank_method_code, ))
     del_rank_method_codeDATA(rank_method_code)
-    serdata = serialize_via_marshal(dic)
+    serdata = serialize(dic)
     midstr = str(mid[0][0])
     run_sql("INSERT INTO rnkMETHODDATA(id_rnkMETHOD, relevance_data) VALUES (%s,%s)", (midstr, serdata,))
     if date:
@@ -211,7 +213,7 @@ def fromDB(rank_method_code):
     id = run_sql("SELECT id from rnkMETHOD where name=%s", (rank_method_code, ))
     res = run_sql("SELECT relevance_data FROM rnkMETHODDATA WHERE id_rnkMETHOD=%s", (id[0][0], ))
     if res:
-        return deserialize_via_marshal(res[0][0])
+        return deserialize(res[0][0])
     else:
         return {}
 
@@ -225,7 +227,7 @@ def del_recids(rank_method_code, range_rec):
     id = run_sql("SELECT id from rnkMETHOD where name=%s", (rank_method_code, ))
     res = run_sql("SELECT relevance_data FROM rnkMETHODDATA WHERE id_rnkMETHOD=%s", (id[0][0], ))
     if res:
-        rec_dict = deserialize_via_marshal(res[0][0])
+        rec_dict = deserialize(res[0][0])
         write_message("Old size: %s" % len(rec_dict))
         for (recids, recide) in range_rec:
             for i in range(int(recids), int(recide)):

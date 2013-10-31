@@ -17,11 +17,10 @@
 ## along with Invenio; if not, write to the Free Software Foundation, Inc.,
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-import marshal
 import time
-from zlib import decompress
 
 from invenio.dbquery import run_sql
+from invenio.serializeutils import deserialize
 
 depends_on = ['invenio_release_1_1_0']
 
@@ -42,7 +41,7 @@ def get_dict():
         pass
     else:
         if serialized:
-            dic = marshal.loads(decompress(serialized))
+            dic = deserialize(serialized)
 
     return dic
 

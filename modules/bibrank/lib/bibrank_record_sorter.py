@@ -33,8 +33,8 @@ from invenio.config import \
      CFG_ETCDIR, \
      CFG_WEBSEARCH_CITESUMMARY_SCAN_THRESHOLD
 from invenio.dbquery import run_sql, \
-                            deserialize_via_marshal, \
                             wash_table_column_name
+from invenio.serializeutils import deserialize
 from invenio.errorlib import register_exception
 from invenio.webpage import adderrorbox
 from invenio.bibindex_engine_stopwords import is_stopword
@@ -396,7 +396,7 @@ def rank_by_method(rank_method_code, lwords, hitset, rank_limit_relevance, verbo
             else:
                 return (None, "Warning: Given record IDs are out of range.", "", voutput)
 
-    rnkdict = deserialize_via_marshal(rnkdict[0][0])
+    rnkdict = deserialize(rnkdict[0][0])
     if verbose > 0:
         voutput += "<br />Running rank method: %s, using rank_by_method function in bibrank_record_sorter<br />" % rank_method_code
         voutput += "Ranking data loaded, size of structure: %s<br />" % len(rnkdict)

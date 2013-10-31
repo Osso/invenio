@@ -23,7 +23,6 @@ __revision__ = "$Id"
 from datetime import datetime
 
 import re
-import zlib
 import copy
 import urllib
 import urllib2
@@ -115,6 +114,7 @@ from invenio.refextract_api import FullTextNotAvailable, \
 
 from invenio import xmlmarc2textmarc as xmlmarc2textmarc
 from invenio.crossrefutils import get_marcxml_for_doi, CrossrefError
+from invenio.serializeutils import deserialize
 
 import invenio.template
 bibedit_templates = invenio.template.load('bibedit')
@@ -319,7 +319,7 @@ def get_marcxml_of_revision_id(recid, revid):
     tmp_res = get_marcxml_of_record_revision(recid, job_date)
     if tmp_res:
         for row in tmp_res:
-            xml = zlib.decompress(row[0]) + "\n"
+            xml = deserialize(row[0], decompress_only=True) + "\n"
             # xml contains marcxml of record
             # now we create a record object from this xml and sort fields and subfields
             # and return marcxml

@@ -115,7 +115,8 @@ from invenio.access_control_config import VIEWRESTRCOLL, \
     CFG_ACC_GRANT_VIEWER_RIGHTS_TO_EMAILS_IN_TAGS
 from invenio.websearchadminlib import get_detailed_page_tabs, get_detailed_page_tabs_counts
 from invenio.intbitset import intbitset
-from invenio.dbquery import DatabaseError, deserialize_via_marshal, InvenioDbQueryWildcardLimitError
+from invenio.dbquery import DatabaseError, InvenioDbQueryWildcardLimitError
+from invenio.serializeutils import deserialize
 from invenio.access_control_engine import acc_authorize_action
 from invenio.errorlib import register_exception
 from invenio.textutils import encode_for_xml, wash_for_utf8, strip_accents
@@ -2396,7 +2397,7 @@ def get_idxpair_field_ids():
     return [index_dict[field] for field in index_dict if field in CFG_WEBSEARCH_IDXPAIRS_FIELDS]
 
 
-def search_unit_in_bibwords(word, f, decompress=zlib.decompress, wl=0):
+def search_unit_in_bibwords(word, f, wl=0):
     """Searches for 'word' inside bibwordsX table for field 'f' and returns hitset of recIDs."""
     hitset = intbitset() # will hold output result set
     set_used = 0 # not-yet-used flag, to be able to circumvent set operations
@@ -2590,7 +2591,7 @@ def search_unit_in_idxpairs(p, f, search_type, wl=0):
         for recid in result_set:
             res = run_sql("SELECT termlist FROM %s WHERE id_bibrec %s" %(idxphrase_table_washed, '=%s'), (recid, )) #kwalitee:disable=sql
             if res:
-                termlist = deserialize_via_marshal(res[0][0])
+                termlist = deserialize(res[0][0])
                 if not [term for term in termlist if term.lower().find(p.lower()) > -1]:
                     not_exact_search.add(recid)
             else:
@@ -3974,7 +3975,7 @@ class BibSortDataCacher(DataCacher):
                 # database problems, return empty cache
                 return {}
             try:
-                data_dict_ordered = deserialize_via_marshal(res_data[0][0])
+                data_dict_ordered = deserialize(res_data[0][0])
             except IndexError:
                 data_dict_ordered = {}
             alldicts['data_dict_ordered'] = data_dict_ordered # recid: weight
@@ -4814,7 +4815,7 @@ def get_record(recid):
                 ### In case it does not exist, let's build it!
                 pass
             else:
-                return deserialize_via_marshal(val)
+                return deserialize(val)
     return create_record(print_record(recid, 'xm'))[0]
 
 def print_record(recID, format='hb', ot='', ln=CFG_SITE_LANG, decompress=zlib.decompress,

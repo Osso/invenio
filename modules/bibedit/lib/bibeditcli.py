@@ -47,7 +47,6 @@ Options to inspect record history::
 __revision__ = "$Id$"
 
 import sys
-import zlib
 from invenio.dbquery import run_sql
 from invenio.intbitset import intbitset
 from invenio.bibedit_utils import get_marcxml_of_revision_id, \
@@ -55,6 +54,8 @@ from invenio.bibedit_utils import get_marcxml_of_revision_id, \
     record_locked_by_queue, revision_format_valid_p, save_xml_record, \
     split_revid, get_info_of_revision_id, get_record_revisions
 from invenio.bibrecord import create_record, records_identical
+from invenio.serializeutils import deserialize
+
 
 def print_usage():
     """Print help."""
@@ -81,10 +82,12 @@ def cli_clean_revisions(recid, dry_run=True, verbose=True):
         deleted_revisions = 0
         for marcxml, job_id, job_name, job_person, job_date in all_revisions:
             try:
-                current_rec = create_record(zlib.decompress(marcxml))[0]
-            except Exception:
+                marcxml = deserialize(marcxml, decompress_only=True)
+            except ValueError:
                 print >> sys.stderr, "ERROR: corrupted revisions found. Please run %s --fix-revisions '*'" % sys.argv[0]
                 sys.exit(1)
+            else:
+                current_rec = create_record(marcxml)[0]
             if records_identical(current_rec, previous_rec):
                 deleted_revisions += 1
                 if not dry_run:
@@ -183,12 +186,13 @@ def check_rev(recid, verbose=True, fix=False):
         rev = '%s.%s' % (recid, job_date)
         try:
             get_marcxml_of_revision_id(rev)
-            if verbose:
-                print '%s: ok' % rev
-        except zlib.error:
+        except ValueError:
             print '%s: invalid' % rev
             if fix:
                 fix_rev(recid, job_date, verbose)
+        else:
+            if verbose:
+                print '%s: ok' % rev
 
 
 def fix_rev(recid, job_date, verbose=True):
