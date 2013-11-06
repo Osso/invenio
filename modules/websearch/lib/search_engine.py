@@ -2295,7 +2295,7 @@ def search_unit(p, f=None, m=None, wl=0, ignore_synonyms=None):
             cjk_tok = BibIndexCJKTokenizer()
             chars = cjk_tok.tokenize_for_words(p)
             for char in chars:
-                hitset_cjk |= search_unit_in_bibwords(char, f, m, wl)
+                hitset_cjk |= search_unit_in_bibwords(char, f, wl)
 
     ## eventually look up runtime synonyms:
     hitset_synonyms = intbitset()
@@ -4078,7 +4078,7 @@ def rank_records(req, rank_method_code, rank_limit_relevance, hitset_global, pat
 
     # Solution recs can be None, in case of error or other cases
     # which should be all be changed to return an empty list.
-    if solution_recs and sort_order != 'd':
+    if solution_recs and sort_order == 'd':
         solution_recs.reverse()
 
     return solution_recs, solution_scores, prefix, suffix, comment
@@ -6276,7 +6276,7 @@ def prs_print_records(kwargs=None, results_final=None, req=None, of=None, cc=Non
                 results_final_recIDs_ranked, results_final_relevances, results_final_relevances_prologue, results_final_relevances_epilogue, results_final_comments = \
                                              rank_records(req, rm, 0, results_final[coll],
                                                           string.split(p) + string.split(p1) +
-                                                          string.split(p2) + string.split(p3), verbose, so, of, ln, rg, jrec, kwargs['f'])
+                                                          string.split(p2) + string.split(p3), verbose, so == 'd' and 'a' or 'd', of, ln, rg, jrec, kwargs['f'])
                 if of.startswith("h"):
                     write_warning(results_final_comments, req=req)
                 if results_final_recIDs_ranked:
