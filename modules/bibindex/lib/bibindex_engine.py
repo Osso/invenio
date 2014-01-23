@@ -28,7 +28,6 @@ import sys
 import time
 import fnmatch
 from datetime import datetime
-from time import strptime
 
 from invenio.config import CFG_SOLR_URL
 from invenio.bibindex_engine_config import CFG_MAX_MYSQL_THREADS, \
@@ -39,8 +38,7 @@ from invenio.bibindex_engine_config import CFG_MAX_MYSQL_THREADS, \
      CFG_BIBINDEX_ADDING_RECORDS_STARTED_STR, \
      CFG_BIBINDEX_UPDATE_MESSAGE
 from invenio.bibauthority_config import \
-     CFG_BIBAUTHORITY_CONTROLLED_FIELDS_BIBLIOGRAPHIC, \
-     CFG_BIBAUTHORITY_RECORD_CONTROL_NUMBER_FIELD
+     CFG_BIBAUTHORITY_CONTROLLED_FIELDS_BIBLIOGRAPHIC
 from invenio.bibauthority_engine import get_index_strings_by_control_no,\
      get_control_nos_from_recID
 from invenio.bibindexadminlib import get_idx_remove_html_markup, \
@@ -62,23 +60,15 @@ from invenio.intbitset import intbitset
 from invenio.errorlib import register_exception
 from invenio.bibrankadminlib import get_def_name
 from invenio.solrutils_bibindex_indexer import solr_commit
-from invenio.bibindex_tokenizers.BibIndexJournalTokenizer import \
-    CFG_JOURNAL_TAG, \
-    CFG_JOURNAL_PUBINFO_STANDARD_FORM, \
-    CFG_JOURNAL_PUBINFO_STANDARD_FORM_REGEXP_CHECK
 from invenio.bibindex_engine_utils import load_tokenizers, \
     get_all_index_names_and_column_values, \
-    get_idx_indexer, \
     get_index_tags, \
-    get_field_tags, \
     get_tag_indexes, \
     get_all_indexes, \
-    get_all_virtual_indexes, \
     get_index_virtual_indexes, \
     is_index_virtual, \
     get_virtual_index_building_blocks, \
     get_index_id_from_index_name, \
-    get_index_name_from_index_id, \
     run_sql_drop_silently, \
     get_min_last_updated, \
     remove_inexistent_indexes
@@ -94,8 +84,8 @@ if sys.hexversion < 0x2040000:
 
 
 ## precompile some often-used regexp for speed reasons:
-re_subfields = re.compile('\$\$\w')
-re_datetime_shift = re.compile("([-\+]{0,1})([\d]+)([dhms])")
+re_subfields = re.compile(r'\$\$\w')
+re_datetime_shift = re.compile(r"([-\+]{0,1})([\d]+)([dhms])")
 
 
 nb_char_in_line = 50  # for verbose pretty printing
@@ -494,7 +484,7 @@ def find_affected_records_for_index(indexes=[], recIDs=[], force_all_indexes=Fal
     """
 
     tmp_dates = dict(get_last_updated_all_indexes())
-    modification_dates = dict([(date, tmp_dates[date] or datetime(1000,1,1,1,1,1)) for date in tmp_dates])
+    modification_dates = dict([(date, tmp_dates[date] or datetime(1000, 1, 1, 1, 1, 1)) for date in tmp_dates])
     tmp_all_indexes = get_all_indexes(virtual=False)
 
     indexes = remove_inexistent_indexes(indexes, leave_virtual=False)
@@ -518,7 +508,7 @@ def find_affected_records_for_index(indexes=[], recIDs=[], force_all_indexes=Fal
             records_for_indexes[index] = all_recIDs
         return records_for_indexes
 
-    min_last_updated = get_min_last_updated(indexes)[0][0] or datetime(1000,1,1,1,1,1)
+    min_last_updated = get_min_last_updated(indexes)[0][0] or datetime(1000, 1, 1, 1, 1, 1)
     indexes_to_change = _fill_dict_of_indexes_with_empty_sets()
     recIDs_info = []
     for recIDs_range in recIDs:
@@ -554,7 +544,7 @@ def find_affected_records_for_index(indexes=[], recIDs=[], force_all_indexes=Fal
     #the text_extraction_date to the task_starting_time."""
     #run_sql("UPDATE bibdoc JOIN bibrec_bibdoc ON id=id_bibdoc SET text_extraction_date=%s WHERE id_bibrec BETWEEN %s AND %s", (task_get_task_param('task_starting_time'), first_recid, last_recid))
 
-class WordTable:
+class WordTable(object):
     "A class to hold the words table."
 
     def __init__(self, index_name, index_id, fields_to_index, table_name_pattern, wordtable_type, tag_to_tokenizer_map, wash_index_terms=50):
@@ -640,7 +630,7 @@ class WordTable:
            mode 'emergency' means words index reverting to old state.
            """
         write_message("%s %s wordtable flush started" % (self.tablename, mode))
-        write_message('...updating %d words into %s started' % \
+        write_message('...updating %d words into %s started' %
                 (len(self.value), self.tablename))
         task_update_progress("(%s:%s) flushed %d/%d words" % (self.tablename, self.humanname, 0, len(self.value)))
 
@@ -670,7 +660,7 @@ class WordTable:
                     write_message('......processed %d/%d words' % (nb_words_done, nb_words_total))
                     percentage_display = get_percentage_completed(nb_words_done, nb_words_total)
                     task_update_progress("(%s:%s) flushed %d/%d words %s" % (tab_name, ind_name, nb_words_done, nb_words_total, percentage_display))
-            write_message('...updating %d words into %s ended' % \
+            write_message('...updating %d words into %s ended' %
                           (nb_words_total, tab_name))
 
             write_message('...updating reverse table %s started' % tab_name)
@@ -717,7 +707,7 @@ class WordTable:
         else:
             return None
 
-    def merge_with_old_recIDs(self, word, set):
+    def merge_with_old_recIDs(self, word, hitlist):
         """Merge the system numbers stored in memory (hash of recIDs with value +1 or -1
         according to whether to add/delete them) with those stored in the database index
         and received in set universe of recIDs for the given word.
@@ -725,37 +715,36 @@ class WordTable:
         Return False in case no change was done to SET, return True in case SET
         was changed.
         """
-        oldset = intbitset(set)
-        set.update_with_signs(self.value[word])
-        return set != oldset
+        oldset = intbitset(hitlist)
+        hitlist.update_with_signs(self.value[word])
+        return hitlist != oldset
 
     def put_word_into_db(self, word, index_id):
         """Flush a single word to the database and delete it from memory"""
         tab_name = self.tablename
         if index_id != self.index_id:
             tab_name = self.virtual_tablename_pattern % index_id + "F"
-        set = self.load_old_recIDs(word, index_id)
-        if set is not None: # merge the word recIDs found in memory:
-            if not self.merge_with_old_recIDs(word, set):
+        hitlist = self.load_old_recIDs(word, index_id)
+        if hitlist is not None: # merge the word recIDs found in memory:
+            if not self.merge_with_old_recIDs(word, hitlist):
                 # nothing to update:
                 write_message("......... unchanged hitlist for ``%s''" % word, verbose=9)
-                pass
             else:
                 # yes there were some new words:
                 write_message("......... updating hitlist for ``%s''" % word, verbose=9)
-                run_sql("UPDATE %s SET hitlist=%%s WHERE term=%%s" % wash_table_column_name(tab_name), (set.fastdump(), word)) # kwalitee: disable=sql
+                run_sql("UPDATE %s SET hitlist=%%s WHERE term=%%s" % wash_table_column_name(tab_name), (hitlist.fastdump(), word)) # kwalitee: disable=sql
 
         else: # the word is new, will create new set:
             write_message("......... inserting hitlist for ``%s''" % word, verbose=9)
-            set = intbitset(self.value[word].keys())
+            hitlist = intbitset(self.value[word].keys())
             try:
-                run_sql("INSERT INTO %s (term, hitlist) VALUES (%%s, %%s)" % wash_table_column_name(tab_name), (word, set.fastdump())) # kwalitee: disable=sql
+                run_sql("INSERT INTO %s (term, hitlist) VALUES (%%s, %%s)" % wash_table_column_name(tab_name), (word, hitlist.fastdump())) # kwalitee: disable=sql
             except Exception, e:
                 ## We send this exception to the admin only when is not
                 ## already reparing the problem.
                 register_exception(prefix="Error when putting the term '%s' into db (hitlist=%s): %s\n" % (repr(word), set, e), alert_admin=(task_get_option('cmd') != 'repair'))
 
-        if not set: # never store empty words
+        if not hitlist: # never store empty words
             run_sql("DELETE FROM %s WHERE term=%%s" % wash_table_column_name(tab_name), (word,)) # kwalitee: disable=sql
 
 
@@ -786,11 +775,11 @@ class WordTable:
                 except (EOFError, KeyboardInterrupt):
                     return
 
-        if self.value.has_key(word):
-            write_message("The word '%s' is found %d times." \
+        if word in self.value:
+            write_message("The word '%s' is found %d times."
                 % (word, len(self.value[word])))
         else:
-            write_message("The word '%s' does not exist in the word file."\
+            write_message("The word '%s' does not exist in the word file."
                               % word)
 
     def add_recIDs(self, recIDs, opt_flush):
@@ -800,7 +789,6 @@ class WordTable:
         """
         if self.is_virtual:
             return
-        global chunksize, _last_word_table
         flush_count = 0
         records_done = 0
         records_to_go = 0
@@ -825,7 +813,7 @@ class WordTable:
                         solr_commit()
                     raise
 
-                write_message(CFG_BIBINDEX_ADDING_RECORDS_STARTED_STR % \
+                write_message(CFG_BIBINDEX_ADDING_RECORDS_STARTED_STR %
                         (self.tablename, i_low, i_high))
                 if CFG_CHECK_MYSQL_THREADS:
                     kill_sleepy_mysql_threads()
@@ -836,7 +824,7 @@ class WordTable:
                 flush_count = flush_count + i_high - i_low + 1
                 chunksize_count = chunksize_count + i_high - i_low + 1
                 records_done = records_done + just_processed
-                write_message(CFG_BIBINDEX_ADDING_RECORDS_STARTED_STR % \
+                write_message(CFG_BIBINDEX_ADDING_RECORDS_STARTED_STR %
                         (self.tablename, i_low, i_high))
                 if chunksize_count >= chunksize:
                     chunksize_count = 0
@@ -865,7 +853,7 @@ class WordTable:
         # canonical IDs:
         if self.index_name in ('author', 'firstauthor', 'exactauthor', 'exactfirstauthor'):
             for recID in range(recID1, recID2 + 1):
-                if not wlist.has_key(recID):
+                if recID not in wlist:
                     wlist[recID] = []
                 wlist[recID] = list_union(get_author_canonical_ids_for_recid(recID),
                                           wlist[recID])
@@ -877,7 +865,7 @@ class WordTable:
                 record = get_record(recID)
                 if record:
                     new_words = tokenizing_function(record)
-                    if not wlist.has_key(recID):
+                    if recID not in wlist:
                         wlist[recID] = []
                     wlist[recID] = list_union(new_words, wlist[recID])
         # case of special indexes:
@@ -886,7 +874,7 @@ class WordTable:
                 tokenizing_function = self.tag_to_words_fnc_map.get(tag, self.default_tokenizer_function)
                 for recID in range(recID1, recID2 + 1):
                     new_words = tokenizing_function(recID)
-                    if not wlist.has_key(recID):
+                    if recID not in wlist:
                         wlist[recID] = []
                     wlist[recID] = list_union(new_words, wlist[recID])
         # usual tag-by-tag indexing for the rest:
@@ -896,7 +884,7 @@ class WordTable:
                 phrases = self.get_phrases_for_tokenizing(tag, recID1, recID2)
                 for row in sorted(phrases):
                     recID, phrase = row
-                    if not wlist.has_key(recID):
+                    if recID not in wlist:
                         wlist[recID] = []
                     new_words = tokenizing_function(phrase)
                     wlist[recID] = list_union(new_words, wlist[recID])
@@ -904,8 +892,9 @@ class WordTable:
 
         # lookup index-time synonyms:
         synonym_kbrs = get_all_synonym_knowledge_bases()
-        if synonym_kbrs.has_key(self.index_name):
-            if len(wlist) == 0: return 0
+        if self.index_name in synonym_kbrs:
+            if len(wlist) == 0:
+                return 0
             recIDs = wlist.keys()
             for recID in recIDs:
                 for word in wlist[recID]:
@@ -928,7 +917,8 @@ class WordTable:
 
         self.index_virtual_indexes_reversed(wlist, recID1, recID2)
 
-        if len(wlist) == 0: return 0
+        if len(wlist) == 0:
+            return 0
         # put words into reverse index table with FUTURE status:
         for recID in recIDs:
             run_sql("INSERT INTO %sR (id_bibrec,termlist,type) VALUES (%%s,%%s,'FUTURE')" % wash_table_column_name(self.tablename[:-1]), (recID, serialize_via_marshal(wlist[recID]))) # kwalitee: disable=sql
@@ -994,21 +984,21 @@ class WordTable:
         old_index_values = run_sql(query, (recID1, recID2))
         if old_index_values:
             zipped = zip(*old_index_values)
-            old_index_values = dict(zip(zipped[0], map(deserialize_via_marshal, zipped[1])))
+            old_index_values = dict(zip(zipped[0], (deserialize_via_marshal(el) for el in zipped[1])))
         else:
             old_index_values = dict()
         recIDs = wlist.keys()
 
-        for vindex_id, vindex_name in self.virtual_indexes:
+        for vindex_id, dummy_vindex_name in self.virtual_indexes:
             #second: need to take old values from virtual index
             #to have a list of words from which we can remove old values from given index
-            tab_name =  self.virtual_tablename_pattern % vindex_id + "R"
+            tab_name = self.virtual_tablename_pattern % vindex_id + "R"
             query = """SELECT id_bibrec, termlist FROM %s WHERE type='CURRENT' AND id_bibrec
                        BETWEEN %%s AND %%s""" % tab_name
             old_virtual_index_values = run_sql(query, (recID1, recID2))
             if old_virtual_index_values:
                 zipped = zip(*old_virtual_index_values)
-                old_virtual_index_values = dict(zip(zipped[0], map(deserialize_via_marshal, zipped[1])))
+                old_virtual_index_values = dict(zip(zipped[0], (deserialize_via_marshal(el) for el in zipped[1])))
             else:
                 old_virtual_index_values = dict()
             for recID in recIDs:
@@ -1046,11 +1036,11 @@ class WordTable:
             return
 
         time_recs_per_min = done / (time_elapsed / 60.0)
-        write_message("%d records took %.1f seconds to complete.(%1.f recs/min)"\
+        write_message("%d records took %.1f seconds to complete.(%1.f recs/min)"
                 % (done, time_elapsed, time_recs_per_min))
 
         if time_recs_per_min:
-            write_message("Estimated runtime: %.1f minutes" % \
+            write_message("Estimated runtime: %.1f minutes" %
                     ((todo - done) / time_recs_per_min))
 
     def put(self, recID, word, sign):
@@ -1058,7 +1048,7 @@ class WordTable:
         try:
             if self.wash_index_terms:
                 word = wash_index_term(word, self.wash_index_terms)
-            if self.value.has_key(word):
+            if word in self.value:
                 # the word 'word' exist already: update sign
                 self.value[word][recID] = sign
             else:
@@ -1083,7 +1073,7 @@ class WordTable:
     def del_recID_range(self, low, high):
         """Deletes records with 'recID' system number between low
            and high from memory words index table."""
-        write_message("%s fetching existing words for records #%d-#%d started" % \
+        write_message("%s fetching existing words for records #%d-#%d started" %
                 (self.tablename, low, high), verbose=3)
         self.recIDs_in_mem.append([low, high])
         query = """SELECT id_bibrec,termlist FROM %sR as bb WHERE bb.id_bibrec
@@ -1094,7 +1084,7 @@ class WordTable:
             wlist = deserialize_via_marshal(recID_row[1])
             for word in wlist:
                 self.put(recID, word, -1)
-        write_message("%s fetching existing words for records #%d-#%d ended" % \
+        write_message("%s fetching existing words for records #%d-#%d ended" %
                 (self.tablename, low, high), verbose=3)
 
     def check_bad_words(self):
@@ -1215,7 +1205,7 @@ class WordTable:
                 % self.tablename[:-1]
         res = run_sql(query, (low, high))
         for row in res:
-            if not state.has_key(row[0]):
+            if row[0] not in state:
                 state[row[0]] = []
             state[row[0]].append(row[1])
 
@@ -1313,7 +1303,7 @@ class WordTable:
                 hitlist -= self._find_common_hitlist(term, id_dependent, indexes)
             for recID in hitlist:
                 self.remove_single_word_reversed_table(term, recID)
-                if self.value.has_key(term):
+                if term in self.value:
                     self.value[term][recID] = -1
                 else:
                     self.value[term] = {recID: -1}
@@ -1332,7 +1322,7 @@ class WordTable:
 
     def remove_single_word_reversed_table(self, word, recID):
         """Removes single word from temlist for given recID"""
-        old_set = run_sql("""SELECT termlist FROM %sR WHERE id_bibrec=%%s""" % \
+        old_set = run_sql("""SELECT termlist FROM %sR WHERE id_bibrec=%%s""" %
                           wash_table_column_name(self.tablename[:-1]), (recID, ))
         new_set = []
         if old_set:
@@ -1342,7 +1332,7 @@ class WordTable:
         if new_set:
             run_sql("""UPDATE %sR SET termlist=%%s
                        WHERE id_bibrec=%%s AND
-                       type='CURRENT'""" %  \
+                       type='CURRENT'""" %
                     wash_table_column_name(self.tablename[:-1]), (serialize_via_marshal(new_set), recID))
 
     def _find_common_hitlist(self, term, id_dependent, indexes):
@@ -1392,7 +1382,7 @@ class WordTable:
             intersection = zip(*run_sql(query % (self.tablename[:-3], id_dependent, self.tablename[:-3], _id))) # kwalitee: disable=sql
             terms = bool(intersection) and intersection[0] or []
             for term in terms:
-                if left_in_other_indexes.has_key(term):
+                if term in left_in_other_indexes:
                     left_in_other_indexes[term].append(_id)
                 else:
                     left_in_other_indexes[term] = [_id]
@@ -1424,7 +1414,7 @@ def main():
 
  Specific options:
   -w, --windex=w1[,w2]\tword/phrase indexes to consider (all)
-  -M, --maxmem=XXX\tmaximum memory usage in kB (no limit)
+  -M, --maxmem=YYY\tmaximum memory usage in kB (no limit)
   -f, --flush=NNN\t\tfull consistent table flush after NNN records (10000)
   --force\tforce indexing of all records for provided indexes
   -Z, --remove-dependent-index=w\tname of an index for removing from virtual index
@@ -1492,7 +1482,7 @@ def task_submit_elaborate_specific_parameter(key, value, opts, args):
     elif key in ("-M", "--maxmem"):
         task_set_option("maxmem", int(value))
         if task_get_option("maxmem") < base_process_size + 1000:
-            raise StandardError("Memory usage should be higher than %d kB" % \
+            raise StandardError("Memory usage should be higher than %d kB" %
                 (base_process_size + 1000))
     elif key in ("-f", "--flush"):
         task_set_option("flush", int(value))
@@ -1506,7 +1496,6 @@ def task_submit_elaborate_specific_parameter(key, value, opts, args):
 
 def task_stop_table_close_fnc():
     """ Close tables to STOP. """
-    global _last_word_table
     if _last_word_table:
         _last_word_table.put_into_db()
 
@@ -1795,8 +1784,8 @@ def task_run_core():
     recIDs_range = get_recIDs_from_cli(indexes)
     recIDs_for_index = find_affected_records_for_index(indexes,
                                                        recIDs_range,
-                                                       (task_get_option("force") or \
-                                                       task_get_option("reindex") or \
+                                                       (task_get_option("force") or
+                                                       task_get_option("reindex") or
                                                        task_get_option("cmd") == "del"))
 
     wordTables = get_word_tables(recIDs_for_index.keys())
