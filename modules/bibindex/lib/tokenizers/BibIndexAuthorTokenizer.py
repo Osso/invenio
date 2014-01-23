@@ -38,13 +38,14 @@ class BibIndexAuthorTokenizer(BibIndexDefaultTokenizer):
     'titles', both incidental and permanent, e.g., 'VIII', '(ed.)', 'Msc'
     """
 
-    def __init__(self, stemming_language = None, remove_stopwords = False, remove_html_markup = False, remove_latex_markup = False):
+    def __init__(self, stemming_language=None, remove_stopwords=False,
+                 remove_html_markup=False, remove_latex_markup=False):
         BibIndexDefaultTokenizer.__init__(self, stemming_language,
                                                 remove_stopwords,
                                                 remove_html_markup,
                                                 remove_latex_markup)
-        self.single_initial_re = re.compile('^\w\.$')
-        self.split_on_re = re.compile('[\.\s-]')
+        self.single_initial_re = re.compile(r'^\w\.$')
+        self.split_on_re = re.compile(r'[\.\s-]')
         # lastname_stopwords describes terms which should not be used for indexing,
         # in multiple-word last names.  These are purely conjunctions, serving the
         # same function as the American hyphen, but using linguistic constructs.
@@ -125,7 +126,7 @@ class BibIndexAuthorTokenizer(BibIndexDefaultTokenizer):
         @rtype: list of string
         """
 
-        def _fully_expanded_last_name(first, lastlist, title = None):
+        def _fully_expanded_last_name(first, lastlist, title=None):
             """Return a list of all of the first / last / title combinations.
 
             @param first: one possible non-last name
@@ -139,7 +140,7 @@ class BibIndexAuthorTokenizer(BibIndexDefaultTokenizer):
             """
             retval = []
             title_word = ''
-            if title != None:
+            if title is not None:
                 title_word = ', ' + title
 
             last = ' '.join(lastlist)
@@ -156,7 +157,6 @@ class BibIndexAuthorTokenizer(BibIndexDefaultTokenizer):
         last_parts = scanned['lastnames']
         first_parts = scanned['nonlastnames']
         titles = scanned['titles']
-        raw = scanned['raw']
 
         if len(first_parts) == 0:                       # rare single-name case
             return scanned['lastnames']
@@ -195,7 +195,7 @@ class BibIndexAuthorTokenizer(BibIndexDefaultTokenizer):
 
         def _expand_name(name):
             """Lists [name, initial, empty]"""
-            if name == None:
+            if name is None:
                 return []
             return [name, name[0]]
 
@@ -229,7 +229,7 @@ class BibIndexAuthorTokenizer(BibIndexDefaultTokenizer):
         def _expand_contract(namelist):
             """Runs collect with every head in namelist and its tail"""
             val = []
-            for i  in range(len(namelist)):
+            for i in range(len(namelist)):
                 name = namelist[i]
                 for expansion in _expand_name(name):
                     val.extend(_collect(expansion, namelist[i+1:]))
@@ -332,5 +332,3 @@ class BibIndexAuthorTokenizer(BibIndexDefaultTokenizer):
             return self.get_author_family_name_words_from_phrase(phrase)
         else:
             return self.tokenize_for_words_default(phrase)
-
-
