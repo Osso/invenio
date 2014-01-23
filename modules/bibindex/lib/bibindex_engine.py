@@ -77,21 +77,15 @@ from invenio.bibfield import get_record
 from invenio.memoiseutils import Memoise
 
 
-if sys.hexversion < 0x2040000:
-    # pylint: disable=W0622
-    from sets import Set as set
-    # pylint: enable=W0622
-
-
 ## precompile some often-used regexp for speed reasons:
 re_subfields = re.compile(r'\$\$\w')
 re_datetime_shift = re.compile(r"([-\+]{0,1})([\d]+)([dhms])")
 
 
-nb_char_in_line = 50  # for verbose pretty printing
-chunksize = 1000 # default size of chunks that the records will be treated by
-base_process_size = 4500 # process base size
-_last_word_table = None
+NB_CHAR_IN_LINE = 50  # for verbose pretty printing
+CHUNKSIZE = 1000 # default size of chunks that the records will be treated by
+BASE_PROCESS_SIZE = 4500 # process base size
+_LAST_WORD_TABLE = None
 
 
 _TOKENIZERS = load_tokenizers()
@@ -737,12 +731,7 @@ class WordTable(object):
         else: # the word is new, will create new set:
             write_message("......... inserting hitlist for ``%s''" % word, verbose=9)
             hitlist = intbitset(self.value[word].keys())
-            try:
-                run_sql("INSERT INTO %s (term, hitlist) VALUES (%%s, %%s)" % wash_table_column_name(tab_name), (word, hitlist.fastdump())) # kwalitee: disable=sql
-            except Exception, e:
-                ## We send this exception to the admin only when is not
-                ## already reparing the problem.
-                register_exception(prefix="Error when putting the term '%s' into db (hitlist=%s): %s\n" % (repr(word), set, e), alert_admin=(task_get_option('cmd') != 'repair'))
+            run_sql("INSERT INTO %s (term, hitlist) VALUES (%%s, %%s)" % wash_table_column_name(tab_name), (word, hitlist.fastdump())) # kwalitee: disable=sql
 
         if not hitlist: # never store empty words
             run_sql("DELETE FROM %s WHERE term=%%s" % wash_table_column_name(tab_name), (word,)) # kwalitee: disable=sql
@@ -804,7 +793,7 @@ class WordTable(object):
                 task_sleep_now_if_required()
                 # calculate chunk group of recIDs and treat it:
                 i_high = min(i_low + opt_flush - flush_count - 1, arange[1])
-                i_high = min(i_low + chunksize - chunksize_count - 1, i_high)
+                i_high = min(i_low + CHUNKSIZE - chunksize_count - 1, i_high)
 
                 try:
                     self.chk_recID_range(i_low, i_high)
@@ -826,7 +815,7 @@ class WordTable(object):
                 records_done = records_done + just_processed
                 write_message(CFG_BIBINDEX_ADDING_RECORDS_STARTED_STR %
                         (self.tablename, i_low, i_high))
-                if chunksize_count >= chunksize:
+                if chunksize_count >= CHUNKSIZE:
                     chunksize_count = 0
                 # flush if necessary:
                 if flush_count >= opt_flush:
@@ -1045,16 +1034,13 @@ class WordTable(object):
 
     def put(self, recID, word, sign):
         """Adds/deletes a word to the word list."""
-        try:
-            if self.wash_index_terms:
-                word = wash_index_term(word, self.wash_index_terms)
-            if word in self.value:
-                # the word 'word' exist already: update sign
-                self.value[word][recID] = sign
-            else:
-                self.value[word] = {recID: sign}
-        except:
-            write_message("Error: Cannot put word %s with sign %d for recID %s." % (word, sign, recID))
+        if self.wash_index_terms:
+            word = wash_index_term(word, self.wash_index_terms)
+        if word in self.value:
+            # the word 'word' exist already: update sign
+            self.value[word][recID] = sign
+        else:
+            self.value[word] = {recID: sign}
 
     def del_recIDs(self, recIDs):
         """Fetches records which id in the recIDs range list and adds
@@ -1146,14 +1132,14 @@ class WordTable(object):
                 task_sleep_now_if_required()
                 # calculate chunk group of recIDs and treat it:
                 i_high = min(i_low + opt_flush - flush_count - 1, arange[1])
-                i_high = min(i_low + chunksize - chunksize_count - 1, i_high)
+                i_high = min(i_low + CHUNKSIZE - chunksize_count - 1, i_high)
 
                 self.fix_recID_range(i_low, i_high)
 
                 flush_count = flush_count + i_high - i_low + 1
                 chunksize_count = chunksize_count + i_high - i_low + 1
                 records_done = records_done + i_high - i_low + 1
-                if chunksize_count >= chunksize:
+                if chunksize_count >= CHUNKSIZE:
                     chunksize_count = 0
                 # flush if necessary:
                 if flush_count >= opt_flush:
@@ -1269,7 +1255,6 @@ class WordTable(object):
             write_message("Index is not virtual...")
             return
 
-        global chunksize
         terms_current_counter = 0
         terms_done = 0
         terms_to_go = 0
@@ -1287,7 +1272,7 @@ class WordTable(object):
             for recID in hitlist:
                 self.remove_single_word_reversed_table(term, recID)
             self.remove_single_word_forward_table(term)
-            if terms_current_counter % chunksize == 0:
+            if terms_current_counter % CHUNKSIZE == 0:
                 terms_done += terms_current_counter
                 terms_current_counter = 0
                 write_message("removed %s/%s terms..." % (terms_done, terms_to_go))
@@ -1309,7 +1294,7 @@ class WordTable(object):
                     self.value[term] = {recID: -1}
             if self.value:
                 self.put_word_into_db(term, self.index_id)
-            if terms_current_counter % chunksize == 0:
+            if terms_current_counter % CHUNKSIZE == 0:
                 terms_done += terms_current_counter
                 terms_current_counter = 0
                 write_message("removed %s/%s terms..." % (terms_done, terms_to_go))
@@ -1436,7 +1421,7 @@ def main():
                 "remove-dependent-index="
             ]),
             task_stop_helper_fnc=task_stop_table_close_fnc,
-            task_submit_elaborate_specific_parameter_fnc=task_submit_elaborate_specific_parameter,
+            task_submit_elaborate_specific_parameter_fnc=cb_task_submit_elaborate_specific_parameter,
             task_run_fnc=task_run_core,
             task_submit_check_options_fnc=task_submit_check_options)
 
@@ -1448,7 +1433,7 @@ def task_submit_check_options():
             return False
     return True
 
-def task_submit_elaborate_specific_parameter(key, value, opts, args):
+def cb_task_submit_elaborate_specific_parameter(key, value, opts, args):
     """ Given the string key it checks it's meaning, eventually using the
     value. Usually it fills some key in the options dict.
     It must return True if it has elaborated the key, False, if it doesn't
@@ -1481,9 +1466,9 @@ def task_submit_elaborate_specific_parameter(key, value, opts, args):
         task_set_option("windex", value)
     elif key in ("-M", "--maxmem"):
         task_set_option("maxmem", int(value))
-        if task_get_option("maxmem") < base_process_size + 1000:
+        if task_get_option("maxmem") < BASE_PROCESS_SIZE + 1000:
             raise StandardError("Memory usage should be higher than %d kB" %
-                (base_process_size + 1000))
+                (BASE_PROCESS_SIZE + 1000))
     elif key in ("-f", "--flush"):
         task_set_option("flush", int(value))
     elif key in ("-o", "--force"):
@@ -1496,8 +1481,8 @@ def task_submit_elaborate_specific_parameter(key, value, opts, args):
 
 def task_stop_table_close_fnc():
     """ Close tables to STOP. """
-    if _last_word_table:
-        _last_word_table.put_into_db()
+    if _LAST_WORD_TABLE:
+        _LAST_WORD_TABLE.put_into_db()
 
 
 def get_recIDs_by_date_bibliographic(dates, index_name, force_all=False):
@@ -1726,8 +1711,6 @@ def task_run_core():
     """Runs the task by fetching arguments from the BibSched task queue.
        This is what BibSched will be invoking via daemon call.
     """
-    global _last_word_table
-
     indexes = get_indexes_from_cli()
     if len(indexes) == 0:
         write_message("Specified indexes can't be found.")
@@ -1744,7 +1727,7 @@ def task_run_core():
                                   wordtable_type=CFG_BIBINDEX_INDEX_TABLE_TYPE["Words"],
                                   tag_to_tokenizer_map={'8564_u': "BibIndexFulltextTokenizer"},
                                   wash_index_terms=50)
-            _last_word_table = wordTable
+            _LAST_WORD_TABLE = wordTable
             wordTable.report_on_table_consistency()
             task_sleep_now_if_required(can_stop_too=True)
 
@@ -1756,7 +1739,7 @@ def task_run_core():
                                   wordtable_type=CFG_BIBINDEX_INDEX_TABLE_TYPE["Pairs"],
                                   tag_to_tokenizer_map={'8564_u': "BibIndexEmptyTokenizer"},
                                   wash_index_terms=100)
-            _last_word_table = wordTable
+            _LAST_WORD_TABLE = wordTable
             wordTable.report_on_table_consistency()
             task_sleep_now_if_required(can_stop_too=True)
 
@@ -1768,10 +1751,10 @@ def task_run_core():
                                   wordtable_type=CFG_BIBINDEX_INDEX_TABLE_TYPE["Phrases"],
                                   tag_to_tokenizer_map={'8564_u': "BibIndexEmptyTokenizer"},
                                   wash_index_terms=0)
-            _last_word_table = wordTable
+            _LAST_WORD_TABLE = wordTable
             wordTable.report_on_table_consistency()
             task_sleep_now_if_required(can_stop_too=True)
-        _last_word_table = None
+        _LAST_WORD_TABLE = None
         return True
 
     #virtual index: remove dependent index
@@ -1806,7 +1789,7 @@ def task_run_core():
                               wordtable_type=CFG_BIBINDEX_INDEX_TABLE_TYPE["Words"],
                               tag_to_tokenizer_map={'8564_u': "BibIndexFulltextTokenizer"},
                               wash_index_terms=50)
-        _last_word_table = wordTable
+        _LAST_WORD_TABLE = wordTable
         wordTable.report_on_table_consistency()
         try:
             if task_get_option("cmd") == "del":
@@ -1833,8 +1816,8 @@ def task_run_core():
         except StandardError, e:
             write_message("Exception caught: %s" % e, sys.stderr)
             register_exception(alert_admin=True)
-            if _last_word_table:
-                _last_word_table.put_into_db()
+            if _LAST_WORD_TABLE:
+                _LAST_WORD_TABLE.put_into_db()
             raise
 
         wordTable.report_on_table_consistency()
@@ -1848,7 +1831,7 @@ def task_run_core():
                               wordtable_type=CFG_BIBINDEX_INDEX_TABLE_TYPE["Pairs"],
                               tag_to_tokenizer_map={'8564_u': "BibIndexEmptyTokenizer"},
                               wash_index_terms=100)
-        _last_word_table = wordTable
+        _LAST_WORD_TABLE = wordTable
         wordTable.report_on_table_consistency()
         try:
             if task_get_option("cmd") == "del":
@@ -1875,8 +1858,8 @@ def task_run_core():
         except StandardError, e:
             write_message("Exception caught: %s" % e, sys.stderr)
             register_exception()
-            if _last_word_table:
-                _last_word_table.put_into_db()
+            if _LAST_WORD_TABLE:
+                _LAST_WORD_TABLE.put_into_db()
             raise
 
         wordTable.report_on_table_consistency()
@@ -1890,7 +1873,7 @@ def task_run_core():
                               wordtable_type=CFG_BIBINDEX_INDEX_TABLE_TYPE["Phrases"],
                               tag_to_tokenizer_map={'8564_u': "BibIndexEmptyTokenizer"},
                               wash_index_terms=0)
-        _last_word_table = wordTable
+        _LAST_WORD_TABLE = wordTable
         wordTable.report_on_table_consistency()
         try:
             if task_get_option("cmd") == "del":
@@ -1919,8 +1902,8 @@ def task_run_core():
         except StandardError, e:
             write_message("Exception caught: %s" % e, sys.stderr)
             register_exception()
-            if _last_word_table:
-                _last_word_table.put_into_db()
+            if _LAST_WORD_TABLE:
+                _LAST_WORD_TABLE.put_into_db()
             raise
 
         wordTable.report_on_table_consistency()
@@ -1938,7 +1921,7 @@ def task_run_core():
         update_index_last_updated(list(up_to_date), task_get_task_param('task_starting_time'))
 
 
-    _last_word_table = None
+    _LAST_WORD_TABLE = None
     return True
 
 
