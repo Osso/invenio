@@ -618,6 +618,18 @@ class WordTable(object):
         "Cleans the words table."
         self.value = {}
 
+    def fetch_hitsets(self, words, index_id=None):
+        hitlist_cache = {}
+        if words:
+            tab_name = self.tablename
+            if index_id != self.index_id:
+                tab_name = self.virtual_tablename_pattern % index_id + "F"
+            in_str = ','.join('%s' for dummy in words)
+            query = "SELECT term, hitlist FROM %s WHERE term IN (%s)" % (tab_name, in_str)
+            for term, hitlist in run_sql(query, words):
+                hitlist_cache[term] = intbitset(hitlist)
+        return hitlist_cache
+
     def put_into_db(self, mode="normal"):
         """Updates the current words table in the corresponding DB
            idxFOO table.  Mode 'normal' means normal execution,
@@ -647,8 +659,10 @@ class WordTable(object):
             nb_words_total = len(self.value)
             nb_words_report = int(nb_words_total / 10.0)
             nb_words_done = 0
-            for word in self.value.keys():
-                self.put_word_into_db(word, ind_id)
+            new_words = self.value.keys()
+            hitlist_cache = self.fetch_hitsets(new_words, ind_id)
+            for word in new_words:
+                self.put_word_into_db(word, ind_id, hitlist_cache=hitlist_cache)
                 nb_words_done += 1
                 if nb_words_report != 0 and ((nb_words_done % nb_words_report) == 0):
                     write_message('......processed %d/%d words' % (nb_words_done, nb_words_total))
@@ -689,8 +703,10 @@ class WordTable(object):
         write_message("%s %s wordtable flush ended" % (self.tablename, mode))
         task_update_progress("(%s:%s) flush ended" % (self.tablename, self.humanname))
 
-    def load_old_recIDs(self, word, index_id=None):
+    def load_old_recIDs(self, word, index_id=None, hitlist_cache={}):
         """Load existing hitlist for the word from the database index files."""
+        if word in hitlist_cache:
+            return hitlist_cache[word]
         tab_name = self.tablename
         if index_id != self.index_id:
             tab_name = self.virtual_tablename_pattern % index_id + "F"
@@ -713,12 +729,12 @@ class WordTable(object):
         hitlist.update_with_signs(self.value[word])
         return hitlist != oldset
 
-    def put_word_into_db(self, word, index_id):
+    def put_word_into_db(self, word, index_id, hitlist_cache={}):
         """Flush a single word to the database and delete it from memory"""
         tab_name = self.tablename
         if index_id != self.index_id:
             tab_name = self.virtual_tablename_pattern % index_id + "F"
-        hitlist = self.load_old_recIDs(word, index_id)
+        hitlist = self.load_old_recIDs(word, index_id, hitlist_cache=hitlist_cache)
         if hitlist is not None: # merge the word recIDs found in memory:
             if not self.merge_with_old_recIDs(word, hitlist):
                 # nothing to update:
