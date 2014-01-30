@@ -131,7 +131,7 @@ def _check_result(req, result):
         return apache.OK
 
     else:
-        req.log_error("publisher: %s returned nothing." % `object`)
+        req.log_error("publisher: %r returned %r." % (req.uri, result))
         return apache.HTTP_INTERNAL_SERVER_ERROR
 
 
