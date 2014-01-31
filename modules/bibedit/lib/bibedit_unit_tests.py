@@ -19,10 +19,10 @@
 
 """Unit tests for BibEdit functions"""
 
-from invenio.testutils import InvenioTestCase
 import re
+import mock
 
-from invenio.testutils import make_test_suite, run_test_suite
+from invenio.testutils import make_test_suite, run_test_suite, InvenioTestCase
 from invenio.bibedit_utils import get_xml_from_textmarc
 from invenio.bibedit_engine import perform_doi_search
 
@@ -104,13 +104,22 @@ class TestPerformDoiSearch(InvenioTestCase):
         """Checks if some standard doi is working"""
         doi = "10.1007/BF02724522"
         wrong_output = {}
-        self.assertNotEqual(perform_doi_search(doi), wrong_output)
+        with mock.patch('requests.get') as mocked:
+            mocked.return_value.status_code = 200
+            mocked.return_value.url = 'http://link.springer.com/article/10.1007%2FBF02724522'
+            self.assertNotEqual(perform_doi_search(doi), wrong_output)
 
     def test_no_headers(self):
         """Checks if the doi that requires 'User-Agent' header is working"""
         doi = "10.1016/0550-3213(89)90423-9"
         wrong_output = {}
-        self.assertNotEqual(perform_doi_search(doi), wrong_output)
+        def get(url, **kwargs):
+            kwargs.get('headers', {})
+
+        with mock.patch('requests.get') as mocked:
+            mocked.return_value.status_code = 200
+            mocked.return_value.url = 'http://www.sciencedirect.com/science/article/pii/0550321389904239'
+            self.assertNotEqual(perform_doi_search(doi), wrong_output)
 
 TEST_SUITE = make_test_suite(TextmarcToXMLTests,
                             TestPerformDoiSearch)

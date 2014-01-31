@@ -26,8 +26,7 @@ import re
 import zlib
 import copy
 import urllib
-import urllib2
-import cookielib
+import requests
 
 from invenio import bibformat
 
@@ -1773,17 +1772,10 @@ def perform_doi_search(doi):
     response = {}
     url = "http://dx.doi.org/"
     val = {'hdl': doi}
-    url_data = urllib.urlencode(val)
-    cj = cookielib.CookieJar()
-    header = [('User-Agent', CFG_DOI_USER_AGENT)]
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-    opener.addheaders = header
-    try:
-        resp = opener.open(url, url_data)
-    except:
-        return response
-    else:
-        response['doi_url'] = resp.geturl()
+    headers = {'User-Agent': CFG_DOI_USER_AGENT}
+    resp = requests.get(url, params=val, headers=headers)
+    if resp.status_code == 200:
+        response['doi_url'] = resp.url
     return response
 
 
