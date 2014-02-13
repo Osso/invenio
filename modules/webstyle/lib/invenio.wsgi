@@ -20,6 +20,17 @@
 mod_wsgi Invenio application loader.
 """
 
+from tempfile import mkstemp
+from StringIO import StringIO
+import cProfile
+import pstats
+import os
+
+from invenio.config import CFG_TMPDIR
+
+pr = cProfile.Profile()
+pr.enable()
+
 # start remote debugger if appropriate:
 from invenio.config import CFG_DEVEL_SITE
 if CFG_DEVEL_SITE:
@@ -65,3 +76,12 @@ finally:
     ## are allocated on the 1st thread.
     from invenio.dbquery import close_connection
     close_connection()
+
+pr.disable()
+strstream = StringIO()
+pstats.Stats(pr, stream=strstream).strip_dirs().sort_stats('cumulative').print_stats()
+
+
+tmp_file_fd, dummy_tmp_file = mkstemp(dir=CFG_TMPDIR, prefix='startup-')
+with os.fdopen(tmp_file_fd, 'w') as out:
+    out.write(strstream.getvalue())
