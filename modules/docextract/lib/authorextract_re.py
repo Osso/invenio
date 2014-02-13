@@ -22,6 +22,8 @@ import re
 import sys
 from invenio.docextract_utils import write_message
 from invenio.refextract_config import CFG_REFEXTRACT_KBS
+from invenio.redisutils import get_redis
+from invenio.regexputils import pickle_regexps, unpickle_regexps
 
 
 def get_author_affiliation_numeration_str(punct=None):
@@ -455,27 +457,33 @@ RE_AUTH = None
 RE_AUTH_NEAR_MISS = None
 def get_author_regexps():
     global RE_AUTH, RE_AUTH_NEAR_MISS
-    if not RE_AUTH:
-        ## The pattern used to identify authors inside references
-        RE_AUTH = (re.compile(make_auth_regex_str(re_etal),
-                   re.VERBOSE|re.UNICODE))
 
-    if not RE_AUTH_NEAR_MISS:
-        ## Given an Auth hit, some misc text, and then another Auth hit straight after,
-        ## (OR a bad_and was found)
-        ## check the entire misc text to see if is 'looks' like an author group, which didn't match
-        ## as a normal author. In which case, append it to the single author group.
-        ## PLEASE use this pattern only against space stripped text.
-        ## IF a bad_and was found (from above).. do re.search using this pattern
-        ## ELIF an auth-misc-auth combo was hit, do re.match using this pattern
-        re_weaker_author = ur"""
-              ## look closely for initials, and less closely at the last name.
-              (?:([A-Z]((\.\s?)|(\.?\s+)|(\-))){1,5}
-              (?:[^\s_<>0-9]+(?:(?:[,\.]\s*)|(?:[,\.]?\s+)))+)"""
+    if not RE_AUTH or not RE_AUTH_NEAR_MISS:
+        redis = get_redis()
+        cache_key = 'author_regexps'
+        cache = redis.get(cache_key)
+        if not cache:
+            weaker_author_pattern = ur"""
+                  ## look closely for initials, and less closely at the last name.
+                  (?:([A-Z]((\.\s?)|(\.?\s+)|(\-))){1,5}
+                  (?:[^\s_<>0-9]+(?:(?:[,\.]\s*)|(?:[,\.]?\s+)))+)"""
+            patterns = [
+                ## The pattern used to identify authors inside references
+                (make_auth_regex_str(re_etal), re.VERBOSE|re.UNICODE),
+                ## Given an Auth hit, some misc text, and then another Auth hit straight after,
+                ## (OR a bad_and was found)
+                ## check the entire misc text to see if is 'looks' like an author group, which didn't match
+                ## as a normal author. In which case, append it to the single author group.
+                ## PLEASE use this pattern only against space stripped text.
+                ## IF a bad_and was found (from above).. do re.search using this pattern
+                ## ELIF an auth-misc-auth combo was hit, do re.match using this pattern
+                ## End of line MUST match, since the next string is definitely a portion of an author group (append '$')
+                (make_auth_regex_str(re_etal, "(" + weaker_author_pattern + ")+$"), re.VERBOSE|re.UNICODE)
+            ]
+            cache = pickle_regexps(patterns)
+            redis.set(cache_key, cache)
 
-        ## End of line MUST match, since the next string is definitely a portion of an author group (append '$')
-        RE_AUTH_NEAR_MISS = re.compile(make_auth_regex_str(
-            re_etal, "(" + re_weaker_author + ")+$"), re.VERBOSE|re.UNICODE)
+        RE_AUTH, RE_AUTH_NEAR_MISS = unpickle_regexps(cache)
 
     return RE_AUTH, RE_AUTH_NEAR_MISS
 

@@ -39,6 +39,8 @@ from invenio.docextract_utils import write_message
 from invenio.docextract_text import re_group_captured_multiple_space
 from invenio.search_engine import get_collection_reclist
 from invenio.search_engine_utils import get_fieldvalues
+from invenio.redisutils import get_redis
+from invenio.regexputils import prepare_regexp, compile_regexp
 
 
 def get_kbs(custom_kbs_files=None, cache={}):
@@ -716,60 +718,52 @@ def build_journals_kb(knowledgebase):
         searching in the reference lines; The values in the dictionary are
         the replace terms for matches.
     """
-    # Initialise vars:
-    # dictionary of search and replace phrases from KB:
-    kb = {}
+    # Associate journal title -> normalized title
     standardised_titles = {}
-    seek_phrases = []
-    # A dictionary of "replacement terms" (RHS) to be inserted into KB as
-    # "seek terms" later, if they were not already explicitly added
-    # by the KB:
-    repl_terms = {}
 
     write_message('Processing journals kb', verbose=3)
-    for seek_phrase, repl in knowledgebase:
+    for title, standardized_title in knowledgebase:
         # We match on a simplified line, thus dots are replaced
         # with spaces
-        seek_phrase = seek_phrase.replace('.', ' ').upper()
+        title = title.replace('.', ' ').upper()
+        standardised_titles[title] = standardized_title
 
-        # good KB line
-        # Add the 'replacement term' into the dictionary of
-        # replacement terms:
-        repl_terms[repl] = None
+    # Add titles mapping to themselves
+    for standardised_title in standardised_titles.values():
+        if standardised_title not in standardised_titles:
+            title = standardised_title.upper()
+            title = re_punctuation.sub(u' ', title)
+            title = re_group_captured_multiple_space.sub(u' ', title)
+            title = title.strip()
+            standardised_titles[title] = standardised_title
 
-        # add the phrase from the KB if the 'seek' phrase is longer
-        # compile the seek phrase into a pattern:
-        seek_ptn = re.compile(ur'(?<!\w)(%s)\W' % re.escape(seek_phrase),
-                              re.UNICODE)
+    import cPickle as pickle
+    redis = get_redis()
+    cache_key = 'journals_regexps'
+    seek_fragments = redis.get(cache_key)
+    if seek_fragments is None:
+        seek_fragments = {}
+        for title in standardised_titles.iterkeys():
+            # add the phrase from the KB if the 'seek' phrase is longer
+            # compile the seek phrase into a pattern:
+            seek_pattern = ur'(?<!\w)(%s)\W' % re.escape(title)
+            seek_fragments[title] = prepare_regexp(seek_pattern, re.UNICODE)
+        redis.set(cache_key, pickle.dumps(seek_fragments))
+    else:
+        seek_fragments = pickle.loads(seek_fragments)
 
-        kb[seek_phrase] = seek_ptn
-        standardised_titles[seek_phrase] = repl
-        seek_phrases.append(seek_phrase)
-
-    # Now, for every 'replacement term' found in the KB, if it is
-    # not already in the KB as a "search term", add it:
-    for repl_term in repl_terms.keys():
-        raw_repl_phrase = repl_term.upper()
-        raw_repl_phrase = re_punctuation.sub(u' ', raw_repl_phrase)
-        raw_repl_phrase = \
-             re_group_captured_multiple_space.sub(u' ', raw_repl_phrase)
-        raw_repl_phrase = raw_repl_phrase.strip()
-        if raw_repl_phrase not in kb:
-            # The replace-phrase was not in the KB as a seek phrase
-            # It should be added.
-            pattern = ur'(?<!\/)\b(%s)[^A-Z0-9]' % re.escape(raw_repl_phrase)
-            seek_ptn = re.compile(pattern, re.U)
-            kb[raw_repl_phrase] = seek_ptn
-            standardised_titles[raw_repl_phrase] = repl_term
-            seek_phrases.append(raw_repl_phrase)
+    # Associate journal title -> regexp of its title form
+    seek_kb = {}
+    for title, regexp_fragments in seek_fragments.iteritems():
+        seek_kb[title] = compile_regexp(regexp_fragments)
 
     # Sort the titles by string length (long - short)
-    seek_phrases.sort(_cmp_bystrlen_reverse)
+    sorted_titles = standardised_titles.keys().sort(_cmp_bystrlen_reverse)
 
     write_message('Processed journals kb', verbose=3)
 
     # return the raw knowledge base:
-    return kb, standardised_titles, seek_phrases
+    return seek_kb, standardised_titles, sorted_titles
 
 
 def build_collaborations_kb(knowledgebase):

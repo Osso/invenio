@@ -26,10 +26,11 @@ import cProfile
 import pstats
 import os
 
-from invenio.config import CFG_TMPDIR
 
 pr = cProfile.Profile()
 pr.enable()
+
+from invenio.config import CFG_TMPDIR
 
 # start remote debugger if appropriate:
 from invenio.config import CFG_DEVEL_SITE
