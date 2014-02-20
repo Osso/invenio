@@ -44,6 +44,8 @@ from invenio.bibtask import write_message, task_get_option, \
 from invenio.bibindex_engine_utils import get_field_tags
 from invenio.docextract_record import get_record
 from invenio.dbquery import serialize_via_marshal
+from invenio.config import CFG_SITE_URL, CFG_INSPIRE_SITE
+from invenio.errorlib import register_exception
 
 re_CFG_JOURNAL_PUBINFO_STANDARD_FORM_REGEXP_CHECK \
                    = re.compile(CFG_JOURNAL_PUBINFO_STANDARD_FORM_REGEXP_CHECK)
@@ -155,6 +157,7 @@ def check_citations_losses(config, recids, refs, cites):
     """Check citations/references losses at the end of computation process
 
     Raises an exception if needed"""
+
     # Limit of # of citation we can loose in one chunk
     function = config.get("rank_method", "function")
     citation_loss_limit = int(config.get(function, "citation_loss_limit"))
@@ -172,14 +175,63 @@ def check_citations_losses(config, recids, refs, cites):
         raise Exception(err_msg)
 
     # Per record loss limits
+    records_to_ignore = set()
     if citation_loss_per_record_limit:
-        for recid, record_refs_diff, record_cites_diff in zip(recids, refs_diff, cites_diff):
-            if record_refs_diff < -citation_loss_per_record_limit:
-                write_message('%s balance: %s refs' % (recid, record_refs_diff))
-                raise Exception(err_msg)
-            if record_cites_diff < -citation_loss_per_record_limit:
-                write_message('%s balance: %s cites' % (recid, record_cites_diff))
-                raise Exception(err_msg)
+        for recid, record_refs_diff in zip(recids, refs_diff):
+            try:
+                assert record_refs_diff > -citation_loss_per_record_limit
+            except AssertionError:
+                prefix = "Record %s lost too many references: %s refs" \
+                         % (recid, record_refs_diff)
+                register_exception(prefix=prefix,
+                                   alert_admin=True)
+                report_loss(recid, prefix, True)
+                records_to_ignore.add(recid)
+
+        for recid, record_cites_diff in zip(recids, cites_diff):
+            try:
+                assert record_cites_diff > -citation_loss_per_record_limit
+            except AssertionError:
+                prefix = "Record %s lost too many citations: %s cites" \
+                         % (recid, record_cites_diff)
+                register_exception(prefix=prefix,
+                                   alert_admin=True)
+                report_loss(recid, prefix, False)
+                records_to_ignore.add(recid)
+
+    for recid in set(records_to_ignore):
+        recids.remove(recid)
+
+
+def report_loss(recid, prefix, is_refs):
+    """
+    Reports the loss of reference/citation to RT.
+    """
+    from invenio.bibcatalog_task import BibCatalogTicket
+
+    if is_refs:
+        type_of_loss = "references"
+    else:
+        type_of_loss = "citations"
+
+    ticket = BibCatalogTicket(recid=recid)
+    ticket.subject = prefix
+    ticket.queue = "CitationLoss"
+    ticket.body = """
+        Record lost too many %(type_of_loss)s: %(recordlink)s
+
+        Edit it: %(recordeditlink)s
+
+        After investigation alert admin to run:
+        $ sudo -u apache /opt/cds-invenio/bin/bibrank -i %(recid)s
+
+    """ % {
+        "recordlink": "%s/record/%s/%s" % (CFG_SITE_URL, recid, type_of_loss),
+        "recordeditlink": "%s/record/%s/edit" % (CFG_SITE_URL, recid),
+        "recid": recid,
+        "type_of_loss": type_of_loss,
+    }
+    ticket.submit()
 
 
 def process_and_store(recids, config, chunk_size):
