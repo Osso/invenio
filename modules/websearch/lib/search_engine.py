@@ -37,6 +37,7 @@ import urllib
 import urlparse
 import zlib
 import sys
+import json
 
 try:
     ## import optional module:
@@ -959,6 +960,9 @@ def page_start(req, of, cc, aas, ln, uid, title_message=None,
         req.send_http_header()
     elif of == "id":
         pass # nothing to do, we shall only return list of recIDs
+    elif of == 'recstruct':
+        req.content_type = 'application/json'
+        req.send_http_header()
     elif content_type == 'text/html':
         # we are doing HTML output:
         req.content_type = "text/html"
@@ -4809,6 +4813,19 @@ def print_records(req, recIDs, jrec=1, rg=CFG_WEBSEARCH_DEF_RECORDS_IN_GROUPS, f
                                                                                     files=files,
                                                                                     reviews=reviews,
                                                                                     actions=actions))
+            elif format == 'recstruct':
+                req.write('[')
+                first = True
+                for recid in recIDs:
+                    record_json = print_record(recid, format, ot, ln,
+                                               search_pattern=search_pattern,
+                                               user_info=user_info, verbose=verbose,
+                                               sf=sf, so=so, sp=sp, rm=rm)
+                    if not first:
+                        req.write(',')
+                    req.write(record_json)
+                    first = False
+                req.write(']')
             else:
                 # Other formats
                 for recid in recIDs:
@@ -4896,7 +4913,11 @@ def print_record(recID, format='hb', ot='', ln=CFG_SITE_LANG, decompress=zlib.de
     any dynamic search links that may be printed.
     """
     if format == 'recstruct':
-        return get_record(recID)
+        xml = print_record(recID, 'xm', ot, ln,
+                           search_pattern=search_pattern,
+                           user_info=user_info, verbose=verbose,
+                           sf=sf, so=so, sp=sp, rm=rm)
+        return json.dumps(create_record(xml)[0])
 
     _ = gettext_set_language(ln)
 
