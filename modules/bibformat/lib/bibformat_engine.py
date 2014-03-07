@@ -1861,7 +1861,8 @@ class BibFormatObject(object):
             # If record is given as parameter
             self.xml_record = xml_record
             self.record = create_record(xml_record)[0]
-            recID = record_get_field_value(self.record, "001")
+            if '001' in self.record:
+                recID = record_get_field_value(self.record, "001")
 
         self.lang = wash_language(ln)
         if search_pattern is None:
