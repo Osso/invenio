@@ -24,6 +24,7 @@ try:
 except ImportError:
     import elementtree.ElementTree as ET
 
+from invenio.textutils import wash_for_xml_unicode
 from invenio.search_engine import get_record as get_record_original
 from invenio.bibrecord import create_record as create_record_original, \
                               create_records as create_records_original
@@ -227,17 +228,17 @@ class BibRecord(object):
                 if tag.startswith('00'):
                     controlfield = ET.SubElement(root,
                                                  'controlfield',
-                                                 {'tag': tag})
-                    controlfield.text = field.value
+                                                 {'tag': wash_for_xml_unicode(tag)})
+                    controlfield.text = wash_for_xml_unicode(field.value)
                 else:
-                    attribs = {'tag': tag,
-                               'ind1': field.ind1,
-                               'ind2': field.ind2}
+                    attribs = {'tag': wash_for_xml_unicode(tag),
+                               'ind1': wash_for_xml_unicode(field.ind1),
+                               'ind2': wash_for_xml_unicode(field.ind2)}
                     datafield = ET.SubElement(root, 'datafield', attribs)
                     for subfield in field.subfields:
-                        attrs = {'code': subfield.code}
+                        attrs = {'code': wash_for_xml_unicode(subfield.code)}
                         s = ET.SubElement(datafield, 'subfield', attrs)
-                        s.text = subfield.value
+                        s.text = wash_for_xml_unicode(subfield.value)
         return root
 
     def to_xml(self, encoding='utf-8'):

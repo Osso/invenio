@@ -371,7 +371,7 @@ except ValueError:
     RE_ALLOWED_XML_1_0_CHARS = re.compile(u'[^\U00000009\U0000000A\U0000000D\U00000020-\U0000D7FF\U0000E000-\U0000FFFD]')
     RE_ALLOWED_XML_1_1_CHARS = re.compile(u'[^\U00000001-\U0000D7FF\U0000E000-\U0000FFFD]')
 
-def wash_for_xml(text, xml_version='1.0'):
+def wash_for_xml_unicode(text, xml_version='1.0'):
     """
     Removes any character which is not in the range of allowed
     characters for XML. The allowed characters depends on the version
@@ -387,9 +387,26 @@ def wash_for_xml(text, xml_version='1.0'):
         input. Value for this parameter can be '1.0' or '1.1'
     """
     if xml_version == '1.0':
-        return RE_ALLOWED_XML_1_0_CHARS.sub('', unicode(text, 'utf-8')).encode('utf-8')
+        return RE_ALLOWED_XML_1_0_CHARS.sub('', text)
     else:
-        return RE_ALLOWED_XML_1_1_CHARS.sub('', unicode(text, 'utf-8')).encode('utf-8')
+        return RE_ALLOWED_XML_1_1_CHARS.sub('', text)
+
+def wash_for_xml(text, xml_version='1.0'):
+    """
+    Removes any character which is not in the range of allowed
+    characters for XML. The allowed characters depends on the version
+    of XML.
+
+        - XML 1.0:
+            <http://www.w3.org/TR/REC-xml/#charsets>
+        - XML 1.1:
+            <http://www.w3.org/TR/xml11/#charsets>
+
+    @param text: input string to wash.
+    @param xml_version: version of the XML for which we wash the
+        input. Value for this parameter can be '1.0' or '1.1'
+    """
+    return wash_for_xml_unicode(unicode(text, 'utf-8'), xml_version=xml_version).encode('utf-8')
 
 def wash_for_utf8(text, correct=True):
     """Return UTF-8 encoded binary string with incorrect characters washed away.
