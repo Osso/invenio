@@ -89,6 +89,9 @@ except ImportError:
     CFG_DATABASE_SLAVE_SU_PASS = ''
     CFG_DATABASE_PASSWORD_FILE = ''
 
+ALWAYS_QUERY_SLAVE = False
+
+
 def _get_password_from_database_password_file(user):
     """
     Parse CFG_DATABASE_PASSWORD_FILE and return password
@@ -245,6 +248,12 @@ def run_sql(sql, param=None, n=0, with_desc=False, with_dict=False, run_on_slave
 
     if param:
         param = tuple(param)
+
+    if ALWAYS_QUERY_SLAVE:
+        if CFG_DATABASE_SLAVE:
+            run_on_slave = True
+        else:
+            raise StandardError("ALWAYS_QUERY_SLAVE is set and CFG_DATABASE_SLAVE is not set")
 
     dbhost = CFG_DATABASE_HOST
     if run_on_slave and CFG_DATABASE_SLAVE:
@@ -505,3 +514,8 @@ def real_escape_string(unescaped_string, run_on_slave=False):
     connection_object = _db_login(dbhost)
     escaped_string = connection_object.escape_string(unescaped_string)
     return escaped_string
+
+
+def set_always_query_slave(new_value):
+    global ALWAYS_QUERY_SLAVE
+    ALWAYS_QUERY_SLAVE = new_value
