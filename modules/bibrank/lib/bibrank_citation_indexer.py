@@ -122,8 +122,10 @@ def get_citation_weight(rank_method_code, config, chunk_size=25000):
         write_message("bibindex: %s" % index_update_time)
         if index_update_time > datetime.now().strftime("%Y-%m-%d %H:%M:%S"):
             index_update_time = "0000-00-00 00:00:00"
+        webcoll_update_time = get_webcoll_update_time()
+
         updated_recids = get_modified_recs(bibrank_update_time,
-                                           index_update_time)
+                                           min(index_update_time, webcoll_update_time))
         if len(updated_recids) > 10000:
             str_updated_recids = str(updated_recids[:10]) + ' ... ' + str(updated_recids[-10:])
         else:
@@ -253,6 +255,11 @@ def get_bibindex_update_time():
         index_update_time = "0000-00-00 00:00:00"
 
     return index_update_time
+
+
+def get_webcoll_update_time():
+    """Return the last runtime of webcoll"""
+    return
 
 
 def get_modified_recs(bibrank_method_lastupdate, indexes_lastupdate):
