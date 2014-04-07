@@ -30,6 +30,10 @@ from urlparse import urlparse, urlunparse
 from wsgiref.validate import validator
 from wsgiref.util import FileWrapper
 
+GC_COUNT = 0
+REQUESTS_BEFORE_GC = 200
+
+
 if __name__ != "__main__":
     # Chances are that we are inside mod_wsgi.
     ## You can't write to stdout in mod_wsgi, but some of our
@@ -570,12 +574,21 @@ def application(environ, start_response):
         for (callback, data) in req.get_cleanups():
             callback(data)
 
-        ## as suggested in
-        ## <http://www.python.org/doc/2.3.5/lib/module-gc.html>
-        gc.enable()
-        gc.collect()
-        del gc.garbage[:]
-    return []
+    return EmptyResponseWithCleanup()
+
+class EmptyResponseWithCleanup(object):
+    def __iter__(self):
+        return iter([])
+
+    def close(self):
+        global GC_COUNT
+        GC_COUNT += 1
+        if GC_COUNT > REQUESTS_BEFORE_GC:
+            ## as suggested in
+            ## <http://www.python.org/doc/2.3.5/lib/module-gc.html>
+            gc.enable()
+            gc.collect()
+            del gc.garbage[:]
 
 def generate_error_page(req, admin_was_alerted=True, page_already_started=False):
     """
