@@ -27,8 +27,6 @@ import pstats
 import os
 
 
-pr = cProfile.Profile()
-pr.enable()
 
 from invenio.config import CFG_TMPDIR
 
@@ -69,7 +67,7 @@ re._MAXCACHE = 2000
 
 
 try:
-    from invenio.webinterface_handler_wsgi import application
+    from invenio.webinterface_handler_wsgi import application as invenio_app
 finally:
     ## mod_wsgi uses one thread to import the .wsgi file
     ## and a second one to instantiate the application.
@@ -78,11 +76,17 @@ finally:
     from invenio.dbquery import close_connection
     close_connection()
 
-pr.disable()
-strstream = StringIO()
-pstats.Stats(pr, stream=strstream).strip_dirs().sort_stats('cumulative').print_stats()
 
+def application(environ, start_response):
+    pr = cProfile.Profile()
+    pr.enable()
+    try:
+        return invenio_app(environ, start_response)
+    finally:
+        pr.disable()
+        strstream = StringIO()
+        pstats.Stats(pr, stream=strstream).strip_dirs().sort_stats('cumulative').print_stats()
 
-tmp_file_fd, dummy_tmp_file = mkstemp(dir=CFG_TMPDIR, prefix='startup-')
-with os.fdopen(tmp_file_fd, 'w') as out:
-    out.write(strstream.getvalue())
+        tmp_file_fd, dummy_tmp_file = mkstemp(dir=CFG_TMPDIR, prefix='invenio-run-')
+        with os.fdopen(tmp_file_fd, 'w') as out:
+            out.write(strstream.getvalue())
