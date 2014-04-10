@@ -1070,29 +1070,25 @@ def crossref_normalize_name(record):
             value=new_author, subfield_position=0, field_position_global=position)
 
 
-def get_affiliation_for_paper(rec, name):
-    """ Returns guessed affiliations for a given record id and name
+def get_affiliations_for_paper(rec, names):
+    """ Returns guessed affiliations for a given record id and list of names
 
     @param rec: record id to guess affiliations from
-    @type: string
+    @type: int
 
-    @param name: string with the name of the author
-    @type: string
+    @param name: list of author names
+    @type: list of strings
     """
-    try:
-        affs = run_sql("""SELECT affiliations
-                          FROM bibEDITAFFILIATIONS
-                          WHERE bibrec=%s
-                          AND name=%s""", (rec, name))
-    except ProgrammingError:
-        # Table bibEDITAFFILIATIONS does not exist. As it is not mandatory,
-        # return None
-        return None
+    if not names:
+        return []
 
-    if not affs:
-        return None
-
-    return list(deserialize(affs[0][0]))
+    placeholders = ','.join('%s' for dummy in names)
+    affs = run_sql("""SELECT aidPERSONIDPAPERS.name, aidAFFILIATIONS.affiliation
+                      FROM aidPERSONIDPAPERS
+                      INNER JOIN aidAFFILIATIONS
+                      ON aidPERSONIDPAPERS.personid = aidAFFILIATIONS.personid
+                      WHERE aidPERSONIDPAPERS.name IN (%s)""" % placeholders, names)
+    return affs
 
 
 ####################### rt system utils ################################

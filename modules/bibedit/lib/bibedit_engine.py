@@ -77,7 +77,7 @@ from invenio.bibedit_utils import cache_exists, cache_expired, \
     replace_references, merge_record_with_template, record_xml_output, \
     record_is_conference, add_record_cnum, get_xml_from_textmarc, \
     record_locked_by_user_details, crossref_process_template, \
-    modify_record_timestamp, get_affiliation_for_paper, InvalidCache, \
+    modify_record_timestamp, get_affiliations_for_paper, InvalidCache, \
     get_new_ticket_RT_info
 
 from invenio.bibrecord import create_record, print_rec, record_add_field, \
@@ -1792,6 +1792,7 @@ def perform_guess_affiliations(uid, data):
         undo_list, redo_list = get_cache_contents(recid, uid)[1:]
 
     # Let's guess affiliations
+    aff_to_guess = []
     result = {}
     for tag in CFG_BIBEDIT_DISPLAY_AUTHOR_TAGS:
         result[tag] = {}
@@ -1805,13 +1806,18 @@ def perform_guess_affiliations(uid, data):
                     author_name = field_get_subfield_values(instance, code="a")[0]
                 except IndexError:
                     author_name = author_name[0]
-                aff_guess = get_affiliation_for_paper(recid, author_name)
-                if aff_guess:
-                    for aff in aff_guess:
-                        field_add_subfield(instance, code="u", value=aff)
-                        subfields_to_add.append(["u", aff])
-            if subfields_to_add:
-                result[tag][field_pos] = subfields_to_add
+
+                aff_to_guess.append((tag, field_pos, instance, author_name))
+
+    names = [el[3] for el in aff_to_guess]
+    aff_guesses = dict(get_affiliations_for_paper(recid, names))
+
+    for tag, field_pos, instance, author_name in aff_to_guess:
+        if author_name in aff_guesses:
+            field_add_subfield(instance, code="u", value=aff_guesses[author_name])
+            subfields_to_add.append(["u", aff_guesses[author_name]])
+        if subfields_to_add:
+            result[tag][field_pos] = subfields_to_add
 
     response['cacheMTime'] = update_cache_contents(recid, uid, record_revision,
                                                    record, pending_changes,
