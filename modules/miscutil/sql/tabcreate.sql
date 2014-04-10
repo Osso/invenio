@@ -4731,7 +4731,8 @@ CREATE TABLE IF NOT EXISTS `aidAFFILIATIONS` (
   `affiliation` VARCHAR( 255 ) NOT NULL,
   `last_recid` MEDIUMINT( 8 ) UNSIGNED NOT NULL,
   `last_occurence` datetime NOT NULL,
- PRIMARY KEY (`personid`)
+ PRIMARY KEY (`personid`, `affiliation`),
+ INDEX `last_recid` (`last_recid`)
 ) ENGINE=MyISAM;
 
 -- refextract tables:
