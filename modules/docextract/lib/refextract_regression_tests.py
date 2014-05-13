@@ -25,7 +25,6 @@ They are intended to make sure there is no regression in references parsing.
 """
 
 from invenio.testutils import InvenioTestCase
-import re
 from mock import patch
 
 from invenio.testutils import make_test_suite, run_test_suite, InvenioXmlTestCase
@@ -1101,7 +1100,7 @@ class RefextractTest(InvenioXmlTestCase):
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">48</subfield>
       <subfield code="h">O.O. Vaneeva, R.O. Popovych and C. Sophocleous</subfield>
-      <subfield code="a">10.1007/s10440-008-9280-9</subfield>
+      <subfield code="a">doi:10.1007/s10440-008-9280-9</subfield>
       <subfield code="r">arXiv:0708.3457</subfield>
    </datafield>
 </record>""")
@@ -1111,7 +1110,7 @@ class RefextractTest(InvenioXmlTestCase):
         _reference_test(self, ref_line, u"""<record>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">1</subfield>
-      <subfield code="a">10.1175/1520-0442(2000)013&lt;2671:TAORTT&gt;2.0.CO;2</subfield>
+      <subfield code="a">doi:10.1175/1520-0442(2000)013&lt;2671:TAORTT&gt;2.0.CO;2</subfield>
    </datafield>
 </record>""")
 
@@ -1121,7 +1120,7 @@ class RefextractTest(InvenioXmlTestCase):
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">49</subfield>
       <subfield code="h">M. I. Trofimov, N. De Filippis and E. A. Smolenskii</subfield>
-      <subfield code="a">10.1007/s11172-006-0105-6</subfield>
+      <subfield code="a">doi:10.1007/s11172-006-0105-6</subfield>
    </datafield>
 </record>""")
 
@@ -2440,7 +2439,7 @@ and C. Tomei et al., Astropart. Phys. 33 (2010) 169 [arXiv:0912.0452 [physics.in
         _reference_test(self, ref_line, u"""<record>
    <datafield tag="999" ind1="C" ind2="5">
       <subfield code="o">6</subfield>
-      <subfield code="a">10.1007/s10440-008-9280-9</subfield>
+      <subfield code="a">doi:10.1007/s10440-008-9280-9</subfield>
    </datafield>
 </record>""")
 
@@ -2826,7 +2825,7 @@ and C. Tomei et al., Astropart. Phys. 33 (2010) 169 [arXiv:0912.0452 [physics.in
         _reference_test(self, ref_line, u"""<record>
    <datafield ind1="C" ind2="5" tag="999">
        <subfield code="o">1</subfield>
-       <subfield code="a">10.1007/s10440-008-9280-9</subfield>
+       <subfield code="a">doi:10.1007/s10440-008-9280-9</subfield>
    </datafield>
 </record>""")
 
@@ -2874,6 +2873,26 @@ and C. Tomei et al., Astropart. Phys. 33 (2010) 169 [arXiv:0912.0452 [physics.in
    <datafield ind1="C" ind2="5" tag="999">
        <subfield code="o">2</subfield>
        <subfield code="t">Λb → J/ψΛ and B0 → J/ψKS</subfield>
+   </datafield>
+</record>""")
+
+    def test_hdl_url(self):
+        """Checks hdl url recognition"""
+        ref_line = u"""[2] http://hdl.handle.net/1201/99999 """
+        _reference_test(self, ref_line, u"""<record>
+   <datafield ind1="C" ind2="5" tag="999">
+       <subfield code="o">2</subfield>
+       <subfield code="a">hdl:1201/99999</subfield>
+   </datafield>
+</record>""")
+
+    def test_hdl(self):
+        """Checks hdl recognition"""
+        ref_line = u"""[2] before hdl:1201/99999 after"""
+        _reference_test(self, ref_line, u"""<record>
+   <datafield ind1="C" ind2="5" tag="999">
+       <subfield code="o">2</subfield>
+       <subfield code="a">hdl:1201/99999</subfield>
    </datafield>
 </record>""")
 
