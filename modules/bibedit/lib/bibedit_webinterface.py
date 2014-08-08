@@ -97,15 +97,21 @@ class WebInterfaceEditPages(WebInterfaceDirectory):
         argd = wash_urlargd(form, {'ln': (str, CFG_SITE_LANG)})
 
         # If it is an Ajax request, extract any JSON data.
-        ajax_request, recid = False, None
-        if form.has_key('jsondata'):
+        ajax_request = False
+        recid = None
+        if 'jsondata' in form:
             json_data = json.loads(str(form['jsondata']))
             # Deunicode all strings (Invenio doesn't have unicode
             # support).
             json_data = json_unicode_to_utf8(json_data)
             ajax_request = True
-            if json_data.has_key('recID'):
-                recid = json_data['recID']
+            if 'recID' in json_data:
+                max_recid = int(run_sql('SELECT MAX(id) FROM bibrec')[0][0])
+                if 0 < json_data['recID'] < max_recid:
+                    recid = json_data['recID']
+                else:
+                    json_response = {'resultCode': 102, 'ID': json_data['ID']}
+                    return json.dumps(json_response)
             json_response = {'resultCode': 0, 'ID': json_data['ID']}
 
         # Authorization.
