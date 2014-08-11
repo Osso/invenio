@@ -627,6 +627,7 @@ def bibupload(record, opt_mode=None, opt_notimechange=0, oai_rec_id="", pretend=
             bibrec_now = convert_datestruct_to_datetext(time.localtime())
             write_message("   -Retrieved current localtime: DONE", verbose=2)
             update_bibrec_date(bibrec_now, rec_id, insert_mode_p, pretend=pretend)
+            update_hstrecord_date(rec_id)
             write_message("   -Stage COMPLETED", verbose=2)
         else:
             write_message("   -Stage NOT NEEDED", verbose=2)
@@ -2367,6 +2368,11 @@ def archive_marcxml_for_history(recID, affected_fields, pretend=False):
                     'mode: ' + task_get_option('mode', 'UNKNOWN') + '; file: ' + task_get_option('file_path', 'UNKNOWN') + '.',
                 db_affected_fields))
     return 0
+
+def update_hstrecord_date(recID):
+    run_sql("""UPDATE hstRECORD SET job_date = NOW()
+               WHERE id_bibrec = %s AND job_id = %s""",
+            (recID, task_get_task_param('task_id', 0)))
 
 def update_database_with_metadata(record, rec_id, oai_rec_id="oai", affected_tags=None, pretend=False):
     """Update the database tables with the record and the record id given in parameter"""
