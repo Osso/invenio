@@ -1,0 +1,63 @@
+image: inspirehep/invenio-drone:latest
+script:
+    # Autotools
+    - aclocal
+    - automake -a
+    - autoconf
+    - ./configure
+
+    # Create destination
+    - sudo mkdir -p /opt/invenio
+    - sudo chown drone:drone /opt/invenio
+    - mkdir -p /opt/invenio/lib/python/invenio
+    - sudo ln -s /opt/invenio/lib/python/invenio /usr/local/lib/python2.7/dist-packages/invenio
+
+    # Install
+    - make
+    - make install
+
+    # Config
+    - mv ~/invenio-local.conf /opt/invenio/etc/invenio-local.conf
+
+    - sudo chown www-data:www-data /opt/invenio -R
+
+    - sudo -u www-data /opt/invenio/bin/inveniocfg --update-all
+    - sudo -u www-data /opt/invenio/bin/inveniocfg --load-bibfield-conf
+
+    # Mails
+    - sudo service postfix start
+
+    # Apache
+    - sudo -u www-data /opt/invenio/bin/inveniocfg --create-apache-conf
+    - sudo ln -fs /opt/invenio/etc/apache/invenio-apache-vhost.conf /etc/apache2/sites-available/invenio.conf
+    - sudo ln -fs /opt/invenio/etc/apache/invenio-apache-vhost-ssl.conf /etc/apache2/sites-available/invenio-ssl.conf
+    - sudo /usr/sbin/a2ensite invenio
+    - sudo /usr/sbin/a2ensite invenio-ssl
+
+    # Redis
+    - sudo service redis-server start
+
+    # Database
+    - sudo mv /var/lib/mysql /dev/shm/mysql
+    - sudo ln -s /dev/shm/mysql /var/lib/mysql
+    - sudo service mysql start
+    - mysql -e "CREATE DATABASE invenio DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci" -u root
+    - mysql -e "GRANT ALL PRIVILEGES ON invenio.* TO invenio@localhost IDENTIFIED BY 'my123p\$ss'" -u root
+
+    # Load records
+    - sudo -u www-data /opt/invenio/bin/inveniocfg --create-tables --yes-i-know
+    - sudo -u www-data /opt/invenio/bin/inveniocfg --create-demo-site --yes-i-know
+    - sudo -u www-data /opt/invenio/bin/inveniocfg --load-demo-records --yes-i-know
+
+    # Start apache after creating the demo site
+    # to be able to populate startup caches properly
+    - sudo service apache2 start
+
+    # Tests
+    - sudo -u www-data nosetests /opt/invenio/lib/python/invenio/*_unit_tests.py || (cat /opt/invenio/var/log/invenio.err && false)
+    - sudo -u www-data nosetests /opt/invenio/lib/python/invenio/*_regression_tests.py || (cat /opt/invenio/var/log/invenio.err && false)
+
+notify:
+  email:
+    recipients:
+      - alessio.deiana@cern.ch
