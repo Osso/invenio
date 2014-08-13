@@ -1778,6 +1778,7 @@ class BibIndexCLICallTest(InvenioTestCase):
     def test_correct_message_for_up_to_date_indexes(self):
         """bibindex - checks if correct message for index up to date appears"""
         index_name = "abstract"
+        reindex_for_type_with_bibsched(index_name)
         task_id = reindex_for_type_with_bibsched(index_name)
         filename = task_log_path(task_id, 'log')
         fl = open(filename)
@@ -1956,12 +1957,25 @@ class BibIndexVirtualIndexQueueTableTest(InvenioTestCase):
 
     def test_3_correct_entry_in_queue_for_phrase_table(self):
         """bibindex - checks correct entry in queue table for phrases"""
-        self.index_dependent_index('keyword', [[19,19]], CFG_BIBINDEX_INDEX_TABLE_TYPE["Phrases"])
         query = "SELECT * FROM idxPHRASE01Q"
-        res = run_sql(query)
-        self.assertEqual((19, 19), (res[0][2], res[0][3]))
-        self.assertEqual('keyword', res[0][4])
-        self.run_update_for_virtual_index(CFG_BIBINDEX_INDEX_TABLE_TYPE["Phrases"])
+        res_before = run_sql(query)
+        content_before = [(row[2], row[3], row[4]) for row in res_before]
+        self.index_dependent_index(
+            'keyword',
+            [[19, 19]],
+            CFG_BIBINDEX_INDEX_TABLE_TYPE["Phrases"]
+        )
+        added_item = (19, 19, 'keyword')
+        res_after = run_sql(query)
+        content_after = [(row[2], row[3], row[4]) for row in res_after]
+        self.assertLess(
+            content_before.count(added_item),
+            content_after.count(added_item)
+        )
+        self.assertIn(added_item, content_after)
+        self.run_update_for_virtual_index(
+            CFG_BIBINDEX_INDEX_TABLE_TYPE["Phrases"]
+        )
 
     def test_4_no_entries_in_queue_table(self):
         """bibindex - checks if virtual index removes entries from queue table after update"""
