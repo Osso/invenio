@@ -37,6 +37,7 @@ script:
 
     # Apache
     - sudo -u www-data /opt/invenio/bin/inveniocfg --create-apache-conf
+    - sudo -u www-data bash -c "sed 's/processes=5/processes=2/' /opt/invenio/etc/apache/invenio-apache-vhost.conf > /opt/invenio/etc/apache/invenio-apache-vhost.conf"
     - sudo ln -fs /opt/invenio/etc/apache/invenio-apache-vhost.conf /etc/apache2/sites-available/invenio.conf
     - sudo ln -fs /opt/invenio/etc/apache/invenio-apache-vhost-ssl.conf /etc/apache2/sites-available/invenio-ssl.conf
     - sudo /usr/sbin/a2ensite invenio
