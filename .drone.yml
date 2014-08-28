@@ -1,12 +1,5 @@
 image: inspirehep/invenio-drone:latest
 script:
-    # Create temp filesystem to speed up operations
-    - sudo mount -t tmpfs -o size=512M tmpfs /opt
-    - sudo mkdir -p /opt/src/invenio
-    - sudo chown drone:drone /opt/src/invenio
-    - mv * /opt/src/invenio/
-    - cd /opt/src/invenio/
-
     # Autotools
     - aclocal
     - automake -a
