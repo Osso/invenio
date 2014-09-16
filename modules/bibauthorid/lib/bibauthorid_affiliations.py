@@ -25,8 +25,6 @@ the affiliations for each author appearing in a paper. This is used later in:
 * Rabbit to use the affiliation to assign papers in a fast way.
 """
 
-import json
-
 from itertools import islice
 from datetime import datetime
 from itertools import chain
