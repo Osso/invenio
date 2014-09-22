@@ -24,7 +24,7 @@ from invenio.testutils import InvenioTestCase
 import datetime
 
 from invenio import search_engine_query_parser
-
+from invenio.search_engine_spires_parser import SpiresToInvenioSyntaxConverter
 from invenio.testutils import make_test_suite, run_test_suite
 from invenio.search_engine import create_basic_search_units, perform_request_search
 from invenio.config import CFG_WEBSEARCH_SPIRES_SYNTAX
@@ -42,7 +42,7 @@ class TestParserUtilityFunctions(InvenioTestCase):
 
     def setUp(self):
         self.parser = search_engine_query_parser.SearchQueryParenthesisedParser()
-        self.converter = search_engine_query_parser.SpiresToInvenioSyntaxConverter()
+        self.converter = SpiresToInvenioSyntaxConverter()
 
     def test_ndb_simple(self):
         """SQPP.test_nesting_depth_and_balance: ['p0']"""
@@ -346,7 +346,7 @@ class TestSpiresToInvenioSyntaxConverter(InvenioTestCase):
         tests in the Inspire module.
         """
         parser = search_engine_query_parser.SearchQueryParenthesisedParser()
-        converter = search_engine_query_parser.SpiresToInvenioSyntaxConverter()
+        converter = SpiresToInvenioSyntaxConverter()
 
         parsed_query = parser.parse_query(converter.convert_query(spires_syntax))
         #parse_query removes any parens that convert_query added, but then
@@ -1038,14 +1038,14 @@ class TestSpiresToInvenioSyntaxConverter(InvenioTestCase):
         def test_spires_syntax_detected_f(self):
             """SPIRES search syntax - test detection f t p"""
             # trac #261
-            converter = search_engine_query_parser.SpiresToInvenioSyntaxConverter()
+            converter = SpiresToInvenioSyntaxConverter()
             spi_search = converter.is_applicable("f t p")
             self.assertEqual(spi_search, True)
 
         def test_spires_syntax_detected_fin(self):
             """SPIRES search syntax - test detection fin t p"""
             # trac #261
-            converter = search_engine_query_parser.SpiresToInvenioSyntaxConverter()
+            converter = SpiresToInvenioSyntaxConverter()
             spi_search = converter.is_applicable("fin t p")
             self.assertEqual(spi_search, True)
 
@@ -1196,38 +1196,38 @@ class TestSpiresToInvenioSyntaxConverter(InvenioTestCase):
 
         def test_spires_syntax_detected_naked_a(self):
             """SPIRES search syntax - test detection a ellis"""
-            converter = search_engine_query_parser.SpiresToInvenioSyntaxConverter()
+            converter = SpiresToInvenioSyntaxConverter()
             spi_search = converter.is_applicable("a ellis")
             self.assertEqual(spi_search, True)
 
         def test_spires_syntax_detected_naked_author(self):
             """SPIRES search syntax - test detection author ellis"""
-            converter = search_engine_query_parser.SpiresToInvenioSyntaxConverter()
+            converter = SpiresToInvenioSyntaxConverter()
             spi_search = converter.is_applicable("author ellis")
             self.assertEqual(spi_search, True)
 
         def test_spires_syntax_detected_naked_author_leading_spaces(self):
             """SPIRES search syntax - test detection              author ellis"""
-            converter = search_engine_query_parser.SpiresToInvenioSyntaxConverter()
+            converter = SpiresToInvenioSyntaxConverter()
             spi_search = converter.is_applicable("             author ellis")
             self.assertEqual(spi_search, True)
 
         def test_spires_syntax_detected_naked_title(self):
             """SPIRES search syntax - test detection t muon"""
-            converter = search_engine_query_parser.SpiresToInvenioSyntaxConverter()
+            converter = SpiresToInvenioSyntaxConverter()
             spi_search = converter.is_applicable("t muon")
             self.assertEqual(spi_search, True)
 
         def test_spires_syntax_detected_second_keyword(self):
             """SPIRES search syntax - test detection author:ellis and t muon"""
-            converter = search_engine_query_parser.SpiresToInvenioSyntaxConverter()
+            converter = SpiresToInvenioSyntaxConverter()
             spi_search = converter.is_applicable("author:ellis and t muon")
             self.assertEqual(spi_search, True)
 
     def test_spires_syntax_detected_invenio(self):
         """SPIRES search syntax - test detection Not SPIRES"""
         # trac #261
-        converter = search_engine_query_parser.SpiresToInvenioSyntaxConverter()
+        converter = SpiresToInvenioSyntaxConverter()
         inv_search = converter.is_applicable("t:p a:c")
         self.assertEqual(inv_search, False)
 

@@ -1,84 +1,50 @@
 # -*- coding: utf-8 -*-
-##
-## This file is part of Invenio.
-## Copyright (C) 2008, 2010, 2011, 2012, 2013 CERN.
-##
-## Invenio is free software; you can redistribute it and/or
-## modify it under the terms of the GNU General Public License as
-## published by the Free Software Foundation; either version 2 of the
-## License, or (at your option) any later version.
-##
-## Invenio is distributed in the hope that it will be useful, but
-## WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Invenio; if not, write to the Free Software Foundation, Inc.,
-## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+#
+# This file is part of Invenio.
+# Copyright (C) 2008, 2010, 2011, 2012, 2013 CERN.
+#
+# Invenio is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation; either version 2 of the
+# License, or (at your option) any later version.
+#
+# Invenio is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Invenio; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 """Unit tests for the search engine query parsers."""
-
-from functools import partial
 
 from invenio.testutils import (make_test_suite,
                                run_test_suite,
                                InvenioTestCase,
                                nottest)
-from invenio.search_engine_spires_parser import (parseQuery,
-                                                 lexQuery,
-                                                 Token,
-                                                 generate_lexer,
-                                                 generate_parser)
+from invenio.search_engine_spires_parser import (SpiresToInvenioSyntaxConverter,
+                                                 load_walkers)
 from invenio.search_engine_spires_ast import (AndOp, KeywordOp, OrOp,
                                               NotOp, Keyword, Value,
                                               SingleQuotedValue, NotOp,
-                                              DoubleQuotedValue,
-                                              RegexValue, RangeOp, SpiresOp)
-from invenio.search_engine_spires_walking import (TreePrinter,
-                                                  SpiresToInvenio,
-                                                  TreeRepr)
-from rply import ParsingError
-
-
-@nottest
-def generate_lexer_test(query, expected):
-    def func(self):
-        output = list(lexQuery(query))
-        self.assertEqual(output, expected)
-    return func
+                                              DoubleQuotedValue, ValueQuery,
+                                              RegexValue, RangeOp, SpiresOp,
+                                              GreaterOp, GreaterEqualOp,
+                                              LowerOp, LowerEqualOp,
+                                              EmptyQuery)
 
 
 @nottest
 def generate_parser_test(query, expected):
     def func(self):
-        try:
-            tree = parseQuery(query)
-        except ParsingError as e:
-            print 'Source pos', e.getsourcepos()
-            raise
-        else:
-            printer = TreePrinter()
-            print 'tree', tree.accept(printer)
-            print 'expected', expected.accept(printer)
-            self.assertEqual(tree, expected)
+        tree = self.parser.parse_query(query)
+        printer = self.walkers['repr_printer']()
+        print 'parsed tree  :', tree.accept(printer)
+        print 'expected tree:', expected.accept(printer)
+        self.assertEqual(tree, expected)
     return func
 
-@nottest
-def generate_walker_test(query, expected, walker):
-    def func(self):
-        try:
-            tree = parseQuery(query)
-        except ParsingError as e:
-            print 'Source pos', e.getsourcepos()
-            raise
-        else:
-            printer = TreePrinter()
-            new_tree = tree.accept(walker())
-            print 'tree', new_tree.accept(printer)
-            print 'expected', expected.accept(printer)
-            self.assertEqual(new_tree, expected)
-    return func
 
 @nottest
 def generate_tests(generate_test):
@@ -92,148 +58,35 @@ def generate_tests(generate_test):
     return fun
 
 
-@generate_tests(generate_lexer_test)  # pylint: disable=R0903
-class TestLexer(InvenioTestCase):
-    """Test lexer functionality"""
-
-    queries = (
-        # Basic keyword:value
-        ("foo:bar",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("foo: bar",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('_', ' '), Token('WORD', 'bar')]),
-        ("999:bar",
-         [Token('WORD', '999'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("999C5:bar",
-         [Token('WORD', '999C5'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("999__u:bar",
-         [Token('WORD', '999__u'), Token('COLON', ':'), Token('WORD', 'bar')]),
-
-        # Quoted strings
-        ("foo:'bar'",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('SINGLE_QUOTED_STRING', "'bar'")]),
-        ("foo:\"bar\"",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('DOUBLE_QUOTED_STRING', '"bar"')]),
-        ("foo:/bar/",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('REGEX_STRING', '/bar/')]),
-        ("foo:\"'bar'\"",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('DOUBLE_QUOTED_STRING', '"\'bar\'"')]),
-        ('author:"Ellis, J"',
-         [Token('WORD', 'author'), Token('COLON', ':'), Token('DOUBLE_QUOTED_STRING', '"Ellis, J"')]),
-
-        # Date Range queries
-        ("year: 2000->2012",
-         [Token('WORD', 'year'), Token('COLON', ':'), Token('_', ' '), Token('WORD', '2000'), Token('->', '->'), Token('WORD', '2012')]),
-        ("year: 2000-10->2012-09",
-         [Token('WORD', 'year'), Token('COLON', ':'), Token('_', ' '), Token('WORD', '2000'),
-          Token('-', '-'), Token('WORD', '10'), Token('->', '->'),
-          Token('WORD', '2012'), Token('-', '-'), Token('WORD', '09')]),
-
-        # Star patterns
-        ("foo:hello*",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'hello'), Token('*', '*')]),
-        ("foo:'hello*'",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('SINGLE_QUOTED_STRING', "'hello*'")]),
-        ("foo:\"hello*\"",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('DOUBLE_QUOTED_STRING', '"hello*"')]),
-        ("foo:he*o",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'he'), Token('*', '*'), Token('WORD', 'o')]),
-        ("foo:he*lo*",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'he'), Token('*', '*'), Token('WORD', 'lo'), Token('*', '*')]),
-        ("foo:*hello",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('*', '*'), Token('WORD', 'hello')]),
-
-        # O'Shea
-        ("foo:O'Shea",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'O'), Token('XWORD', "'"), Token('WORD', 'Shea')]),
-
-        # Unicode characters
-        ("foo:пушкин",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('XWORD', 'пушкин')]),
-        ("foo:Lemaître",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'Lema'), Token('XWORD', 'î'), Token('WORD', 'tre')]),
-        ('foo:"Lemaître"',
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('DOUBLE_QUOTED_STRING', '"Lemaître"')]),
-        ("refersto:hep-th/0201100",
-         [Token('WORD', 'refersto'), Token('COLON', ':'), Token('WORD', 'hep'),
-          Token('-', '-'), Token('WORD', 'th'), Token('XWORD', '/'),
-          Token('WORD', '0201100')]),
-
-        # Combined queries
-        ("foo:bar foo:bar",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token('_', ' '), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("foo:bar and foo:bar",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token('_', ' '), Token('AND', 'and'), Token('_', ' '), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("foo:bar AND foo:bar",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token('_', ' '), Token('AND', 'AND'), Token('_', ' '), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("foo:bar or foo:bar",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token('_', ' '), Token('OR', 'or'), Token('_', ' '), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("foo:bar | foo:bar",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token('_', ' '), Token('|', '|'), Token('_', ' '), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("foo:bar not foo:bar",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token('_', ' '), Token('NOT', 'not'), Token('_', ' '), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("foo:bar -foo:bar",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token('_', ' '), Token('-', '-'), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("((foo:bar))",
-         [Token('(', '('), Token('(', '('), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token(')', ')'), Token(')', ')')]),
-        ("(foo:bar)",
-         [Token('(', '('), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token(')', ')')]),
-        ("(foo:bar) or foo:bar",
-         [Token('(', '('), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token(')', ')'), Token('_', ' '), Token('OR', 'or'), Token('_', ' '), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar')]),
-        ("foo:bar or (foo:bar)",
-         [Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token('_', ' '), Token('OR', 'or'), Token('_', ' '), Token('(', '('), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token(')', ')')]),
-        ("(foo:bar) or (foo:bar)",
-         [Token('(', '('), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token(')', ')'), Token('_', ' '), Token('OR', 'or'), Token('_', ' '), Token('(', '('), Token('WORD', 'foo'), Token('COLON', ':'), Token('WORD', 'bar'), Token(')', ')')]),
-
-        # Spires syntax
-        ("find t quark",
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', 't'), Token('_', ' '), Token('WORD', 'quark')]),
-        ("find a richter, b",
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', 'a'), Token('_', ' '), Token('WORD', 'richter'), Token('XWORD', ','), Token('_', ' '), Token('WORD', 'b')]),
-        ("find date > 1984",
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', 'date'), Token('_', ' '), Token('>', '>'), Token('_', ' '), Token('WORD', '1984')]),
-        ("find date before 1984",
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', 'date'), Token('_', ' '), Token('BEFORE', 'before'), Token('_', ' '), Token('WORD', '1984')]),
-        ("find date after 1984",
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', 'date'), Token('_', ' '), Token('AFTER', 'after'), Token('_', ' '), Token('WORD', '1984')]),
-        ("find 1984->2000",
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', '1984'), Token('->', '->'), Token('WORD', '2000')]),
-        ("find 1984-01->2000-01",
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', '1984'), Token('-', '-'), Token('WORD', '01'), Token('->', '->'), Token('WORD', '2000'), Token('-', '-'), Token('WORD', '01')]),
-        ("find j phys.rev.,D50,1140",
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', 'j'), Token('_', ' '), Token('WORD', 'phys'), Token('XWORD', '.'), Token('WORD', 'rev'), Token('XWORD', '.,'), Token('WORD', 'D50'), Token('XWORD', ','), Token('WORD', '1140')]),
-        ("find eprint arxiv:1007.5048",
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', 'eprint'), Token('_', ' '), Token('WORD', 'arxiv'), Token('COLON', ':'), Token('WORD', '1007'), Token('XWORD', '.'), Token('WORD', '5048')]),
-        ('find fulltext "quark-gluon plasma"',
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', 'fulltext'), Token('_', ' '), Token('DOUBLE_QUOTED_STRING', '"quark-gluon plasma"')]),
-        ('find topcite 200+',
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', 'topcite'), Token('_', ' '), Token('WORD', '200'), Token('+', '+')]),
-        ("FIND t quark",
-         [Token('FIND', 'FIND'), Token('_', ' '), Token('WORD', 't'), Token('_', ' '), Token('WORD', 'quark')]),
-        ("fin t quark",
-         [Token('FIND', 'fin'), Token('_', ' '), Token('WORD', 't'), Token('_', ' '), Token('WORD', 'quark')]),
-        ("f t quark",
-         [Token('FIND', 'f'), Token('_', ' '), Token('WORD', 't'), Token('_', ' '), Token('WORD', 'quark')]),
-        ("find a richter, b and t quark and date > 1984",
-         [Token('FIND', 'find'), Token('_', ' '), Token('WORD', 'a'), Token('_', ' '), Token('WORD', 'richter'), Token('XWORD', ','), Token('_', ' '), Token('WORD', 'b'), Token('_', ' '), Token('AND', 'and'), Token('_', ' '), Token('WORD', 't'), Token('_', ' '), Token('WORD', 'quark'), Token('_', ' '), Token('AND', 'and'), Token('_', ' '), Token('WORD', 'date'), Token('_', ' '), Token('>', '>'), Token('_', ' '), Token('WORD', '1984')]),
-    )
-
-
 @generate_tests(generate_parser_test)  # pylint: disable=R0903
 class TestParser(InvenioTestCase):
     """Test parser functionality"""
 
     queries = (
+        ("",
+          EmptyQuery('')),
+        ("    \t",
+          EmptyQuery('    \t')),
         ("bar",
-         Value('bar')),
+          ValueQuery(Value('bar'))),
+        ("2004",
+          ValueQuery(Value('2004'))),
+        ("'bar'",
+          ValueQuery(SingleQuotedValue('bar'))),
+        ("\"bar\"",
+          ValueQuery(DoubleQuotedValue('bar'))),
         ("J. Ellis",
-         AndOp(Value('J.'), Value('Ellis'))),
+         AndOp(ValueQuery(Value('J.')), ValueQuery(Value('Ellis')))),
+        ("$e^{+}e^{-}$",
+         ValueQuery(Value('$e^{+}e^{-}$'))),
 
         # Basic keyword:value
         ("foo:bar",
          KeywordOp(Keyword('foo'), Value('bar'))),
         ("foo: bar",
          KeywordOp(Keyword('foo'), Value('bar'))),
+        ("foo: 2004",
+         KeywordOp(Keyword('foo'), Value('2004'))),
         ("999: bar",
          KeywordOp(Keyword('999'), Value('bar'))),
         ("999C5: bar",
@@ -245,23 +98,41 @@ class TestParser(InvenioTestCase):
 
         # Quoted strings
         ("foo: 'bar'",
-        KeywordOp(Keyword('foo'), SingleQuotedValue('bar'))),
+         KeywordOp(Keyword('foo'), SingleQuotedValue('bar'))),
         ("foo: \"bar\"",
-        KeywordOp(Keyword('foo'), DoubleQuotedValue('bar'))),
+         KeywordOp(Keyword('foo'), DoubleQuotedValue('bar'))),
         ("foo: /bar/",
-        KeywordOp(Keyword('foo'), RegexValue('bar'))),
+         KeywordOp(Keyword('foo'), RegexValue('bar'))),
         ("foo: \"'bar'\"",
-        KeywordOp(Keyword('foo'), DoubleQuotedValue("'bar'"))),
+         KeywordOp(Keyword('foo'), DoubleQuotedValue("'bar'"))),
         ('author:"Ellis, J"',
-        KeywordOp(Keyword('author'), DoubleQuotedValue("Ellis, J"))),
+         KeywordOp(Keyword('author'), DoubleQuotedValue("Ellis, J"))),
 
-        # Date Range queries
+        # Weird values
+        ("foo: \"bar",
+         KeywordOp(Keyword('foo'), Value('"bar'))),
+        ("foo: 'bar",
+         KeywordOp(Keyword('foo'), Value("'bar"))),
+
+        # Range queries
         ("year: 2000->2012",
-        KeywordOp(Keyword('year'), RangeOp(Value('2000'), Value('2012')))),
+         KeywordOp(Keyword('year'), RangeOp(Value('2000'), Value('2012')))),
         ("year: 2000-10->2012-09",
-        KeywordOp(Keyword('year'), RangeOp(Value('2000-10'), Value('2012-09')))),
+         KeywordOp(Keyword('year'), RangeOp(Value('2000-10'), Value('2012-09')))),
+        ("cited: 3->30",
+         KeywordOp(Keyword('cited'), RangeOp(Value('3'), Value('30')))),
+        ('author: Albert->John',
+         KeywordOp(Keyword('author'), RangeOp(Value('Albert'), Value('John')))),
+        ('author: "Albert"->John',
+         KeywordOp(Keyword('author'), RangeOp(DoubleQuotedValue('Albert'), Value('John')))),
+        ('author: Albert->"John"',
+         KeywordOp(Keyword('author'), RangeOp(Value('Albert'), DoubleQuotedValue('John')))),
+        ('author: "Albert"->"John"',
+         KeywordOp(Keyword('author'), RangeOp(DoubleQuotedValue('Albert'), DoubleQuotedValue('John')))),
 
         # Star patterns
+        ("bar*",
+          ValueQuery(Value('bar*'))),
         ("foo: hello*",
          KeywordOp(Keyword('foo'), Value('hello*'))),
         ("foo: 'hello*'",
@@ -302,11 +173,15 @@ class TestParser(InvenioTestCase):
          AndOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
         ("foo:bar AND foo:bar",
          AndOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
+        ("foo and bar",
+         AndOp(ValueQuery(Value('foo')), ValueQuery(Value('bar')))),
         ("foo:bar or foo:bar",
          OrOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
         ("foo:bar | foo:bar",
          OrOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
         ("foo:bar not foo:bar",
+         AndOp(KeywordOp(Keyword('foo'), Value('bar')), NotOp(KeywordOp(Keyword('foo'), Value('bar'))))),
+        ("foo:bar and not foo:bar",
          AndOp(KeywordOp(Keyword('foo'), Value('bar')), NotOp(KeywordOp(Keyword('foo'), Value('bar'))))),
         ("foo:bar -foo:bar",
          AndOp(KeywordOp(Keyword('foo'), Value('bar')), NotOp(KeywordOp(Keyword('foo'), Value('bar'))))),
@@ -324,52 +199,252 @@ class TestParser(InvenioTestCase):
          OrOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
         ("(foo:bar) or (foo:bar)",
          OrOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
+        ("(foo:bar)or(foo:bar)",
+         OrOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
+        ("(foo:bar)|(foo:bar)",
+         OrOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
+        ("(foo:bar)| (foo:bar)",
+         OrOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
         ("( foo:bar) or ( foo:bar)",
          OrOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
         ("(foo:bar) or (foo:bar )",
          OrOp(KeywordOp(Keyword('foo'), Value('bar')), KeywordOp(Keyword('foo'), Value('bar')))),
+        ("(foo1:bar1 or foo2:bar2) and (foo3:bar3 or foo4:bar4)",
+         AndOp(OrOp(KeywordOp(Keyword('foo1'), Value('bar1')), KeywordOp(Keyword('foo2'), Value('bar2'))),
+               OrOp(KeywordOp(Keyword('foo3'), Value('bar3')), KeywordOp(Keyword('foo4'), Value('bar4'))))),
         ("foo:bar and foo:bar and foo:bar",
-            AndOp(KeywordOp(Keyword('foo'), Value('bar')),
-                AndOp(KeywordOp(Keyword('foo'), Value('bar')),
-                    KeywordOp(Keyword('foo'), Value('bar'))))),
+            AndOp(AndOp(KeywordOp(Keyword('foo'), Value('bar')),
+                        KeywordOp(Keyword('foo'), Value('bar'))),
+                  KeywordOp(Keyword('foo'), Value('bar')))),
+        ("aaa +bbb -ccc +ddd",
+         AndOp(
+            AndOp(
+                AndOp(
+                    ValueQuery(Value('aaa')),
+                    ValueQuery(Value('bbb'))
+                ),
+                NotOp(ValueQuery(Value('ccc')))
+            ),
+            ValueQuery(Value('ddd'))
+         )),
 
-        # Spires syntax
+        # Nested searches
+        ("refersto:author:Ellis",
+         KeywordOp(Keyword('refersto'), KeywordOp(Keyword('author'), Value('Ellis')))),
+        ("refersto:refersto:author:Ellis",
+         KeywordOp(Keyword('refersto'), KeywordOp(Keyword('refersto'), KeywordOp(Keyword('author'), Value('Ellis'))))),
+        ("refersto:(foo:bar)",
+         KeywordOp(Keyword('refersto'), KeywordOp(Keyword('foo'), Value('bar')))),
+        ("refersto:(foo:bar and Ellis)",
+         KeywordOp(Keyword('refersto'), AndOp(KeywordOp(Keyword('foo'), Value('bar')), ValueQuery(Value('Ellis'))))),
+
+        ### Spires syntax ###
+
+        # Simple query
         ("find t quark",
          SpiresOp(Keyword('t'), Value('quark'))),
+        ("find a:richter",
+         SpiresOp(Keyword('a'), Value('richter'))),
+        ("find a:\"richter, b\"",
+         SpiresOp(Keyword('a'), DoubleQuotedValue('richter, b'))),
+
+        # Simple query with non-obvious values
         ("find a richter, b",
          SpiresOp(Keyword('a'), Value('richter, b'))),
+        ("find texkey Allison:1980vw",
+         SpiresOp(Keyword('texkey'), Value('Allison:1980vw'))),
+        ("find title bbb:ccc ddd:eee",
+         SpiresOp(Keyword('title'), Value('bbb:ccc ddd:eee'))),
+        ("find da today-2",
+         SpiresOp(Keyword('da'), Value('today-2'))),
+        ("find da today - 2",
+         SpiresOp(Keyword('da'), Value('today - 2'))),
+        ("find da 2012-01-01",
+         SpiresOp(Keyword('da'), Value('2012-01-01'))),
+        ("find t quark andorinword",
+         SpiresOp(Keyword('t'), Value('quark andorinword'))),
+
+        # Simple query with spaces
         ("find t quark   ",
          SpiresOp(Keyword('t'), Value('quark'))),
-        ("find t quark ellis  ",
+        ("   find t quark   ",
          SpiresOp(Keyword('t'), Value('quark'))),
+        ("find t quark ellis  ",
+         SpiresOp(Keyword('t'), Value('quark ellis'))),
+
+        # Combined queries
         ("find t quark and a ellis",
          AndOp(SpiresOp(Keyword('t'), Value('quark')), SpiresOp(Keyword('a'), Value('ellis')))),
         ("find t quark or a ellis",
          OrOp(SpiresOp(Keyword('t'), Value('quark')), SpiresOp(Keyword('a'), Value('ellis')))),
+        ("find (t aaa or t bbb or t ccc)or t ddd",
+         OrOp(
+            OrOp(
+                OrOp(
+                    SpiresOp(Keyword('t'), Value('aaa')),
+                    SpiresOp(Keyword('t'), Value('bbb'))
+                ),
+                SpiresOp(Keyword('t'), Value('ccc'))
+            ),
+            SpiresOp(Keyword('t'), Value('ddd'))
+         )),
+        ("find a:richter and t quark",
+         AndOp(SpiresOp(Keyword('a'), Value('richter')), SpiresOp(Keyword('t'), Value('quark')))),
+        ("find (t quark) or (a ellis)",
+         OrOp(SpiresOp(Keyword('t'), Value('quark')), SpiresOp(Keyword('a'), Value('ellis')))),
+        ("find (t quark or a ellis)",
+         OrOp(SpiresOp(Keyword('t'), Value('quark')), SpiresOp(Keyword('a'), Value('ellis')))),
+        ("find ((t quark) or (a ellis))",
+         OrOp(SpiresOp(Keyword('t'), Value('quark')), SpiresOp(Keyword('a'), Value('ellis')))),
+        ("find (( t quark )or( a ellis ))",
+         OrOp(SpiresOp(Keyword('t'), Value('quark')), SpiresOp(Keyword('a'), Value('ellis')))),
+        ("find (( t quark )or( a:ellis ))",
+         OrOp(SpiresOp(Keyword('t'), Value('quark')), SpiresOp(Keyword('a'), Value('ellis')))),
+
+        # Implicit keyword
+        ("find a john and ellis",
+         AndOp(SpiresOp(Keyword('a'), Value('john')),
+               SpiresOp(Keyword('a'), Value('ellis')))),
+        ("find a john and (ellis or albert)",
+         AndOp(SpiresOp(Keyword('a'), Value('john')),
+               OrOp(ValueQuery(Value('ellis')),
+                    ValueQuery(Value('albert'))))),
+        ("find a john and t quark or higgs",
+         OrOp(AndOp(SpiresOp(Keyword('a'), Value('john')),
+                     SpiresOp(Keyword('t'), Value('quark'))),
+               SpiresOp(Keyword('t'), Value('higgs')))),
+        ("find john and t quark or higgs",
+         OrOp(AndOp(ValueQuery(Value('john')),
+                    SpiresOp(Keyword('t'), Value('quark'))),
+              SpiresOp(Keyword('t'), Value('higgs')))),
+        ("find a l everett or t light higgs and j phys.rev.lett. and primarch hep-ph",
+         AndOp(
+            AndOp(
+                OrOp(
+                    SpiresOp(Keyword('a'), Value('l everett')),
+                    SpiresOp(Keyword('t'), Value('light higgs'))
+                ),
+                SpiresOp(Keyword('j'), Value('phys.rev.lett.'))
+            ),
+            SpiresOp(Keyword('primarch'), Value('hep-ph'))
+         )),
+        ("find a l everett or t light higgs and j phys.rev.lett. and monkey",
+         AndOp(
+            AndOp(
+                OrOp(
+                    SpiresOp(Keyword('a'), Value('l everett')),
+                    SpiresOp(Keyword('t'), Value('light higgs'))
+                ),
+                SpiresOp(Keyword('j'), Value('phys.rev.lett.'))
+            ),
+            SpiresOp(Keyword('j'), Value('monkey'))
+         )),
+
+        # Nested searches
+        ("find refersto a ellis",
+         SpiresOp(Keyword('refersto'), SpiresOp(Keyword('a'), Value('ellis')))),
+        ("find refersto j Phys.Rev.Lett.",
+         SpiresOp(Keyword('refersto'), SpiresOp(Keyword('j'), Value('Phys.Rev.Lett.')))),
+        ("find refersto a ellis, j",
+         SpiresOp(Keyword('refersto'), SpiresOp(Keyword('a'), Value('ellis, j')))),
+        ("find refersto ellis, j",
+         SpiresOp(Keyword('refersto'), ValueQuery(Value('ellis, j')))),
+        ("find a parke, s j and refersto author witten",
+         AndOp(
+            SpiresOp(
+                Keyword('a'),
+                Value("parke, s j")
+            ),
+            SpiresOp(
+                Keyword('refersto'),
+                SpiresOp(
+                    Keyword('author'),
+                    Value('witten')
+                )
+            )
+         )),
+        ("fin af oxford u. and refersto title muon*",
+         AndOp(SpiresOp(Keyword('af'), Value("oxford u.")), SpiresOp(Keyword('refersto'), SpiresOp(Keyword('title'), Value('muon*'))))),
+        ("find refersto a parke or refersto a lykken and a witten",
+         AndOp(
+            OrOp(
+                SpiresOp(Keyword('refersto'), SpiresOp(Keyword('a'), Value("parke"))),
+                SpiresOp(Keyword('refersto'), SpiresOp(Keyword('a'), Value('lykken')))
+            ),
+            SpiresOp(Keyword('a'), Value('witten'))
+         )),
+        ("find refersto:refersto:author:maldacena",
+         SpiresOp(Keyword('refersto'),
+                  SpiresOp(Keyword('refersto'),
+                           SpiresOp(Keyword('author'),
+                                    Value('maldacena'))))),
+        ("find refersto hep-th/9711200 and t nucl*",
+         AndOp(SpiresOp(Keyword('refersto'), ValueQuery(Value("hep-th/9711200"))),
+               SpiresOp(Keyword('t'), Value('nucl*')))),
+        ("find refersto:a ellis",
+         SpiresOp(Keyword('refersto'), SpiresOp(Keyword('a'), Value('ellis')))),
+        ("find refersto: a ellis",
+         SpiresOp(Keyword('refersto'), SpiresOp(Keyword('a'), Value('ellis')))),
+
+        # Greater, Lower Ops
+        ("find date > 1984",
+         SpiresOp(Keyword('date'), GreaterOp(Value('1984')))),
+        ("find date after 1984",
+         SpiresOp(Keyword('date'), GreaterOp(Value('1984')))),
+        ("find date < 1984",
+         SpiresOp(Keyword('date'), LowerOp(Value('1984')))),
+        ("find date before 1984",
+         SpiresOp(Keyword('date'), LowerOp(Value('1984')))),
+        ("find date >= 1984",
+         SpiresOp(Keyword('date'), GreaterEqualOp(Value('1984')))),
+        ("find date <= 2014-10-01",
+         SpiresOp(Keyword('date'), LowerEqualOp(Value('2014-10-01')))),
+        ("find du > today-2",
+         SpiresOp(Keyword('du'), GreaterOp(Value('today-2')))),
+        ("find du > today - 2",
+         SpiresOp(Keyword('du'), GreaterOp(Value('today - 2')))),
+        ("find topcite 200+",
+         SpiresOp(Keyword('topcite'), GreaterEqualOp(Value('200')))),
+        ("find topcite 200-",
+         SpiresOp(Keyword('topcite'), LowerEqualOp(Value('200')))),
+
+        # Popular queries
+        ("arXiv:1004.0648",
+         KeywordOp(Keyword('arXiv'), Value("1004.0648"))),
+        ("find ea chowdhury, borun d",
+         SpiresOp(Keyword('ea'), Value("chowdhury, borun d"))),
+        ("(author:'Hiroshi Okada' OR (author:'H Okada' hep-ph) OR title: 'Dark matter in supersymmetric U(1(B-L) model' OR title: 'Non-Abelian discrete symmetry for flavors')",
+         OrOp(
+            OrOp(
+                OrOp(
+                    KeywordOp(Keyword('author'), SingleQuotedValue('Hiroshi Okada')),
+                    AndOp(
+                        KeywordOp(Keyword('author'), SingleQuotedValue('H Okada')),
+                        ValueQuery(Value('hep-ph'))
+                    )
+                ),
+                KeywordOp(Keyword('title'), SingleQuotedValue('Dark matter in supersymmetric U(1(B-L) model')),
+            ),
+            KeywordOp(Keyword('title'), SingleQuotedValue('Non-Abelian discrete symmetry for flavors'))
+         )),
+        ("f a Oleg Antipin",
+         SpiresOp(Keyword('a'), Value('Oleg Antipin'))),
+        ("FIND a Oleg Antipin",
+         SpiresOp(Keyword('a'), Value('Oleg Antipin'))),
+        ("f a rodrigo,g and not rodrigo,j",
+         AndOp(SpiresOp(Keyword('a'), Value('rodrigo,g')),
+               NotOp(SpiresOp(Keyword('a'), Value('rodrigo,j'))))),
+
     )
 
-    # def test_rr_conflicts(self):
-    #     "Test that the parser has no reduce/reduce conflict"
-    #     parser = generate_parser(generate_lexer(), None)
-    #     self.assertEqual(parser.parser.lr_table.rr_conflicts, [])
-
-    # def test_sr_conflicts(self):
-    #     "Test that the parser has no shift/reduce conflict"
-    #     parser = generate_parser(generate_lexer(), None)
-    #     self.assertEqual(parser.parser.lr_table.sr_conflicts, [])
+    @classmethod
+    def setUpClass(cls):
+        cls.walkers = load_walkers()
+        cls.parser = SpiresToInvenioSyntaxConverter()
 
 
-@generate_tests(partial(generate_walker_test, walker=SpiresToInvenio))  # pylint: disable=R0903
-class TestSpiresToInvenio(InvenioTestCase):
-    """Test parser functionality"""
+TEST_SUITE = make_test_suite(TestParser)
 
-    queries = (
-        ("find t quark",
-         KeywordOp(Keyword('t'), Value('quark'))),
-    )
-
-
-TEST_SUITE = make_test_suite(TestLexer, TestParser)
 
 if __name__ == "__main__":
     run_test_suite(TEST_SUITE)

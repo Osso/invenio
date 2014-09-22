@@ -15,7 +15,7 @@
 ## along with Invenio; if not, write to the Free Software Foundation, Inc.,
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-SUBDIRS = services
+SUBDIRS = services search_parser_ast_walkers
 
 pylibdir = $(libdir)/python/invenio
 jsdir=$(localstatedir)/www/js
@@ -36,7 +36,6 @@ pylib_DATA = \
 	search_engine_query_parser_unit_tests.py \
     search_engine_spires_parser.py \
     search_engine_spires_ast.py \
-    search_engine_spires_walking.py \
     search_engine_spires_parser_unit_tests.py \
 	websearch_webcoll.py \
 	websearchadmin_regression_tests.py \

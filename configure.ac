@@ -886,6 +886,7 @@ AC_CONFIG_FILES([config.nice  \
      modules/websearch/doc/hacking/Makefile \
      modules/websearch/lib/Makefile \
      modules/websearch/lib/services/Makefile \
+     modules/websearch/lib/search_parser_ast_walkers/Makefile \
      modules/websearch/web/Makefile \
      modules/websearch/web/admin/Makefile \
      modules/websession/Makefile \

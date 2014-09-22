@@ -156,8 +156,8 @@ from invenio.dbquery import run_sql, \
 from invenio.webuser import getUid, collect_user_info, session_param_set
 from invenio.webpage import pageheaderonly, pagefooteronly, create_error_box, write_warning
 from invenio.messages import gettext_set_language
-from invenio.search_engine_query_parser import SearchQueryParenthesisedParser, \
-    SpiresToInvenioSyntaxConverter
+from invenio.search_engine_query_parser import SearchQueryParenthesisedParser
+from invenio.search_engine_spires_parser import SpiresToInvenioSyntaxConverter
 
 from invenio import webinterface_handler_config as apache
 from invenio.solrutils_bibindex_searcher import solr_get_bitset
