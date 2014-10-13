@@ -39,8 +39,6 @@ pylib_DATA = __init__.py \
              miscutil_config.py \
              messages.py \
              messages_unit_tests.py \
-             visitor.py \
-             visitor_unit_tests.py \
              textutils.py \
              textutils_unit_tests.py \
              dateutils.py \

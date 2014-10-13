@@ -24,7 +24,7 @@ from invenio.testutils import InvenioTestCase
 import datetime
 
 from invenio import search_engine_query_parser
-from invenio.search_engine_spires_parser import SpiresToInvenioSyntaxConverter
+from invenio_query_parser import SpiresToInvenioSyntaxConverter
 from invenio.testutils import make_test_suite, run_test_suite
 from invenio.search_engine import create_basic_search_units, perform_request_search
 from invenio.config import CFG_WEBSEARCH_SPIRES_SYNTAX
